@@ -1,0 +1,40 @@
+DRUM RM – ANALIZA FILMARILOR PE CALCULATOR
+==========================================
+
+1. Descarca de pe portal arhiva filmarii (.zip) si pune-o in folderul "filmari"
+   (sau trage arhiva cu mouse-ul peste ANALIZEAZA.bat).
+2. Dublu-click pe ANALIZEAZA.bat.
+   - Prima data instaleaza singur programele necesare (10-20 min, ~4 GB, o singura data).
+   - Apoi analizeaza fiecare filmare: copaci, gropi, indicatoare, cu pozele lor.
+3. Rezultatul apare in rezultat\<numele filmarii>\ :
+   - Drum.gdb   – File Geodatabase in MOLDREF99: Copaci, Gropi, Indicatoare, Traseu.
+                  Pozele sunt atasate la fiecare punct (ArcGIS: Attachments).
+   - Drum.qgs   – proiect QGIS: dublu-click; click pe un punct (Identificare) = formularul cu poza;
+                  cu "Vizualizare > Afiseaza Map Tips" apare poza si cand tii mouse-ul pe punct.
+   - poze\      – pozele ca fisiere .jpg
+   - osm.json   – datele OpenStreetMap folosite la comparatie
+
+   Comparatia cu OpenStreetMap (daca e internet; fara internet analiza merge, doar fara comparatie):
+   - copacii nu raman pe carosabil: daca un copac iese pe drum (dupa axa si latimea drumului din OSM),
+     e mutat la marginea drumului, pe partea unde a fost vazut (Nota: "mutat de pe carosabil").
+     Pe carosabil pot ramane doar indicatoarele si gropile.
+   - campul OSM: "exista in OSM" sau "nou (lipseste din OSM)"; OSM_id, Dist_OSM.
+   - stratul OSM_nedetectate: copacii si indicatoarele din OSM de langa traseu pe care filmarea
+     nu le-a gasit – de verificat.
+   - campurile Google si StreetView: legaturi care deschid punctul in Google Maps / Street View,
+     pentru verificare cu ochiul. (Pozele Google nu se pot descarca si analiza automat – nu permit.)
+   - in QGIS: fundal OpenStreetMap si "Satelit (Esri)" (bifeaza-l in lista straturilor).
+4. Corecteaza daca e nevoie (muta, sterge, adauga puncte) in QGIS sau ArcGIS, direct in Drum.gdb.
+5. Dublu-click pe TRIMITE_PE_PORTAL.bat: rezultatul (cu corecturile si pozele) ajunge in
+   "Continutul meu" pe portal. A doua trimitere a aceluiasi folder actualizeaza acelasi element.
+   Emailul si parola de pe portal se cer o singura data; parola nu se pastreaza pe calculator.
+
+Programul fara instalare (Drum_Analiza.exe):
+   Pe un calculator unde ai voie sa descarci programe (acasa) dublu-click pe CONSTRUIESTE_EXE.bat.
+   Iese dist\Drum_Analiza_portabil.zip: il dezarhivezi oriunde (si la lucru) si pornesti
+   Drum_Analiza.exe – tragi arhiva filmarii peste fereastra; arata cat a ramas si cate obiecte s-au gasit.
+
+Modelul de detectare: folderul "model".
+   - drum_v1.onnx    – modelul din aplicatie (merge pe procesor, fara alte programe).
+   - Pune aici un model .pt (de ex. cel antrenat pe placa ta video) – va fi folosit el, pe placa video,
+     mai repede si mai bine.

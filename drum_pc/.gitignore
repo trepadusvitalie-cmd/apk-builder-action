@@ -1,0 +1,7 @@
+env/
+unelte/
+rezultat/
+filmari/*.zip
+__pycache__/
+dist/
+build/

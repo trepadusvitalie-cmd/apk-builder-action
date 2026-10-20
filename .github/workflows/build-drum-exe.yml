@@ -1,0 +1,57 @@
+name: Construieste Drum_Analiza.exe
+
+on:
+  push:
+    branches: [claude/apk-request-nmmsih]
+    paths: ["drum_pc/**", ".github/workflows/build-drum-exe.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  exe:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Construire (CONSTRUIESTE_EXE.bat)
+        shell: cmd
+        run: cmd /c "drum_pc\CONSTRUIESTE_EXE.bat < nul"
+
+      - name: Verificare
+        shell: pwsh
+        run: |
+          Get-ChildItem drum_pc\dist | Format-Table Name, Length
+          if (-not (Test-Path drum_pc\dist\Drum_Analiza_portabil.zip)) { throw "lipseste arhiva portabila" }
+          $pyd = Get-ChildItem -Recurse drum_pc\dist\Drum_Analiza\_internal -Filter "cv2*.pyd"
+          if (-not $pyd) { throw "lipseste OpenCV (cv2*.pyd)" }
+          $pyd | ForEach-Object { $_.FullName }
+
+      - name: Test pornire (exe-ul portabil porneste 20 s fara eroare)
+        shell: pwsh
+        run: |
+          $p = Start-Process drum_pc\dist\Drum_Analiza\Drum_Analiza.exe -PassThru
+          Start-Sleep 20
+          if ($p.HasExited) { throw "exe-ul s-a inchis singur (cod $($p.ExitCode))" }
+          Stop-Process -Id $p.Id -Force
+          Write-Host "Porneste OK"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Drum_Analiza
+          path: |
+            drum_pc/dist/Drum_Analiza_portabil.zip
+            drum_pc/dist/Drum_Analiza_autonom.exe
+          retention-days: 7
+
+      - name: Publicare (Release drum-exe)
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete drum-exe --yes --cleanup-tag 2>$null
+          $f = @("drum_pc/dist/Drum_Analiza_portabil.zip")
+          if (Test-Path drum_pc/dist/Drum_Analiza_autonom.exe) { $f += "drum_pc/dist/Drum_Analiza_autonom.exe" }
+          gh release create drum-exe @f --target $env:GITHUB_SHA --title "Drum_Analiza.exe" --notes "Construit automat din $env:GITHUB_SHA"

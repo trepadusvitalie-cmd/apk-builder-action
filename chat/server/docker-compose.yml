@@ -1,0 +1,32 @@
+# Server media pentru apeluri audio/video (LiveKit SFU) — rulează pe un VPS din Moldova.
+# Pornire:  cp .env.example .env  &&  editează .env  &&  docker compose up -d
+#
+# Ambele servicii folosesc rețeaua gazdei: WebRTC are nevoie de multe porturi UDP,
+# iar NAT-ul Docker strică performanța și detecția adresei publice.
+services:
+  livekit:
+    image: livekit/livekit-server:v1.13
+    restart: unless-stopped
+    network_mode: host
+    command: --config /etc/livekit.yaml
+    environment:
+      # Format: "cheie: secret" (spațiul după două puncte e obligatoriu)
+      LIVEKIT_KEYS: "${LIVEKIT_API_KEY}: ${LIVEKIT_API_SECRET}"
+    volumes:
+      - ./livekit.yaml:/etc/livekit.yaml:ro
+
+  # TLS automat (Let's Encrypt) în fața portului de semnalizare al LiveKit.
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      LIVEKIT_DOMAIN: ${LIVEKIT_DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

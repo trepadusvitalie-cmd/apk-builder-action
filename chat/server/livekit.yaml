@@ -1,0 +1,20 @@
+# Configurația LiveKit. Cheile vin din variabila LIVEKIT_KEYS (vezi docker-compose.yml),
+# deci acest fișier nu conține secrete.
+port: 7880                # semnalizare (HTTP/WebSocket), doar local — Caddy o expune pe 443
+bind_addresses:
+  - 127.0.0.1
+
+rtc:
+  tcp_port: 7881          # rezervă ICE/TCP pentru rețele care blochează UDP
+  port_range_start: 50000 # media UDP
+  port_range_end: 50200
+  use_external_ip: true   # anunță adresa publică a serverului
+
+room:
+  auto_create: true
+  empty_timeout: 120      # camera goală se închide după 2 minute
+  departure_timeout: 20
+  max_participants: 50
+
+logging:
+  level: info

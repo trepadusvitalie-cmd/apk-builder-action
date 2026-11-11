@@ -19,3 +19,7 @@ This GitHub action completely automates the _release_ or _debug_ APK building pr
 
 **Website:** [anissan.com](https://anissan.com)
 <img src="https://ping.anissan.com/?repo=apk-builder-action" width="0" height="0" align="right">
+
+## MD Chat
+
+Acest repository conține și fundația unei aplicații de mesagerie și apeluri video — vezi [`chat/README.md`](chat/README.md).

@@ -22,23 +22,32 @@ function fbm(x, y) { let s = 0, a = 1, f = 1, n = 0; for (let i = 0; i < 4; i++)
 // Map: player base in the south (summer). Enemy citadel in the centre, surrounded by
 // three rings of outposts whose technology grows weaker towards the edge.
 // Biomes by direction: north = winter, east = sand desert, south = summer, west = mountains.
-const MAP = 300, HALF = MAP / 2, EDGE = HALF - 9;
-const PLAYER = { x: 0, z: 124 };
+const MAPS = [
+  { name: 'Normală', size: 300, rings: [[112, 5, 0, 1.3], [78, 4, 1, 1.7], [46, 3, 2, 1.2]], gar: 1 },
+  { name: 'Mare', size: 420, rings: [[165, 7, 0, 1.2], [128, 6, 1, 1.3], [90, 5, 1, 1.3], [52, 4, 2, 1.2]], gar: 0.85 },
+  { name: 'Uriașă', size: 560, rings: [[228, 9, 0, 1.1], [185, 8, 0, 1.2], [140, 7, 1, 1.3], [98, 5, 2, 1.3], [56, 4, 2, 1.2]], gar: 0.7 },
+];
+let MAPI = 0; try { MAPI = clamp(+(localStorage.getItem('ironfall.map') || 0) | 0, 0, MAPS.length - 1); } catch (e) {}
+const MC = MAPS[MAPI];
+const MAP = MC.size, HALF = MAP / 2, EDGE = HALF - 9, SC = MAP / 300;
+const PLAYER = { x: 0, z: HALF - 26 };
 const CENTER = { x: 0, z: 0 };
 const BASES = [PLAYER, CENTER];
-const RINGS = [{ r: 112, n: 5, tier: 0 }, { r: 78, n: 4, tier: 1 }, { r: 46, n: 3, tier: 2 }];
+const RINGS = MC.rings.map(([r, n, tier, gap]) => ({ r, n, tier, gap }));
 const OUTPOSTS = [];
 RINGS.forEach((R, ri) => {
   for (let i = 0; i < R.n; i++) {
     // keep the southern approach free near the player: spread over the remaining arc
-    const gap = [1.3, 1.7, 1.2][ri]; const span = TAU - gap; const a0 = gap / 2;
+    const gap = R.gap; const span = TAU - gap; const a0 = gap / 2;
     const a = a0 + span * (i + 0.5) / R.n;
     OUTPOSTS.push({ x: Math.sin(a) * R.r, z: Math.cos(a) * R.r, tier: R.tier, a, prodT: 0, nextWave: 0, citadel: false });
   }
 });
 OUTPOSTS.push({ x: 0, z: 0, tier: 3, a: 0, prodT: 0, nextWave: 0, citadel: true });
 const FLAT = [{ x: PLAYER.x, z: PLAYER.z, r: 26 }, { x: 0, z: 0, r: 34 }, ...OUTPOSTS.filter(o => !o.citadel).map(o => ({ x: o.x, z: o.z, r: 16 }))];
-const WELL_POS = [[-14, 136], [16, 134], [0, 108], [-40, 118], [42, 116], [-70, 95], [72, 92], [0, 70], [-95, 40], [96, 30], [-20, -96], [30, -120], [-110, -40], [110, -70], [-60, -130], [70, 60], [-60, 60]];
+const WELL_POS = [[-14, PLAYER.z + 12], [16, PLAYER.z + 10], [0, PLAYER.z - 16], ...[[-40, 118], [42, 116], [-70, 95], [72, 92], [0, 70], [-95, 40], [96, 30], [-20, -96], [30, -120], [-110, -40], [110, -70], [-60, -130], [70, 60], [-60, 60]].map(([x, z]) => [x * SC, z * SC])];
+{ let k = 0; const extra = Math.round(16 * (SC * SC - 1)); for (let t = 0; k < extra && t < 4000; t++) { const x = (hash2(t, 7) - 0.5) * (MAP - 40), z = (hash2(t, 13) - 0.5) * (MAP - 40);
+  if (Math.hypot(x, z) < 40 || Math.hypot(x - PLAYER.x, z - PLAYER.z) < 35 || OUTPOSTS.some(o => Math.hypot(o.x - x, o.z - z) < 24) || WELL_POS.some(w => Math.hypot(w[0] - x, w[1] - z) < 30)) continue; WELL_POS.push([x, z]); k++; } }
 for (const o of OUTPOSTS) if (!o.citadel) { const a = o.a + 0.18; const r = Math.hypot(o.x, o.z) + 9; WELL_POS.push([Math.sin(a) * r, Math.cos(a) * r]); }
 WELL_POS.push([14, 8], [-14, -8]);
 
@@ -87,7 +96,7 @@ const scene = new THREE.Scene();
 const FOG = 0xb09a78;
 scene.background = new THREE.Color(FOG);
 scene.fog = new THREE.Fog(FOG, 80, 200);
-const camera = new THREE.PerspectiveCamera(50, 1, 0.5, 500); const tmpC = new THREE.Color();
+const camera = new THREE.PerspectiveCamera(50, 1, 0.5, 500 * Math.max(1, SC * 0.85)); const tmpC = new THREE.Color();
 scene.add(new THREE.HemisphereLight(0xdfe8f5, 0x5a4832, 1.9));
 const sun = new THREE.DirectionalLight(0xfff0d6, 3.1);
 sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
@@ -133,7 +142,7 @@ const skyMat = new THREE.ShaderMaterial({
       #include <colorspace_fragment>
     }`
 });
-const sky = new THREE.Mesh(new THREE.SphereGeometry(420, 32, 16), skyMat); sky.renderOrder = -1; sky.frustumCulled = false;
+const sky = new THREE.Mesh(new THREE.SphereGeometry(420 * Math.max(1, SC * 0.85), 32, 16), skyMat); sky.renderOrder = -1; sky.frustumCulled = false;
 const matVC = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, map: panelTex });
 const matUnit = new THREE.MeshLambertMaterial({ vertexColors: true, map: panelTex }); // smooth shading = rounder look
 const matPlain = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
@@ -197,7 +206,7 @@ class Builder {
 // ---- terrain
 let terrainMesh;
 function buildTerrain() {
-  const SEG = 200;
+  const SEG = Math.min(300, Math.round(MAP / 1.5));
   const g = new THREE.PlaneGeometry(MAP, MAP, SEG, SEG); g.rotateX(-Math.PI / 2);
   const p = g.attributes.position;
   for (let i = 0; i < p.count; i++) p.setY(i, heightAt(p.getX(i), p.getZ(i)));
@@ -245,7 +254,7 @@ function buildDecor() {
   // impassable mountain peaks
   for (let z = -EDGE; z <= EDGE; z += 5) for (let x = -EDGE; x <= EDGE; x += 5) { if (heightAt(x, z) > 15 && ok(x, z, -6)) OBST.push({ x, z, r: 3.4, mtn: true }); }
   let tries = 0, clusters = 0;
-  while (clusters < 34 && tries < 900) {
+  while (clusters < Math.round(34 * SC * SC) && tries < 900 * SC * SC) {
     tries++; const cx = rand(-EDGE, EDGE), cz = rand(-EDGE, EDGE); if (!ok(cx, cz, 6)) continue;
     clusters++; const n = 3 + (Math.random() * 5 | 0);
     for (let i = 0; i < n; i++) {
@@ -260,7 +269,7 @@ function buildDecor() {
     }
   }
   // vegetation by biome
-  for (let i = 0; i < 1400; i++) {
+  for (let i = 0; i < 1400 * Math.min(SC * SC, 2.6); i++) {
     const x = rand(-EDGE, EDGE), z = rand(-EDGE, EDGE); if (!ok(x, z, -10)) continue; const y = heightAt(x, z); if (y > 15) continue;
     const w = biomeW(x, z); const roll = Math.random();
     if (roll < w.snow) { // snowy pine
@@ -289,7 +298,7 @@ function buildDecor() {
       B.add(G.cyl6, 0.07, h * 0.5, 0.07, x + 0.3, y + h * 0.75, z, 0x3b2e22, 0, 0, -0.8);
     }
   }
-  for (let i = 0; i < 320; i++) {
+  for (let i = 0; i < 320 * SC * SC; i++) {
     const x = rand(-EDGE, EDGE), z = rand(-EDGE, EDGE); if (!ok(x, z, -10)) continue; const s = rand(0.4, 2.2); const w = biomeW(x, z);
     const col = w.snow > 0.5 ? pick([0xc8d0d8, 0x9aa4ad]) : w.sand > 0.5 ? pick([0xb08a5a, 0x9c7a50]) : pick([0x7b6f5f, 0x6a6052, 0x8a7d6a]);
     B.add(G.ico, s * rand(0.8, 1.3), s * rand(0.5, 0.9), s * rand(0.8, 1.3), x, heightAt(x, z) + s * 0.2, z, col, rand(0, 3), rand(0, 3), rand(0, 3));
@@ -306,12 +315,12 @@ function buildGroundCover() {
   const blob = new THREE.IcosahedronGeometry(0.28, 0);
   const flower = new THREE.SphereGeometry(0.12, 5, 4); flower.translate(0, 0.55, 0);
   const mat = new THREE.MeshLambertMaterial();
-  const N = 9000, NB = 2500, NF = 1600;
+  const GK = Math.min(SC * SC, 2.2), N = Math.round(9000 * GK), NB = Math.round(2500 * GK), NF = Math.round(1600 * GK);
   const grass = new THREE.InstancedMesh(tuft, mat, N), blobs = new THREE.InstancedMesh(blob, mat, NB), flowers = new THREE.InstancedMesh(flower, new THREE.MeshBasicMaterial(), NF);
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), sc = new THREE.Vector3(), ps = new THREE.Vector3(), col = new THREE.Color();
   const near = (x, z) => { for (const f of FLAT) if (Math.hypot(x - f.x, z - f.z) < f.r - 3) return true; for (const w of WELLS) if (Math.hypot(x - w.x, z - w.z) < 4.5) return true; return false; };
   let gi = 0, bi = 0, fi = 0;
-  for (let tries = 0; tries < 60000 && (gi < N || bi < NB); tries++) {
+  for (let tries = 0; tries < 60000 * GK && (gi < N || bi < NB); tries++) {
     const x = rand(-EDGE, EDGE), z = rand(-EDGE, EDGE); if (near(x, z)) continue; const y = heightAt(x, z); if (y > 15) continue;
     const w = biomeW(x, z); const r = Math.random();
     if (r < w.green && gi < N) {
@@ -391,6 +400,7 @@ const DCLASS = {
   fort: { name: 'Fortăreață', hp: 5200, cost: 560, size: 8, time: 70, h: 6, ty: 5.6, ts: 1.9, rb: 6, dm: 3.6, req: 'fortress', wps: ['cannon', 'rockets', 'laser'] },
   pit: { name: 'Amplasament', hp: 700, cost: 80, size: 3.6, time: 18, h: 1.5, ty: 0.75, ts: 1.1, rb: 0, dm: 1.4, req: null, wps: ['mortar', 'imortar', 'empmortar', 'salvo', 'howitzer', 'ihowitzer', 'rhowitzer', 'hhowitzer', 'plasma', 'ballistic'] },
 };
+const ART_SND = { mortar: 'art_mortar', imortar: 'art_inc', empmortar: 'art_emp', rmortar: 'art_rmortar', salvo: 'art_salvo', howitzer: 'art_how', ihowitzer: 'art_inc', rhowitzer: 'art_rhow', hhowitzer: 'art_hhow', plasma: 'art_plasma', ballistic: 'art_ball' };
 const ART_W = ['mortar', 'imortar', 'empmortar', 'salvo', 'howitzer', 'ihowitzer', 'rhowitzer', 'hhowitzer', 'plasma', 'ballistic'];
 const WSHORT = { mg: 'mitralieră', cannon: 'tun', flame: 'flăcări', rockets: 'rachete', laser: 'laser', mortar: 'mortier', imortar: 'mortier incendiar', empmortar: 'mortier IEM', salvo: 'salve', howitzer: 'obuzier', ihowitzer: 'obuzier incendiar', rhowitzer: 'obuzier rapid', hhowitzer: 'obuzier greu', plasma: 'plasmă', ballistic: 'rachetă balistică' };
 for (const [ck, c] of Object.entries(DCLASS)) for (const w of c.wps) BD['d_' + ck + '_' + w] = { short: WSHORT[w][0].toUpperCase() + WSHORT[w].slice(1), name: `${c.name} ${WSHORT[w]}`, icon: '', hp: c.hp, cost: c.cost + 0 * 1, size: c.size, time: c.time, h: c.h, tw: w, cls: ck, req: c.req, ty: c.ty, ts: c.ts, rb: c.rb, dm: c.dm };
@@ -1013,7 +1023,7 @@ function updProjs(dt) {
       fx('flash', x, y, z, p.kind === 'rocket' ? 1 : 0.7); fx('fire', x, y, z, 0.7); fx('smoke', x, y, z, 0.6); for (let s = 0; s < 4; s++) fx('spark', x, y, z, 1);
       if (p.kind === 'mortar') { const big = p.w && p.w.big; fx('flash', x, y, z, big ? 3 : 1.6); fx('dust', x, y, z, big ? 2.6 : 1.4); if (big) for (let s = 0; s < 3; s++) fx('fire', x + rand(-1.5, 1.5), y, z + rand(-1.5, 1.5), 1.4); sfx(big ? 'bigboom' : 'boom', x, z); } else sfx('hit', x, z);
       if (p.w && p.w.fire) fireZones.push({ x, z, r: p.splash, t: 5, dps: p.w.fire, team: p.team, src: p.src, fxT: 0 });
-      if (p.w && p.w.emp) { for (const e of ents) if (e.alive && e.kind === 'unit' && e.team !== p.team && Math.hypot(e.x - x, e.z - z) < p.splash) e.stun = p.w.emp; for (let s = 0; s < 6; s++) fx('spark', x + rand(-2, 2), y + rand(0, 2), z + rand(-2, 2), 1.2); }
+      if (p.w && p.w.emp) { sfx('art_emp', x, z); for (const e of ents) if (e.alive && e.kind === 'unit' && e.team !== p.team && Math.hypot(e.x - x, e.z - z) < p.splash) e.stun = p.w.emp; for (let s = 0; s < 6; s++) fx('spark', x + rand(-2, 2), y + rand(0, 2), z + rand(-2, 2), 1.2); }
       if (p.realT && p.realT.alive && Math.hypot(p.realT.x - x, p.realT.z - z) < p.splash + p.realT.r) damage(p.realT, p.dmg, p.src);
       if (p.tgt.alive) damage(p.tgt, p.dmg, p.src);
       if (p.splash) for (const e of ents) if (e.alive && e.team !== p.team && e !== p.tgt && Math.hypot(e.x - x, e.z - z) < p.splash + e.r * 0.5) damage(e, p.dmg * 0.5, p.src);
@@ -1076,8 +1086,8 @@ function fireWeapon(src, t, w, mx, my, mz, mul) {
   fx('muzzle', mx, my, mz, w.kind === 'mg' ? 0.8 : 1.4);
   if (w.kind === 'mg') { const ty = t.y + (t.kind === 'bld' ? 1.5 : 0.7); tracer(mx, my, mz, t.x + rand(-0.4, 0.4), ty, t.z + rand(-0.4, 0.4)); if (Math.random() < 0.3) fx('spark', t.x, ty, t.z, 1); damage(t, dmg, src); sfx('mg', mx, mz); }
   else if (w.kind === 'shell') { spawnProj('shell', src, t, dmg, 0, mx, my, mz); fx('smoke', mx, my, mz, 0.6); sfx('shell', mx, mz); }
-  else if (w.kind === 'mortar') { spawnProj('mortar', src, t, dmg, w.splash, mx, my, mz, w); fx('smoke', mx, my, mz, w.big ? 1.6 : 0.9); fx('flash', mx, my, mz, w.big ? 1.2 : 0.6); sfx(w.plasma ? 'laser' : 'shell', mx, mz); }
-  else if (w.kind === 'salvo') { for (let i = 0; i < w.n; i++) later(i * 0.12, () => { if (src.alive && t.alive) spawnProj('mortar', src, { ...t, x: t.x + rand(-2.5, 2.5) * (w.n > 1 ? 1 : 0), z: t.z + rand(-2.5, 2.5) * (w.n > 1 ? 1 : 0), alive: false, kind: t.kind, y: t.y }, dmg, w.splash, mx, my, mz, w, t); }); sfx('rocket', mx, mz); }
+  else if (w.kind === 'mortar') { spawnProj('mortar', src, t, dmg, w.splash, mx, my, mz, w); fx('smoke', mx, my, mz, w.big ? 1.6 : 0.9); fx('flash', mx, my, mz, w.big ? 1.2 : 0.6); sfx(ART_SND[w.id] || 'art_mortar', mx, mz); }
+  else if (w.kind === 'salvo') { sfx(ART_SND[w.id], mx, mz); for (let i = 0; i < w.n; i++) later(i * 0.12, () => { if (src.alive && t.alive) spawnProj('mortar', src, { ...t, x: t.x + rand(-2.5, 2.5) * (w.n > 1 ? 1 : 0), z: t.z + rand(-2.5, 2.5) * (w.n > 1 ? 1 : 0), alive: false, kind: t.kind, y: t.y }, dmg, w.splash, mx, my, mz, w, t); }); }
   else if (w.kind === 'flame') { const ty = t.y + (t.kind === 'bld' ? 1.2 : 0.6);
     for (let k = 1; k <= 5; k++) { const f = k / 5; fx('flame', lerp(mx, t.x, f) + rand(-0.3, 0.3), lerp(my, ty, f) + rand(-0.2, 0.3), lerp(mz, t.z, f) + rand(-0.3, 0.3), 0.6 + f * 1.1); }
     if (Math.random() < 0.4) fx('smoke', t.x, ty + 1, t.z, 0.7); damage(t, dmg, src);
@@ -1311,7 +1321,7 @@ function canPlace(type, x, z, team) {
 const ENEMY_DEF = [['tower'], ['tower', 'd_bunker_flame', 'd_pit_mortar'], ['d_hard_cannon', 'd_pit_howitzer', 'd_hard_rockets', 'd_pit_salvo'], ['d_hard_laser']];
 function tierDesign(t) { const T = TIERS[t]; return { ch: pick(T.ch), pr: pick(T.pr), wp: pick(T.wp) }; }
 const AI = { tick: 0 };
-const CAP_E = 95;
+const CAP_E = Math.round(95 * Math.min(SC, 1.6));
 function aiTick() {
   const t = S.time; const dm = [1.4, 1, 0.75][S.diff];
   const enemyUnits = ents.filter(e => e.alive && e.team === 1 && e.kind === 'unit');
@@ -1412,7 +1422,7 @@ function setupEnemy() {
       const w = WELLS.find(w => Math.hypot(w.x - o.x, w.z - o.z) < 14); if (w) createBuilding(1, 'generator', w.x, w.z, true, null, o.tier);
     }
     fortDecor(o);
-    for (let i = 0; i < T.garrison; i++) { const a = rand(0, TAU), r = rand(5, o.citadel ? 18 : 10); const u = createUnit(1, tierDesign(o.tier), o.x + Math.sin(a) * r, o.z + Math.cos(a) * r, o.tier); u.post = o; }
+    for (let i = 0; i < Math.max(2, Math.round(T.garrison * MC.gar)); i++) { const a = rand(0, TAU), r = rand(5, o.citadel ? 18 : 10); const u = createUnit(1, tierDesign(o.tier), o.x + Math.sin(a) * r, o.z + Math.cos(a) * r, o.tier); u.post = o; }
   }
 }
 // ================= CAMERA / INPUT =================
@@ -1830,11 +1840,26 @@ function buildSfx() {
   SB.boom = [boom(2.4, 2.2, 1600, 120, 55, 0.004), boom(2.4, 2.0, 1400, 100, 48, 0.005)];
   SB.bigboom = [boom(4.2, 1.15, 1300, 70, 40, 0.007)];
   { const l = LP(); const P = [[440, 6], [1187, 9], [1993, 13], [3121, 18], [4470, 24]]; SB.hit = mk(0.7, t => { let s = W() * Math.exp(-t * 90) * 0.7 + l(W(), 900) * Math.exp(-t * 18) * 0.8; for (const [f, d] of P) s += Math.sin(TAU2 * f * t + f) * Math.exp(-t * d) * 0.22; return s; }); }
-  { const l = LP(); let g = 0; SB.weld = mk(0.35, (t, i) => { if (i % 64 === 0) g = Math.random() < 0.35 ? 1 : 0.15; const hum = Math.sin(TAU2 * 100 * t) * 0.15; return ((W() - l(W(), 2500)) * g * 0.9 + hum) * Math.min(1, t / 0.01) * Math.exp(-t * 6); }); }
+  // electric arc welding: steady mains buzz + sizzling arc, smooth fade, no knocks
+  { const l = LP(), l2 = LP(); let env = 0.6, tgt = 0.6; SB.weld = [0, 1, 2].map(k => mk(0.9, (t, i) => { if (i % 220 === 0) tgt = 0.45 + Math.random() * 0.55; env += (tgt - env) * 0.004;
+      const f0 = 100 + k * 3; let buzz = 0; for (let h = 1; h <= 7; h += 2) buzz += Math.sin(TAU2 * f0 * h * t) / h; buzz = Math.tanh(buzz * 2.2) * 0.35;
+      const hiss = (W() - l(W(), 2200)) * 0.55; const sizzle = l2((Math.random() < 0.004 ? W() * 3 : 0), 6000) * 0.8;
+      const fade = Math.min(1, t / 0.12) * Math.min(1, (0.9 - t) / 0.2); return (buzz + hiss * env + sizzle) * fade * 0.8; }, 1)); }
   { const l = LP(); SB.click = mk(0.05, t => (Math.sin(TAU2 * 1800 * t) * 0.6 + l(W(), 4000) * 0.6) * Math.exp(-t * 140), 1); }
   { const l = LP(), l2 = LP(); SB.ack = mk(0.32, t => { const radio = (l(W(), 3200) - l2(W(), 900)) * (t < 0.06 || t > 0.24 ? 0.9 : 0.12); const beep = t > 0.07 && t < 0.2 ? Math.sin(TAU2 * 1250 * t) * 0.5 * Math.min(1, (t - 0.07) * 200) : 0; return radio + beep; }, 1); }
   { const l = LP(); let ph = 0; SB.laser = mk(0.45, t => { const f = 600 + 2600 * Math.exp(-t * 9); ph += TAU2 * (f + 180 * Math.sin(TAU2 * 55 * t)) / SR; return (Math.sin(ph) * 0.8 + Math.sin(ph * 1.5) * 0.3 + l(W(), 5000) * 0.25) * Math.min(1, t * 300) * Math.exp(-t * 7); }, 1.3); }
   { const l = LP(), l2 = LP(), br = BR(); SB.flame = mk(0.4, t => (l(W(), 1400) * 1.4 + l2(br(), 200) * 0.8 + (Math.random() < 0.02 ? W() * 0.5 : 0)) * Math.min(1, t * 60) * Math.exp(-t * 5)); }
+  // ---- artillery: each weapon has its own firing sound
+  { const l = LP(); let ph = 0; SB.art_mortar = mk(0.7, t => { ph += TAU2 * (60 + 140 * Math.exp(-t * 18)) / SR; return Math.sin(ph) * Math.exp(-t * 9) * 1.2 + l(W(), 900) * Math.exp(-t * 14) * 0.9 + W() * Math.exp(-t * 300) * 0.5; }); }
+  { const l = LP(); SB.art_rmortar = mk(0.5, t => { const k = Math.floor(t / 0.12), tt = t - k * 0.12; return k < 3 ? (Math.sin(TAU2 * (90 + 120 * Math.exp(-tt * 25)) * tt) * Math.exp(-tt * 20) + l(W(), 1100) * Math.exp(-tt * 22) * 0.7) : 0; }); }
+  SB.art_how = gun(2.6, 160, 2200, 90, 3.6, 60, 26, 1.5, 1.4);
+  SB.art_rhow = gun(1.6, 240, 2600, 120, 5, 70, 32, 1.1, 0.9);
+  SB.art_hhow = gun(4, 90, 1600, 60, 2.2, 46, 20, 2, 2);
+  { const l = LP(), l2 = LP(); SB.art_inc = mk(1.8, t => { const b = l(W(), 1400) * Math.exp(-t * 5) * 1.4 + Math.sin(TAU2 * (55 + 40 * Math.exp(-t * 10)) * t) * Math.exp(-t * 5); const whoosh = l2(W(), 600 + 2400 * Math.exp(-t * 3)) * Math.min(1, t * 8) * Math.exp(-t * 2.2) * 0.9; return b + whoosh; }); }
+  { const l = LP(); let ph = 0; SB.art_emp = mk(1.2, t => { ph += TAU2 * (300 + 1800 * Math.exp(-t * 6) + 120 * Math.sin(TAU2 * 30 * t)) / SR; const zap = (Math.random() < 0.06 ? W() : 0) * Math.exp(-t * 3); return Math.sin(ph) * 0.5 * Math.exp(-t * 3) + zap * 1.4 + Math.sin(TAU2 * 70 * t) * Math.exp(-t * 12) * 0.8 + l(W(), 700) * Math.exp(-t * 18); }); }
+  { const l = LP(); let ph = 0; SB.art_plasma = mk(1.4, t => { ph += TAU2 * (200 + 900 * (1 - Math.exp(-t * 4))) / SR; const crackle = (Math.random() < 0.03 ? W() : 0) * Math.exp(-t * 2); return (Math.sin(ph) + 0.5 * Math.sin(ph * 2.02)) * Math.min(1, t * 10) * Math.exp(-t * 2.4) * 0.6 + crackle + l(W(), 500) * Math.exp(-t * 10) * 1.2; }); }
+  { const l = LP(), l2 = LP(); SB.art_salvo = mk(1.3, t => { let s = 0; for (let k = 0; k < 4; k++) { const tt = t - k * 0.12; if (tt > 0) s += (W() * Math.exp(-tt * 140) * 0.6 + l(W(), 3000 * Math.exp(-tt * 2)) * Math.exp(-tt * 4) * 0.6); } return s + l2(W(), 250) * Math.exp(-t * 3) * 0.6; }); }
+  { const l = LP(), l2 = LP(), br = BR(); SB.art_ball = mk(4, t => { const ign = W() * Math.exp(-t * 40) * 0.8; const roar = (l(br(), 220) * 1.6 + l2(W(), 1400) * 0.5) * Math.min(1, t * 2.5) * Math.exp(-t * 0.9); return ign + roar; }, 1.6); }
   const bell = (f, dur) => mk(dur, t => (Math.sin(TAU2 * f * t) + 0.45 * Math.sin(TAU2 * f * 2.01 * t) * Math.exp(-t * 3) + 0.2 * Math.sin(TAU2 * f * 3.02 * t) * Math.exp(-t * 6)) * Math.min(1, t * 400) * Math.exp(-t * 3.2), 1);
   SB.done = [bell(784, 1.2)]; SB.done2 = [bell(1175, 1.4)];
   SB.alert = mk(1.1, t => { const on = (t % 0.5) < 0.38 ? 1 : 0; const f = 420 + 40 * Math.sin(TAU2 * 6 * t); let s = 0; for (let k = 1; k <= 7; k += 2) s += Math.sin(TAU2 * f * k * t) / k; return s * on * 0.7; }, 1.4);
@@ -1856,14 +1881,14 @@ const lastS = {};
 function sfx(type, x, z) {
   const ctx = AU.ctx; if (!ctx || !AU.sfx || ctx.state !== 'running') return; if (!SB.click) buildSfx();
   const t = ctx.currentTime;
-  const thr = { flame: 0.12, laser: 0.06, mg: 0.07, shell: 0.05, rocket: 0.08, boom: 0.06, bigboom: 0.2, hit: 0.05, weld: 0.18, click: 0.03, ack: 0.25 }[type] || 0; if (lastS[type] && t - lastS[type] < thr) return; lastS[type] = t;
+  const thr = { weld: 0.55, flame: 0.12, laser: 0.06, mg: 0.07, shell: 0.05, rocket: 0.08, boom: 0.06, bigboom: 0.2, hit: 0.05,  click: 0.03, ack: 0.25 }[type] || 0; if (lastS[type] && t - lastS[type] < thr) return; lastS[type] = t;
   let vol = 1, pan = 0;
   if (x !== undefined) { const dx = x - cam.x, dz = z - cam.z, d = Math.hypot(dx, dz); vol = clamp(1 - d / (60 + cam.dist), 0, 1) * clamp(70 / (cam.dist + 20), 0.4, 1); if (vol < 0.03) return; pan = clamp((dx * Math.cos(cam.yaw) - dz * Math.sin(cam.yaw)) / 40, -0.7, 0.7); }
   const key = type === 'shell' ? 'cannon' : type; let buf = SB[key]; if (!buf) return; if (Array.isArray(buf)) buf = pick(buf);
-  const VOL = { flame: 0.3, laser: 0.35, cannon: 0.75, mg: 0.32, rocket: 0.5, boom: 0.85, bigboom: 1, hit: 0.35, weld: 0.18, click: 0.25, ack: 0.22, done: 0.3, done2: 0.3, alert: 0.25 }[key] || 0.4;
+  const VOL = { art_mortar: 0.7, art_rmortar: 0.6, art_how: 0.85, art_rhow: 0.75, art_hhow: 1, art_inc: 0.75, art_emp: 0.5, art_plasma: 0.55, art_salvo: 0.6, art_ball: 0.9, weld: 0.14, flame: 0.3, laser: 0.35, cannon: 0.75, mg: 0.32, rocket: 0.5, boom: 0.85, bigboom: 1, hit: 0.35, click: 0.25, ack: 0.22, done: 0.3, done2: 0.3, alert: 0.25 }[key] || 0.4;
   const s = ctx.createBufferSource(); s.buffer = buf; s.playbackRate.value = ['click', 'ack', 'done', 'done2', 'alert'].includes(key) ? 1 : rand(0.9, 1.1);
   const g = ctx.createGain(); g.gain.value = VOL * vol; const p = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
-  s.connect(g); if (p) { p.pan.value = pan; g.connect(p); p.connect(AU.sfxG); if (['cannon', 'boom', 'bigboom', 'rocket', 'hit'].includes(key)) p.connect(AU.srev); } else g.connect(AU.sfxG);
+  s.connect(g); if (p) { p.pan.value = pan; g.connect(p); p.connect(AU.sfxG); if (['cannon', 'boom', 'bigboom', 'rocket', 'hit'].includes(key) || key.startsWith('art_')) p.connect(AU.srev); } else g.connect(AU.sfxG);
   s.start(t);
   if (type === 'done') setTimeout(() => sfx('done2'), 140);
 }
@@ -1875,7 +1900,7 @@ function setupGame() {
   const B = PLAYER;
   createBuilding(0, 'hq', B.x - 6, B.z + 6, true, Math.PI);
   createBuilding(0, 'factory', B.x + 9, B.z - 2, true, Math.PI);
-  createBuilding(0, 'generator', -14, 136, true);
+  createBuilding(0, 'generator', B.x - 14, B.z + 12, true);
   for (let i = 0; i < 3; i++) createUnit(0, { ch: 'light', pr: 'wheels', wp: 'truck' }, B.x - 4 + i * 3, B.z - 10);
   for (let i = 0; i < 4; i++) createUnit(0, { ch: 'light', pr: 'wheels', wp: 'mg' }, B.x + 6 + i * 3, B.z - 13);
   for (const u of ents) if (u.kind === 'unit') u.heading = Math.PI;
@@ -1929,6 +1954,7 @@ function resize() {
 addEventListener('resize', resize);
 
 // buttons
+try { const d0 = localStorage.getItem('ironfall.diff'); if (d0 !== null) { S.diff = +d0; document.querySelectorAll('#diff button').forEach(x => x.classList.toggle('on', +x.dataset.v === S.diff)); } } catch (e) {}
 document.querySelectorAll('#diff button').forEach(b => b.addEventListener('click', () => { document.querySelectorAll('#diff button').forEach(x => x.classList.remove('on')); b.classList.add('on'); S.diff = +b.dataset.v; }));
 $('bPlay').addEventListener('click', () => { audioInit(); $('intro').classList.add('hidden'); $('hud').classList.remove('hidden'); setupGame(); S.running = true; toast('Construiește generatoare pe sondele de petrol! ⚡'); });
 $('bHelp').addEventListener('click', () => $('help').classList.remove('hidden'));
@@ -1940,6 +1966,8 @@ $('pMusic').addEventListener('click', e => { AU.music = !AU.music; e.target.text
 $('pSfx').addEventListener('click', e => { AU.sfx = !AU.sfx; e.target.textContent = '🔊 Sunete: ' + (AU.sfx ? 'DA' : 'NU'); });
 $('pRestart').addEventListener('click', () => location.reload());
 $('bAgain').addEventListener('click', () => location.reload());
+{ const mm = $('mapSel'); if (mm) { mm.innerHTML = MAPS.map((m, i) => { const n = m.rings.reduce((a, r) => a + r[1], 0) + 1; return `<button data-m="${i}" class="mapc ${i === MAPI ? 'on' : ''}"><b>${m.name}</b><small>${m.size}×${m.size} m · ${n} baze inamice</small><small>${m.rings.length} inele de forturi</small></button>`; }).join('');
+  mm.addEventListener('click', ev => { const b = ev.target.closest('[data-m]'); if (!b) return; const i = +b.dataset.m; if (i === MAPI) return; try { localStorage.setItem('ironfall.map', i); localStorage.setItem('ironfall.diff', S.diff); } catch (e) {} mm.classList.add('loading'); setTimeout(() => location.reload(), 50); }); } }
 $('bAll').innerHTML = UIC.army + '<span>Armata</span>'; $('bTrucks').innerHTML = UIC.truck + '<span>Constr.</span>';
 $('bBox').innerHTML = UIC.box + '<span>Selecție</span>'; $('bBase').innerHTML = UIC.base + '<span>Baza</span>'; $('bPause').innerHTML = UIC.pause;
 document.querySelectorAll('#top .ri').forEach(el => el.innerHTML = UIC[el.dataset.i]);

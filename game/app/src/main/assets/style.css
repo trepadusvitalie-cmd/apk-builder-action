@@ -277,3 +277,9 @@ i.eu { font-style: normal; color: var(--amber); font-size: .9em; margin-left: 1p
 .labrow .lt { flex: 1; display: flex; flex-direction: column; font-size: 11px; min-width: 0; }
 .labrow .lt b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
 .labrow .lr { font-size: 12px; color: #9fd0f0; font-weight: bold; flex: none; min-width: 34px; text-align: right; }
+#mapSel { display: flex; gap: 6px; justify-content: center; }
+#mapSel .mapc { display: flex; flex-direction: column; align-items: center; min-width: 120px; padding: 5px 8px; line-height: 1.25; }
+#mapSel .mapc b { font-size: 14px; color: var(--amber); } #mapSel .mapc.on b { color: #fff; }
+#mapSel .mapc small { font-size: 10px; color: var(--dim); } #mapSel .mapc.on small { color: #f3e3bf; }
+#mapSel.loading { opacity: .4; pointer-events: none; }
+#mapSel.loading::after { content: "Se generează harta…"; color: var(--amber); font-size: 12px; align-self: center; }

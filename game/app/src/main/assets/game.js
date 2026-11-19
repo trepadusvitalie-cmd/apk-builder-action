@@ -1200,7 +1200,7 @@ function confirmPlacing() {
 function cancelPlacing() { if (!placing) return; scene.remove(placing.ghost); placing = null; panelSig = ''; }
 
 // ================= UI =================
-const panel = $('panel');
+const panel = $('panel'); let panelMini = false;
 let toastT = 0;
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); toastT = 2.6; }
 function fmtTime(s) { s = Math.floor(s); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
@@ -1226,7 +1226,7 @@ function renderPanel() {
     const trucks = sel.filter(u => u.isTruck), army = sel.filter(u => !u.isTruck);
     h = `<div class="ph"><span>${army.length ? '🪖 ' + army.length + ' unități ' : ''}${trucks.length ? '🚜 ' + trucks.length + ' constructori' : ''}</span></div>`;
     if (sel.length === 1) h += `<div class="hint">${designName(sel[0].d)}</div><div class="bar"><i id="pHp"></i></div>`;
-    if (trucks.length) h += `<div class="lbl">Construiește</div><div class="grid">${bdBtn('generator')}${bdBtn('factory')}${bdBtn('lab')}${bdBtn('tower')}${ents.some(e => e.alive && e.team === 0 && e.type === 'hq') ? '' : bdBtn('hq')}</div><div class="hint">Atinge o sondă de petrol pentru generator rapid. Atinge o clădire avariată pentru reparație.</div>`;
+    if (trucks.length) h += `<div class="lbl">Construiește</div><div class="grid">${bdBtn('generator')}${bdBtn('factory')}${bdBtn('lab')}${bdBtn('tower')}${ents.some(e => e.alive && e.team === 0 && e.type === 'hq') ? '' : bdBtn('hq')}</div>`;
     if (army.length) h += `<div class="row"><button data-act="amove" class="${amoveNext ? 'on' : ''}">⚔ Atac-deplasare</button><button data-act="stop">■ Stop</button></div>`;
   } else {
     const b = sel[0];
@@ -1255,7 +1255,8 @@ function renderPanel() {
     else if (b.type === 'tower') h += `<div class="hint">Atacă automat inamicii din apropiere. ${TEAMS[0].tech.has('tower2') ? 'Armă: tun.' : 'Armă: mitralieră (cercetează „Turnuri cu tun”).'}</div>`;
     else if (b.type === 'hq') h += `<div class="hint">Centrul de comandă. Dă +1.5 ⚡/s. Nu-l pierde!</div>`;
   }
-  panel.innerHTML = h;
+  panel.innerHTML = h.replace('<div class="ph">', '<div class="ph"><button class="pmin" data-act="pmin">' + (panelMini ? '▴' : '▾') + '</button>');
+  panel.classList.toggle('mini', panelMini);
 }
 function updDyn() {
   const e = sel[0]; if (!e) return;
@@ -1269,6 +1270,7 @@ function updatePanel() { const s = computeSig(); if (s !== panelSig) { panelSig 
 panel.addEventListener('click', ev => {
   const b = ev.target.closest('[data-act]'); if (!b || b.disabled) return; const act = b.dataset.act, v = b.dataset.v; sfx('click');
   const T = TEAMS[0]; const e = sel[0];
+  if (act === 'pmin') { panelMini = !panelMini; panelSig = ''; return; }
   if (act === 'build') startPlacing(v);
   else if (act === 'place-ok') confirmPlacing();
   else if (act === 'place-cancel') cancelPlacing();

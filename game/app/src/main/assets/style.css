@@ -260,3 +260,8 @@ i.eu { font-style: normal; color: var(--amber); font-size: .9em; margin-left: 1p
 .dcard .rn, .dcard .rm { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .dprev { flex: none; }
 @media (max-height: 420px) { .dprev { width: 190px; } #prev { width: 190px; height: 110px; } #dStats { font-size: 11px; } .st { grid-template-columns: 46px 1fr 32px; } }
+.tabs { display: flex; gap: 4px; margin: 2px 0 4px; }
+.tabs button { flex: 1; min-height: 28px; padding: 2px 6px; font-size: 11.5px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
+.tabs button svg.ui { width: 16px; height: 16px; }
+.chips { display: flex; gap: 3px; flex-wrap: wrap; margin-bottom: 4px; }
+.chips button { min-height: 24px; padding: 1px 7px; font-size: 10.5px; border-radius: 12px; }

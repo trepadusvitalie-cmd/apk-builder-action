@@ -93,7 +93,26 @@ sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
 const sc = sun.shadow.camera; sc.left = -45; sc.right = 45; sc.top = 45; sc.bottom = -45; sc.near = 1; sc.far = 220; sun.shadow.bias = -0.0008;
 scene.add(sun); scene.add(sun.target);
 
-const matVC = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
+// ---- procedural textures (generated in code, no external assets)
+function canvasTex(size, draw) { const c = document.createElement('canvas'); c.width = c.height = size; const g = c.getContext('2d'); draw(g, size); const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t; }
+function grain(g, n, a, b) { const img = g.getImageData(0, 0, n, n); const d = img.data; for (let i = 0; i < d.length; i += 4) { const v = (Math.random() - 0.5) * a + b; d[i] += v; d[i + 1] += v; d[i + 2] += v; } g.putImageData(img, 0, 0); }
+// metal / concrete panels with rivets, seams, grime streaks
+const panelTex = canvasTex(256, (g, n) => {
+  g.fillStyle = '#d6d6d6'; g.fillRect(0, 0, n, n); grain(g, n, 22, 0);
+  for (let i = 0; i < 40; i++) { g.fillStyle = `rgba(${Math.random() < 0.5 ? '80,70,60' : '255,255,255'},${Math.random() * 0.06})`; g.fillRect(Math.random() * n, Math.random() * n, 20 + Math.random() * 80, 20 + Math.random() * 80); }
+  g.strokeStyle = 'rgba(40,40,40,.55)'; g.lineWidth = 2; for (let k = 0; k <= n; k += 64) { g.beginPath(); g.moveTo(k, 0); g.lineTo(k, n); g.stroke(); g.beginPath(); g.moveTo(0, k); g.lineTo(n, k); g.stroke(); }
+  g.strokeStyle = 'rgba(255,255,255,.25)'; g.lineWidth = 1; for (let k = 2; k <= n; k += 64) { g.beginPath(); g.moveTo(k, 0); g.lineTo(k, n); g.stroke(); g.beginPath(); g.moveTo(0, k); g.lineTo(n, k); g.stroke(); }
+  for (let x = 0; x < n; x += 64) for (let y = 0; y < n; y += 64) for (const [dx, dy] of [[6, 6], [58, 6], [6, 58], [58, 58]]) { g.fillStyle = 'rgba(30,30,30,.6)'; g.beginPath(); g.arc(x + dx, y + dy, 2.2, 0, TAU); g.fill(); g.fillStyle = 'rgba(255,255,255,.35)'; g.beginPath(); g.arc(x + dx - 0.7, y + dy - 0.7, 1, 0, TAU); g.fill(); }
+  for (let i = 0; i < 26; i++) { const x = Math.random() * n, y = Math.random() * n; const gr = g.createLinearGradient(x, y, x, y + 60); gr.addColorStop(0, 'rgba(60,45,30,.22)'); gr.addColorStop(1, 'rgba(60,45,30,0)'); g.fillStyle = gr; g.fillRect(x, y, 3 + Math.random() * 5, 60); }
+});
+// fine ground grain for the terrain
+const groundTex = canvasTex(256, (g, n) => {
+  g.fillStyle = '#d0d0d0'; g.fillRect(0, 0, n, n); grain(g, n, 40, 0);
+  for (let i = 0; i < 900; i++) { g.fillStyle = `rgba(${Math.random() < 0.5 ? '60,50,40' : '255,250,240'},${Math.random() * 0.18})`; const r = Math.random() * 2.5 + 0.5; g.beginPath(); g.arc(Math.random() * n, Math.random() * n, r, 0, TAU); g.fill(); }
+});
+const matVC = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, map: panelTex });
+const matPlain = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
+const matGlow = new THREE.MeshBasicMaterial({ vertexColors: true });
 const _cc = {}; function C(hex) { return _cc[hex] || (_cc[hex] = new THREE.Color(hex)); }
 
 const G = {
@@ -127,6 +146,15 @@ class Builder {
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    const uv = new Float32Array(n * 2); const uvs = this.uvScale || 0.5;
+    for (let i = 0; i < n; i += 3) {
+      const ax = pos[i * 3], ay = pos[i * 3 + 1], az = pos[i * 3 + 2];
+      const ux = pos[i * 3 + 3] - ax, uy = pos[i * 3 + 4] - ay, uz = pos[i * 3 + 5] - az, vx = pos[i * 3 + 6] - ax, vy = pos[i * 3 + 7] - ay, vz = pos[i * 3 + 8] - az;
+      const nx = Math.abs(uy * vz - uz * vy), ny = Math.abs(uz * vx - ux * vz), nz = Math.abs(ux * vy - uy * vx);
+      for (let k = 0; k < 3; k++) { const j = i + k, x = pos[j * 3], y = pos[j * 3 + 1], z = pos[j * 3 + 2];
+        if (ny >= nx && ny >= nz) { uv[j * 2] = x * uvs; uv[j * 2 + 1] = z * uvs; } else if (nx >= nz) { uv[j * 2] = z * uvs; uv[j * 2 + 1] = y * uvs; } else { uv[j * 2] = x * uvs; uv[j * 2 + 1] = y * uvs; } }
+    }
+    g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
     g.computeVertexNormals(); g.computeBoundingSphere();
     return g;
   }
@@ -165,7 +193,8 @@ function buildTerrain() {
     for (let k = 0; k < 3; k++) { cols[(i + k) * 3] = c.r; cols[(i + k) * 3 + 1] = c.g; cols[(i + k) * 3 + 2] = c.b; }
   }
   ng.setAttribute('color', new THREE.BufferAttribute(cols, 3)); ng.computeVertexNormals();
-  terrainMesh = new THREE.Mesh(ng, new THREE.MeshLambertMaterial({ vertexColors: true }));
+  { const uv = new Float32Array(pos.count * 2); for (let i = 0; i < pos.count; i++) { uv[i * 2] = pos.getX(i) / 5; uv[i * 2 + 1] = pos.getZ(i) / 5; } ng.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); }
+  terrainMesh = new THREE.Mesh(ng, new THREE.MeshLambertMaterial({ vertexColors: true, map: groundTex }));
   terrainMesh.receiveShadow = true;
   scene.add(terrainMesh);
 }
@@ -200,14 +229,21 @@ function buildDecor() {
     const x = rand(-EDGE, EDGE), z = rand(-EDGE, EDGE); if (!ok(x, z, -10)) continue; const y = heightAt(x, z); if (y > 15) continue;
     const w = biomeW(x, z); const roll = Math.random();
     if (roll < w.snow) { // snowy pine
-      if (fbm(x * 0.05, z * 0.05 + 40) < 0.45) continue; const h = rand(3, 6);
-      B.add(G.cyl6, 0.2, h * 0.3, 0.2, x, y + h * 0.15, z, 0x3b2a1e);
-      for (let k = 0; k < 3; k++) { const s = (1 - k * 0.28) * h * 0.28; B.add(G.cone, s, h * 0.35, s, x, y + h * (0.35 + k * 0.22), z, 0x1f3b2c); B.add(G.cone, s * 0.75, h * 0.14, s * 0.75, x, y + h * (0.44 + k * 0.22), z, 0xeef3f8); }
+      if (fbm(x * 0.05, z * 0.05 + 40) < 0.45) continue; const h = rand(3.5, 7); const tl = rand(-0.05, 0.05);
+      B.add(G.cone, 0.28, h * 0.5, 0.28, x, y + h * 0.25, z, 0x3b2a1e);
+      const greens = [0x1f3b2c, 0x24432f, 0x1a3427];
+      for (let k = 0; k < 4; k++) { const s = (1 - k * 0.22) * h * 0.27; const yy = y + h * (0.3 + k * 0.18); B.add(G.cone, s, h * 0.3, s, x, yy, z, greens[k % 3], tl, k * 0.7, tl); B.add(G.cone, s * 0.8, h * 0.1, s * 0.8, x, yy + h * 0.1, z, 0xeef3f8, tl, k * 0.7 + 0.3, tl); }
+      B.add(G.cone, h * 0.06, h * 0.12, h * 0.06, x, y + h * 0.98, z, 0xf4f8fc);
     } else if (roll < w.snow + w.green) { // leafy tree / bush
-      if (fbm(x * 0.05, z * 0.05 + 40) < 0.42) continue; const h = rand(2.2, 4.5);
-      B.add(G.cyl6, 0.18, h * 0.6, 0.18, x, y + h * 0.3, z, 0x4a3524);
-      B.add(G.ico, h * 0.42, h * 0.36, h * 0.42, x, y + h * 0.75, z, pick([0x3f6b2a, 0x4d7a30, 0x5a8434, 0x36602a]), rand(0, 3), rand(0, 3), 0);
-      if (Math.random() < 0.5) B.add(G.ico, h * 0.28, h * 0.25, h * 0.28, x + 0.5, y + h * 0.95, z - 0.3, 0x4d7a30, 1, 2, 0);
+      if (fbm(x * 0.05, z * 0.05 + 40) < 0.42) continue; const h = rand(2.6, 5);
+      const pal = pick([[0x3f6b2a, 0x4d7a30, 0x5f8a36], [0x36602a, 0x447030, 0x527d34], [0x557a2c, 0x6a8f34, 0x7a9a3a]]);
+      B.add(G.cone, 0.24, h * 0.75, 0.24, x, y + h * 0.37, z, 0x4a3524);
+      B.add(G.cyl6, 0.07, h * 0.35, 0.07, x + 0.25, y + h * 0.55, z, 0x4a3524, 0, 0, -0.7);
+      B.add(G.cyl6, 0.07, h * 0.3, 0.07, x - 0.2, y + h * 0.5, z + 0.15, 0x4a3524, 0.4, 0, 0.7);
+      B.add(G.ico, h * 0.36, h * 0.3, h * 0.36, x, y + h * 0.72, z, pal[0], rand(0, 3), rand(0, 3), 0);
+      for (let k = 0; k < 3; k++) { const a = k / 3 * TAU + rand(0, 1); B.add(G.ico, h * 0.24, h * 0.21, h * 0.24, x + Math.sin(a) * h * 0.26, y + h * rand(0.72, 0.9), z + Math.cos(a) * h * 0.26, pal[1 + (k % 2)], rand(0, 3), rand(0, 3), 0); }
+      B.add(G.ico, h * 0.2, h * 0.18, h * 0.2, x, y + h * 1.0, z, pal[2], 1, 2, 0);
+      if (Math.random() < 0.4) for (let k = 0; k < 3; k++) B.add(G.ico, 0.35, 0.25, 0.35, x + rand(-1.4, 1.4), y + 0.2, z + rand(-1.4, 1.4), pal[0], rand(0, 3), 0, 0);
     } else if (roll < w.snow + w.green + w.sand) { // cactus / dry palm
       if (Math.random() < 0.6) continue;
       if (Math.random() < 0.6) { const h = rand(1.5, 3); B.add(G.cyl6, 0.22, h, 0.22, x, y + h / 2, z, 0x4f7a3a); B.add(G.cyl6, 0.13, h * 0.4, 0.13, x + 0.35, y + h * 0.55, z, 0x4f7a3a); B.add(G.cyl6, 0.13, 0.4, 0.13, x + 0.2, y + h * 0.38, z, 0x4f7a3a, 0, 0, Math.PI / 2); }
@@ -226,7 +262,7 @@ function buildDecor() {
   }
   // wells: small rock ring
   for (const w of WELLS) for (let k = 0; k < 7; k++) { const a = k / 7 * TAU; const x = w.x + Math.cos(a) * 3.3, z = w.z + Math.sin(a) * 3.3; B.add(G.ico, 0.5, 0.35, 0.5, x, heightAt(x, z), z, 0x3b342b, a, a, 0); }
-  const m = new THREE.Mesh(B.build(), matVC); m.castShadow = true; m.receiveShadow = true; scene.add(m);
+  B.uvScale = 0.35; const m = new THREE.Mesh(B.build(), new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, map: groundTex })); m.castShadow = true; m.receiveShadow = true; scene.add(m);
   indexObst();
 }
 
@@ -295,7 +331,7 @@ function designName(d) { return d.wp === 'truck' ? 'Constructor' : `${CH[d.ch].n
 const geoCache = {};
 function unitGeo(d, team) {
   const key = d.ch + d.pr + d.wp + team; if (geoCache[key]) return geoCache[key];
-  const T = TEAMC[team], s = CH[d.ch].size, B = new Builder(), tb = new Builder();
+  const T = TEAMC[team], s = CH[d.ch].size, B = new Builder(), tb = new Builder(); B.uvScale = tb.uvScale = 1.1;
   const L = 2.3 * s, W = 1.6 * s, H = 0.75 * s;
   let by;
   if (d.pr === 'wheels') {
@@ -349,30 +385,65 @@ function bldGeo(type, team) {
       B.box(5.25, 0.45, 4.4, 0, 1.6, 0, 0x1c2228); B.box(4.4, 0.45, 5.25, 0, 1.6, 0, 0x1c2228);
       B.box(3.4, 1.6, 3.4, 0, 3.7, 0, T.dark); for (const sx of [-1, 1]) for (const sz of [-1, 1]) B.box(0.6, 3.2, 0.6, sx * 2.6, 1.6, sz * 2.6, T.dark);
       B.add(G.cyl6, 0.1, 4, 0.1, 1.3, 6, 1.3, 0x333333); B.box(0.6, 0.6, 0.6, -1.2, 4.8, -1.2, 0x444444);
+      for (let k = 0; k < 3; k++) B.box(1.0, 0.1, 0.1, 1.3, 5 + k * 0.8, 1.3, 0x333333);
+      B.box(2.2, 2.2, 0.15, 0, 1.5, 2.65, 0x2c2a26); B.box(2.6, 0.25, 0.9, 0, 2.75, 2.95, T.acc); B.box(2.4, 0.3, 1.2, 0, 0.6, 3.3, 0x55524b, 0.15, 0, 0);
+      for (const sx of [-1, 1]) { B.box(0.15, 1.6, 0.15, sx * 1.6, 1.2, 3.4, 0x444444); B.box(0.25, 0.25, 0.25, sx * 1.6, 2.05, 3.4, 0xfff2c0); }
+      B.box(1.2, 0.5, 1.2, 1.1, 4.7, -1.1, 0x3a3833); for (let k = 0; k < 3; k++) B.box(0.06, 0.4, 1.0, 0.75 + k * 0.35, 5.0, -1.1, 0x22201d);
       { const d = new Builder(); d.add(G.dome, 1.3, 0.5, 1.3, 0, 0, 0, 0xd8d4c8, Math.PI * 0.75, 0, 0); d.add(G.cyl6, 0.06, 1, 0.06, 0, 0.3, 0.3, 0x333333, 0.6, 0, 0); anim.dish = d.build(); }
       break;
-    case 'factory':
-      B.box(8.2, 2, 7.4, 0, -0.5, 0, conc); B.box(7, 3.2, 5.6, 0, 2, 0, T.body);
-      for (let i = 0; i < 3; i++) { B.box(2.5, 0.25, 5.7, -2.3 + i * 2.33, 3.95, 0, T.dark, 0, 0, 0.35); B.box(0.12, 0.85, 5.5, -1.15 + i * 2.33, 4.05, 0, 0x9fc7d6); }
-      B.box(3.2, 2.4, 0.15, 0, 1.6, 2.85, 0x24221f); B.box(3.6, 0.3, 0.2, 0, 2.95, 2.86, T.acc); B.box(7.05, 0.3, 5.65, 0, 1, 0, T.acc);
-      B.add(G.cyl10, 0.45, 3.5, 0.45, -2.6, 5, -1.9, conc2); B.add(G.cyl10, 0.45, 3, 0.45, -1.5, 4.8, -1.9, conc2);
-      B.add(G.cyl10, 0.8, 2.2, 0.8, 3.6, 1.1, -1.5, 0x5c5850); B.add(G.cyl10, 0.8, 2.2, 0.8, 3.6, 1.1, 0.4, 0x5c5850);
-      break;
+    case 'factory': {
+      B.box(8.6, 2, 7.8, 0, -0.5, 0, conc); B.box(8.4, 0.12, 7.6, 0, 0.52, 0, 0x7a746a);
+      B.box(7, 3.2, 5.6, 0, 2, 0, T.body);
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) B.box(0.35, 3.4, 0.35, sx * 3.45, 2.1, sz * 2.75, T.dark);
+      for (let i = 0; i < 4; i++) B.box(0.18, 3.1, 0.12, -2.6 + i * 1.75, 2, 2.82, T.dark);
+      // sawtooth roof with skylights
+      for (let i = 0; i < 3; i++) { B.box(2.5, 0.22, 5.8, -2.3 + i * 2.33, 3.95, 0, T.dark, 0, 0, 0.35); B.box(0.1, 0.9, 5.5, -1.15 + i * 2.33, 4.05, 0, 0x9fd3e6); }
+      // window band on the sides
+      for (const sx of [-1, 1]) for (let k = 0; k < 4; k++) B.box(0.08, 0.55, 0.9, sx * 3.52, 2.9, -2 + k * 1.33, 0x9fd3e6);
+      // big door with hazard stripes
+      B.box(3.2, 2.4, 0.15, 0, 1.6, 2.86, 0x2c2a26); for (let k = 0; k < 6; k++) B.box(0.18, 2.3, 0.05, -1.25 + k * 0.5, 1.6, 2.95, 0x3a3833);
+      for (let k = 0; k < 8; k++) B.box(0.45, 0.28, 0.2, -1.6 + k * 0.45 + 0.22, 2.98, 2.9, k % 2 ? 0x1c1c1c : 0xe8c02a, 0, 0, 0.5);
+      B.box(7.05, 0.3, 5.65, 0, 1, 0, T.acc); B.box(0.5, 0.2, 0.2, -1.9, 3.05, 2.95, 0xfff2c0); B.box(0.5, 0.2, 0.2, 1.9, 3.05, 2.95, 0xfff2c0);
+      // ramp in front
+      B.box(3.4, 0.3, 1.6, 0, 0.45, 3.6, 0x55524b, 0.18, 0, 0);
+      // chimneys with rings
+      for (const [cx, h] of [[-2.6, 3.5], [-1.5, 3]]) { B.cyl(0.45, h, cx, 3.4 + h / 2, -1.9, conc2); B.cyl(0.52, 0.2, cx, 3.6 + h * 0.6, -1.9, T.acc); B.cyl(0.55, 0.25, cx, 3.35 + h, -1.9, 0x3a3631); }
+      // storage tanks with bands + pipes
+      for (const tz of [-1.6, 0.5]) { B.cyl(0.85, 2.4, 3.95, 1.2, tz, 0x7d786e); B.cyl(0.9, 0.15, 3.95, 0.8, tz, T.dark); B.cyl(0.9, 0.15, 3.95, 1.7, tz, T.dark); B.add(G.dome, 0.85, 0.3, 0.85, 3.95, 2.4, tz, 0x7d786e); }
+      B.add(G.cyl6, 0.12, 2.6, 0.12, 3.95, 2.7, -0.55, 0x4a4a46, Math.PI / 2, 0, 0); B.add(G.cyl6, 0.12, 0.9, 0.12, 3.6, 2.7, -0.55, 0x4a4a46, 0, 0, Math.PI / 2);
+      // side annex + vents
+      B.box(1.8, 2, 3.2, -4.3, 1.1, -0.8, T.dark); B.box(1.9, 0.15, 3.3, -4.3, 2.15, -0.8, T.acc);
+      for (let k = 0; k < 3; k++) B.box(0.1, 0.5, 0.7, -5.22, 1.2, -1.9 + k * 0.9, 0x22201d);
+      // roof catwalk, railing and crane
+      B.box(5.5, 0.08, 0.7, 0.4, 4.45, -2.5, 0x4a4a46); for (let k = 0; k < 8; k++) B.box(0.05, 0.6, 0.05, -2.2 + k * 0.75, 4.75, -2.85, 0xd9b23a); B.box(5.5, 0.05, 0.05, 0.4, 5.05, -2.85, 0xd9b23a);
+      B.box(0.3, 2.2, 0.3, 2.9, 5.4, -2.1, 0xd9b23a); B.box(3.2, 0.25, 0.25, 1.6, 6.5, -2.1, 0xd9b23a); B.box(0.08, 1, 0.08, 0.3, 5.9, -2.1, 0x333333);
+      // ladder
+      for (let k = 0; k < 7; k++) B.box(0.5, 0.05, 0.05, 3.62, 0.6 + k * 0.5, 2.0, 0x8a8a84); B.box(0.05, 3.6, 0.05, 3.4, 2.3, 2.0, 0x8a8a84); B.box(0.05, 3.6, 0.05, 3.84, 2.3, 2.0, 0x8a8a84);
+      break; }
     case 'lab':
       B.box(5.6, 2, 5.6, 0, -0.5, 0, conc); B.box(4.2, 2.2, 4.2, 0, 1.6, 0, T.body); B.box(4.25, 0.3, 4.25, 0, 2.4, 0, T.acc);
       B.add(G.dome, 1.7, 1.4, 1.7, 0, 2.7, 0, 0x7fc4d8); B.add(G.cyl6, 0.08, 2.5, 0.08, 1.6, 4, 1.6, 0x333333);
       B.box(1.6, 1.4, 1.2, -2.6, 1.2, 0, T.dark); B.box(1.2, 1.8, 0.15, 0, 1.4, 2.12, 0x24221f);
+      for (let k = 0; k < 6; k++) { const a = k / 6 * TAU; B.box(0.12, 1.4, 0.12, Math.sin(a) * 1.75, 3.0, Math.cos(a) * 1.75, 0xd8d4c8); }
+      B.box(4.25, 0.35, 0.6, 0, 1.9, 0, 0x7fc4d8); B.box(0.6, 0.35, 4.25, 0, 1.9, 0, 0x7fc4d8);
+      B.cyl(0.5, 1.4, 2.7, 0.9, 1.5, 0x8a8a84); B.cyl(0.5, 1.4, 2.7, 0.9, 0.3, 0x8a8a84); B.add(G.cyl6, 0.08, 1.4, 0.08, 2.7, 1.8, 0.9, 0x4a4a46, Math.PI / 2, 0, 0);
       break;
     case 'pump':
       B.box(3.8, 1.2, 3.8, 0, -0.2, 0, conc2);
       for (const sx of [-1, 1]) for (const sz of [-1, 1]) B.add(G.cyl6, 0.09, 3.3, 0.09, sx * 0.75, 1.8, sz * 0.75, 0x3a3a3a, -sz * 0.2, 0, sx * 0.2);
       B.box(0.35, 0.35, 0.35, 0, 3.45, 0, 0x333333);
       B.add(G.cyl10, 0.6, 1.4, 0.6, 1.25, 1.05, 1.1, T.body); B.box(0.9, 0.8, 1, -1.15, 0.8, 1.1, T.acc);
+      B.cyl(0.65, 0.12, 1.25, 0.6, 1.1, T.dark); B.cyl(0.65, 0.12, 1.25, 1.5, 1.1, T.dark);
+      B.add(G.cyl6, 0.1, 2.4, 0.1, 0, 0.6, 0.2, 0x4a4a46, 0, 0, Math.PI / 2); B.add(G.cyl6, 0.25, 0.9, 0.25, 0, 0.7, -1.3, 0x5a564f);
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) B.box(0.12, 0.6, 0.12, sx * 1.75, 0.65, sz * 1.75, 0xd9b23a);
+      B.box(3.5, 0.06, 0.06, 0, 0.95, 1.75, 0xd9b23a); B.box(3.5, 0.06, 0.06, 0, 0.95, -1.75, 0xd9b23a); B.box(0.06, 0.06, 3.5, 1.75, 0.95, 0, 0xd9b23a); B.box(0.06, 0.06, 3.5, -1.75, 0.95, 0, 0xd9b23a);
       { const d = new Builder(); d.box(0.25, 0.3, 3.4, 0, 0, 0.3, 0x2f2f2f); d.box(0.45, 0.9, 0.35, 0, -0.25, 2.0, 0x4a4a4a); d.box(0.4, 0.5, 0.4, 0, -0.2, -1.4, T.dark); anim.beam = d.build(); }
       break;
     case 'tower':
       B.box(3.2, 1.6, 3.2, 0, -0.2, 0, conc); B.box(2.3, 2.8, 2.3, 0, 1.6, 0, conc2); B.box(2.4, 0.35, 2.4, 0, 2.6, 0, T.acc); B.box(2.6, 0.4, 2.6, 0, 3.1, 0, T.dark);
-      B.box(2.35, 0.3, 0.6, 0, 1.6, 0, 0x1c1c1c);
+      B.box(2.35, 0.3, 0.6, 0, 1.6, 0, 0x1c1c1c); B.box(0.6, 0.3, 2.35, 0, 1.6, 0, 0x1c1c1c);
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) B.box(0.5, 0.5, 0.5, sx * 1.35, 3.35, sz * 1.35, T.dark);
+      for (let k = 0; k < 4; k++) B.add(G.ico, 0.5, 0.3, 0.5, Math.sin(k * 1.6) * 2, 0.3, Math.cos(k * 1.6) * 2, 0x8a7d62, k, k, 0);
       break;
     case 'wall':
       B.box(5.6, 3.2, 1.6, 0, 1.2, 0, 0x6d675e); B.box(5.8, 0.4, 1.9, 0, 2.9, 0, T.dark);

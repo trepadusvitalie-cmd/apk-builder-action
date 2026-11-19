@@ -111,6 +111,7 @@ const groundTex = canvasTex(256, (g, n) => {
   for (let i = 0; i < 900; i++) { g.fillStyle = `rgba(${Math.random() < 0.5 ? '60,50,40' : '255,250,240'},${Math.random() * 0.18})`; const r = Math.random() * 2.5 + 0.5; g.beginPath(); g.arc(Math.random() * n, Math.random() * n, r, 0, TAU); g.fill(); }
 });
 const matVC = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, map: panelTex });
+const matUnit = new THREE.MeshLambertMaterial({ vertexColors: true, map: panelTex }); // smooth shading = rounder look
 const matPlain = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
 const matGlow = new THREE.MeshBasicMaterial({ vertexColors: true });
 const _cc = {}; function C(hex) { return _cc[hex] || (_cc[hex] = new THREE.Color(hex)); }
@@ -119,6 +120,8 @@ const G = {
   box: new THREE.BoxGeometry(1, 1, 1).toNonIndexed(),
   cyl6: new THREE.CylinderGeometry(1, 1, 1, 6).toNonIndexed(),
   cyl10: new THREE.CylinderGeometry(1, 1, 1, 12).toNonIndexed(),
+  cyl16: new THREE.CylinderGeometry(1, 1, 1, 16).toNonIndexed(),
+  sph: new THREE.SphereGeometry(1, 14, 10).toNonIndexed(),
   cone: new THREE.ConeGeometry(1, 1, 8).toNonIndexed(),
   dome: new THREE.SphereGeometry(1, 12, 6, 0, TAU, 0, Math.PI / 2).toNonIndexed(),
   ico: new THREE.IcosahedronGeometry(1, 0).toNonIndexed(),
@@ -130,16 +133,16 @@ class Builder {
   cyl(r, h, x, y, z, c, rx, ry, rz) { return this.add(G.cyl10, r, h, r, x, y, z, c, rx, ry, rz); }
   build() {
     let n = 0; for (const p of this.parts) n += p.geo.attributes.position.count;
-    const pos = new Float32Array(n * 3), col = new Float32Array(n * 3);
+    const pos = new Float32Array(n * 3), col = new Float32Array(n * 3), nor = new Float32Array(n * 3); const nm = new THREE.Matrix3(), nv = new THREE.Vector3();
     const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3();
     let o = 0;
     for (const p of this.parts) {
       q.setFromEuler(e.set(p.rx || 0, p.ry || 0, p.rz || 0));
       m.compose(new THREE.Vector3(p.x, p.y, p.z), q, new THREE.Vector3(p.sx, p.sy, p.sz));
-      const a = p.geo.attributes.position, c = C(p.color);
+      const a = p.geo.attributes.position, na = p.geo.attributes.normal, c = C(p.color); nm.getNormalMatrix(m);
       for (let i = 0; i < a.count; i++) {
         v.fromBufferAttribute(a, i).applyMatrix4(m);
-        pos[o * 3] = v.x; pos[o * 3 + 1] = v.y; pos[o * 3 + 2] = v.z;
+        pos[o * 3] = v.x; pos[o * 3 + 1] = v.y; pos[o * 3 + 2] = v.z; nv.fromBufferAttribute(na, i).applyMatrix3(nm).normalize(); nor[o * 3] = nv.x; nor[o * 3 + 1] = nv.y; nor[o * 3 + 2] = nv.z;
         col[o * 3] = c.r; col[o * 3 + 1] = c.g; col[o * 3 + 2] = c.b; o++;
       }
     }
@@ -155,7 +158,7 @@ class Builder {
         if (ny >= nx && ny >= nz) { uv[j * 2] = x * uvs; uv[j * 2 + 1] = z * uvs; } else if (nx >= nz) { uv[j * 2] = z * uvs; uv[j * 2 + 1] = y * uvs; } else { uv[j * 2] = x * uvs; uv[j * 2 + 1] = y * uvs; } }
     }
     g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
-    g.computeVertexNormals(); g.computeBoundingSphere();
+    g.setAttribute('normal', new THREE.BufferAttribute(nor, 3)); g.computeBoundingSphere();
     return g;
   }
 }
@@ -332,44 +335,59 @@ const geoCache = {};
 function unitGeo(d, team) {
   const key = d.ch + d.pr + d.wp + team; if (geoCache[key]) return geoCache[key];
   const T = TEAMC[team], s = CH[d.ch].size, B = new Builder(), tb = new Builder(); B.uvScale = tb.uvScale = 1.1;
-  const L = 2.3 * s, W = 1.6 * s, H = 0.75 * s;
+  const L = 2.3 * s, W = 1.6 * s, H = 0.75 * s; const PI2 = Math.PI / 2;
   let by;
   if (d.pr === 'wheels') {
     const r = 0.42 * s; by = r + H / 2 + 0.05; const xs = W / 2 + 0.05;
     const zs = d.ch === 'light' ? [-L * 0.32, L * 0.32] : [-L * 0.36, 0, L * 0.36];
-    for (const z of zs) for (const sx of [-1, 1]) { B.add(G.cyl10, r, 0.32 * s, r, sx * xs, r, z, 0x1d1c1a, 0, 0, Math.PI / 2); B.add(G.cyl6, r * 0.45, 0.34 * s, r * 0.45, sx * xs, r, z, 0x6a6a60, 0, 0, Math.PI / 2); }
+    for (const z of zs) for (const sx of [-1, 1]) { B.add(G.cyl16, r, 0.3 * s, r, sx * xs, r, z, 0x1d1c1a, 0, 0, PI2); B.add(G.cyl16, r * 0.82, 0.33 * s, r * 0.82, sx * xs, r, z, 0x2a2926, 0, 0, PI2); B.add(G.sph, r * 0.42, 0.2 * s, r * 0.42, sx * (xs + 0.12 * s), r, z, 0x7a7a70, 0, 0, PI2); }
+    for (const sx of [-1, 1]) B.add(G.cyl16, 0.32 * s, L * 0.95, 0.18 * s, sx * (W / 2 - 0.05), by - H * 0.15, 0, T.dark, PI2, 0, 0); // rounded fenders
   } else if (d.pr === 'tracks') {
-    const th = 0.62 * s; by = th * 0.75 + H / 2;
-    for (const sx of [-1, 1]) { B.box(0.5 * s, th, L * 1.05, sx * (W / 2 + 0.15 * s), th / 2, 0, 0x262421); B.box(0.53 * s, th * 0.3, L * 0.85, sx * (W / 2 + 0.15 * s), th * 0.55, 0, 0x45423b); }
-  } else {
-    by = 0.6 + H / 2; B.add(G.cyl10, W * 0.75, 0.38, L * 0.58, 0, 0.32, 0, T.dark);
-  }
-  B.box(W, H, L, 0, by, 0, T.body);
-  B.box(W * 0.9, H * 0.35, L * 0.35, 0, by + H * 0.55, -L * 0.28, T.dark);
-  B.box(W * 0.98, H * 0.55, 0.5 * s, 0, by - H * 0.05, L / 2 - 0.05, T.body, -0.55, 0, 0);
-  B.box(W * 1.02, 0.12 * s, L * 0.55, 0, by + H / 2 + 0.01, 0.15, T.acc);
-  B.box(0.2 * s, 0.15 * s, 0.1, W * 0.3, by + H * 0.1, L / 2 + 0.05, 0xfff2c0);
-  B.box(0.2 * s, 0.15 * s, 0.1, -W * 0.3, by + H * 0.1, L / 2 + 0.05, 0xfff2c0);
-  const top = by + H / 2;
-  if (d.wp === 'mg') {
-    tb.box(0.8 * s, 0.45 * s, 0.9 * s, 0, 0.22 * s, 0, T.body); tb.box(0.82 * s, 0.08, 0.4 * s, 0, 0.46 * s, -0.1, T.acc);
-    for (const sx of [-1, 1]) tb.add(G.cyl6, 0.07 * s, 1.2 * s, 0.07 * s, sx * 0.15 * s, 0.25 * s, 0.9 * s, 0x1a1a1a, Math.PI / 2, 0, 0);
-  } else if (d.wp === 'cannon') {
-    tb.box(1.15 * s, 0.55 * s, 1.25 * s, 0, 0.27 * s, 0, T.body); tb.box(0.9 * s, 0.2 * s, 0.9 * s, 0, 0.62 * s, -0.1 * s, T.dark);
-    tb.add(G.cyl10, 0.13 * s, 1.9 * s, 0.13 * s, 0, 0.3 * s, 1.45 * s, 0x2a2a2a, Math.PI / 2, 0, 0);
-    tb.add(G.cyl10, 0.2 * s, 0.35 * s, 0.2 * s, 0, 0.3 * s, 2.35 * s, 0x2a2a2a, Math.PI / 2, 0, 0);
-  } else if (d.wp === 'rockets') {
-    tb.box(0.3 * s, 0.35 * s, 0.6 * s, 0, 0.18 * s, 0, T.dark);
+    const th = 0.62 * s, tr = th / 2; by = th * 0.75 + H / 2;
     for (const sx of [-1, 1]) {
-      tb.box(0.55 * s, 0.55 * s, 1.1 * s, sx * 0.4 * s, 0.45 * s, 0.1 * s, T.body, -0.25, 0, 0);
-      for (const ox of [-0.12, 0.12]) for (const oy of [-0.12, 0.12]) tb.add(G.cyl6, 0.09 * s, 0.1, 0.09 * s, sx * 0.4 * s + ox * s, 0.45 * s + oy * s + 0.12 * s, 0.66 * s, 0x111111, Math.PI / 2 - 0.25, 0, 0);
+      const x = sx * (W / 2 + 0.15 * s);
+      B.box(0.5 * s, th, L * 0.86, x, tr, 0, 0x262421);
+      B.add(G.cyl16, tr, 0.5 * s, tr, x, tr, L * 0.43, 0x262421, 0, 0, PI2); B.add(G.cyl16, tr, 0.5 * s, tr, x, tr, -L * 0.43, 0x262421, 0, 0, PI2);
+      for (let k = 0; k < 5; k++) B.add(G.cyl16, tr * 0.62, 0.53 * s, tr * 0.62, x, tr * 0.9, -L * 0.36 + k * L * 0.18, 0x4a473f, 0, 0, PI2);
+      B.add(G.cyl16, 0.3 * s, L * 0.98, 0.14 * s, x, th + 0.02, 0, T.dark, PI2, 0, 0); // rounded track guard
     }
   } else {
-    tb.box(0.9 * s, 0.6 * s, 0.7 * s, 0, 0.3 * s, 0.55 * s, 0xc9a23a); tb.box(0.92 * s, 0.15 * s, 0.72 * s, 0, 0.66 * s, 0.55 * s, T.acc);
-    tb.box(0.6 * s, 0.25 * s, 0.4 * s, 0, 0.45 * s, 0.85 * s, 0x223344);
-    tb.box(0.22 * s, 0.22 * s, 1.9 * s, 0, 0.75 * s, -0.4 * s, 0xd9b23a, -0.4, 0, 0);
-    tb.box(0.12, 0.6 * s, 0.12, 0, 0.9 * s, -1.25 * s, 0x333333);
-    tb.add(G.cyl6, 0.12 * s, 0.15 * s, 0.12 * s, 0.3 * s, 0.68 * s, 0.4 * s, 0xff9a20);
+    by = 0.6 + H / 2; B.add(G.cyl16, W * 0.78, 0.4, L * 0.6, 0, 0.32, 0, T.dark); B.add(G.cyl16, W * 0.82, 0.12, L * 0.63, 0, 0.14, 0, 0x2a2622);
+  }
+  // rounded hull: core + cylindrical sides + sloped rounded nose/tail + domed deck
+  B.box(W * 0.72, H, L * 0.8, 0, by, 0, T.body);
+  for (const sx of [-1, 1]) B.add(G.cyl16, H * 0.5, L * 0.8, H * 0.5, sx * W * 0.36, by, 0, T.body, PI2, 0, 0);
+  B.add(G.cyl16, H * 0.5, W * 0.72, H * 0.5, 0, by, L * 0.4, T.body, 0, 0, PI2);
+  B.add(G.cyl16, H * 0.5, W * 0.72, H * 0.5, 0, by, -L * 0.4, T.body, 0, 0, PI2);
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) B.add(G.sph, H * 0.5, H * 0.5, H * 0.5, sx * W * 0.36, by, sz * L * 0.4, T.body);
+  B.add(G.sph, W * 0.52, H * 0.32, L * 0.52, 0, by + H * 0.42, -L * 0.05, T.body);
+  B.add(G.cyl16, H * 0.25, W * 0.6, H * 0.18, 0, by + H * 0.35, -L * 0.42, T.dark, 0, 0, PI2); // engine grille
+  B.add(G.cyl16, W * 0.5, 0.06 * s, L * 0.3, 0, by + H * 0.66, 0.1 * s, T.acc);        // team stripe (oval)
+  for (const sx of [-1, 1]) B.add(G.sph, 0.13 * s, 0.13 * s, 0.08 * s, sx * W * 0.3, by + H * 0.1, L * 0.4 + H * 0.45, 0xfff2c0); // round headlights
+  const top = by + H / 2 + 0.05;
+  if (d.wp === 'mg') {
+    tb.add(G.dome, 0.5 * s, 0.45 * s, 0.55 * s, 0, 0.02, 0, T.body); tb.add(G.cyl16, 0.52 * s, 0.08, 0.57 * s, 0, 0.05, 0, T.acc);
+    tb.add(G.sph, 0.18 * s, 0.18 * s, 0.18 * s, 0, 0.3 * s, 0.45 * s, T.dark);
+    for (const sx of [-1, 1]) tb.add(G.cyl16, 0.06 * s, 1.1 * s, 0.06 * s, sx * 0.12 * s, 0.28 * s, 0.95 * s, 0x1a1a1a, PI2, 0, 0);
+  } else if (d.wp === 'cannon') {
+    tb.add(G.dome, 0.72 * s, 0.55 * s, 0.78 * s, 0, 0.02, -0.08 * s, T.body); tb.add(G.cyl16, 0.74 * s, 0.1, 0.8 * s, 0, 0.06, -0.08 * s, T.acc);
+    tb.add(G.dome, 0.25 * s, 0.18 * s, 0.25 * s, 0.22 * s, 0.5 * s, -0.25 * s, T.dark); // commander cupola
+    tb.add(G.cyl16, 0.24 * s, 0.4 * s, 0.24 * s, 0, 0.28 * s, 0.7 * s, T.dark, PI2, 0, 0); // round mantlet
+    tb.add(G.cyl16, 0.12 * s, 1.8 * s, 0.12 * s, 0, 0.28 * s, 1.6 * s, 0x2a2a2a, PI2, 0, 0);
+    tb.add(G.cyl16, 0.18 * s, 0.35 * s, 0.18 * s, 0, 0.28 * s, 2.45 * s, 0x2a2a2a, PI2, 0, 0);
+  } else if (d.wp === 'rockets') {
+    tb.add(G.dome, 0.42 * s, 0.35 * s, 0.42 * s, 0, 0.02, 0, T.dark);
+    for (const sx of [-1, 1]) {
+      tb.add(G.cyl16, 0.33 * s, 1.1 * s, 0.33 * s, sx * 0.42 * s, 0.5 * s, 0.1 * s, T.body, PI2 - 0.25, 0, 0);
+      tb.add(G.cyl16, 0.35 * s, 0.1 * s, 0.35 * s, sx * 0.42 * s, 0.37 * s, 0.6 * s, T.acc, PI2 - 0.25, 0, 0);
+      for (const ox of [-0.12, 0.12]) for (const oy of [-0.12, 0.12]) tb.add(G.cyl6, 0.08 * s, 0.1, 0.08 * s, sx * 0.42 * s + ox * s, 0.5 * s + oy * s + 0.15 * s, 0.67 * s, 0x111111, PI2 - 0.25, 0, 0);
+    }
+  } else {
+    tb.add(G.sph, 0.48 * s, 0.38 * s, 0.4 * s, 0, 0.3 * s, 0.55 * s, 0xc9a23a); tb.add(G.cyl16, 0.49 * s, 0.1 * s, 0.41 * s, 0, 0.42 * s, 0.55 * s, T.acc);
+    tb.add(G.sph, 0.3 * s, 0.16 * s, 0.12 * s, 0, 0.42 * s, 0.88 * s, 0x223344);
+    tb.add(G.cyl16, 0.12 * s, 1.9 * s, 0.12 * s, 0, 0.75 * s, -0.4 * s, 0xd9b23a, PI2 - 0.4, 0, 0);
+    tb.add(G.cyl6, 0.05, 0.6 * s, 0.05, 0, 0.9 * s, -1.25 * s, 0x333333);
+    tb.add(G.sph, 0.12 * s, 0.12 * s, 0.12 * s, 0.3 * s, 0.7 * s, 0.4 * s, 0xff9a20);
   }
   const res = { body: B.build(), tur: tb.build(), turY: top };
   geoCache[key] = res; return res;
@@ -495,8 +513,8 @@ const glowMat = [new THREE.MeshBasicMaterial({ color: 0x66ccff, transparent: tru
 function createUnit(team, d, x, z, tier) {
   const T = TEAMS[team]; const st = unitStats(d, team); if (tier !== undefined) st.hp = Math.round(st.hp * TIERS[tier].hp); const g = unitGeo(d, team);
   const grp = new THREE.Group(); grp.rotation.order = 'YXZ';
-  const body = new THREE.Mesh(g.body, matVC); body.castShadow = true; grp.add(body);
-  const tur = new THREE.Mesh(g.tur, matVC); tur.position.y = g.turY; tur.castShadow = true; grp.add(tur);
+  const body = new THREE.Mesh(g.body, matUnit); body.castShadow = true; grp.add(body);
+  const tur = new THREE.Mesh(g.tur, matUnit); tur.position.y = g.turY; tur.castShadow = true; grp.add(tur);
   if (d.pr === 'hover') { const gl = new THREE.Mesh(glowDisc, glowMat[team]); gl.scale.set(CH[d.ch].size * 1.3, 1, CH[d.ch].size * 1.7); gl.position.y = 0.05; grp.add(gl); }
   scene.add(grp);
   const u = { kind: 'unit', team, d, st, x, z, y: heightAt(x, z), hp: st.hp, maxHp: st.hp, r: 1.0 * CH[d.ch].size, h: g.turY + 0.6, heading: team === 0 ? Math.PI * 0.75 : -Math.PI * 0.25, vx: 0, vz: 0, mesh: grp, tur, turYaw: 0, state: 'idle', tx: x, tz: z, target: null, cd: rand(0, 0.5), acq: rand(0, 0.3), isTruck: d.wp === 'truck', bob: Math.random() * 6, smokeT: 0, alive: true, id: uid++, lastHit: -99, amove: false, lx: x, lz: z, tier, post: null };
@@ -510,7 +528,7 @@ function makeBldMesh(type, team) {
   if (type === 'pump') { const b = new THREE.Mesh(g.anim.beam, matVC); b.position.set(0, 3.55, 0); grp.add(b); parts.beam = b; }
   if (type === 'tower') {
     const t = new THREE.Group(); t.position.y = 3.3; grp.add(t);
-    for (const w of ['mg', 'cannon', 'rockets']) { const m = new THREE.Mesh(unitGeo({ ch: 'heavy', pr: 'wheels', wp: w }, team).tur, matVC); m.castShadow = true; m.visible = false; t.add(m); parts[w] = m; }
+    for (const w of ['mg', 'cannon', 'rockets']) { const m = new THREE.Mesh(unitGeo({ ch: 'heavy', pr: 'wheels', wp: w }, team).tur, matUnit); m.castShadow = true; m.visible = false; t.add(m); parts[w] = m; }
     parts.tur = t;
   }
   return { grp, parts };
@@ -1182,7 +1200,7 @@ let prevR = null, prevScene, prevCam, prevGrp;
 function updatePreview() {
   try {
     if (!prevR) { prevR = new THREE.WebGLRenderer({ canvas: $('prev'), antialias: true, alpha: true }); prevR.setPixelRatio(Math.min(devicePixelRatio, 2)); prevR.setSize(260, $('prev').clientHeight || 150, false); prevScene = new THREE.Scene(); prevScene.add(new THREE.HemisphereLight(0xffffff, 0x444033, 2)); const dl = new THREE.DirectionalLight(0xffffff, 2); dl.position.set(3, 5, 4); prevScene.add(dl); prevCam = new THREE.PerspectiveCamera(35, 260 / 150, 0.1, 50); prevCam.position.set(4.5, 3.2, 5.5); prevCam.lookAt(0, 0.8, 0); }
-    if (prevGrp) prevScene.remove(prevGrp); prevGrp = new THREE.Group(); const g = unitGeo(dsg, 0); prevGrp.add(new THREE.Mesh(g.body, matVC)); const t = new THREE.Mesh(g.tur, matVC); t.position.y = g.turY; prevGrp.add(t); prevScene.add(prevGrp);
+    if (prevGrp) prevScene.remove(prevGrp); prevGrp = new THREE.Group(); const g = unitGeo(dsg, 0); prevGrp.add(new THREE.Mesh(g.body, matUnit)); const t = new THREE.Mesh(g.tur, matUnit); t.position.y = g.turY; prevGrp.add(t); prevScene.add(prevGrp);
   } catch (e) { prevR = null; }
 }
 

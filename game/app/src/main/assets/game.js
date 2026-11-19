@@ -350,7 +350,16 @@ const PR = {
 const WP = {
   mg: { name: 'Mitralieră', dmg: 7, rof: 0.22, range: 12, cost: 20, kind: 'mg' },
   cannon: { name: 'Tun', dmg: 42, rof: 1.7, range: 14, cost: 45, kind: 'shell' },
-  mortar: { name: 'Mortier', dmg: 38, rof: 3.4, range: 26, cost: 70, kind: 'mortar', splash: 3.6 },
+  mortar: { name: 'Mortier', dmg: 38, rof: 3.4, range: 26, cost: 70, kind: 'mortar', splash: 3.6, art: 'mortar' },
+  imortar: { name: 'Mortier incendiar', dmg: 22, rof: 3.6, range: 25, cost: 90, kind: 'mortar', splash: 3.2, fire: 14, art: 'mortar' },
+  empmortar: { name: 'Mortier IEM', dmg: 10, rof: 4, range: 24, cost: 110, kind: 'mortar', splash: 4.2, emp: 3, art: 'mortar' },
+  salvo: { name: 'Lansator salve', dmg: 16, rof: 5, range: 32, cost: 100, kind: 'salvo', splash: 2.6, n: 6, art: 'salvo' },
+  howitzer: { name: 'Obuzier', dmg: 70, rof: 5.5, range: 40, cost: 140, kind: 'mortar', splash: 4.6, art: 'how' },
+  ihowitzer: { name: 'Obuzier incendiar', dmg: 45, rof: 6, range: 38, cost: 160, kind: 'mortar', splash: 4.6, fire: 20, art: 'how' },
+  rhowitzer: { name: 'Obuzier rapid', dmg: 55, rof: 2.6, range: 38, cost: 190, kind: 'mortar', splash: 4.2, art: 'how' },
+  hhowitzer: { name: 'Obuzier greu', dmg: 140, rof: 8, range: 50, cost: 240, kind: 'mortar', splash: 6.5, art: 'how', big: 1 },
+  plasma: { name: 'Lansator plasmă', dmg: 90, rof: 6, range: 36, cost: 260, kind: 'mortar', splash: 6, fire: 25, plasma: 1, art: 'plasma' },
+  ballistic: { name: 'Rachetă balistică', dmg: 220, rof: 12, range: 60, cost: 320, kind: 'salvo', splash: 7.5, n: 1, big: 1, art: 'salvo' },
   flame: { name: 'Aruncător de flăcări', dmg: 10, rof: 0.16, range: 8, cost: 50, kind: 'flame' },
   laser: { name: 'Laser', dmg: 22, rof: 0.55, range: 17, cost: 80, kind: 'laser' },
   rockets: { name: 'Rachete', dmg: 30, rof: 2.4, range: 18, cost: 60, kind: 'rocket', splash: 2.8 },
@@ -379,10 +388,11 @@ const DCLASS = {
   bunker: { name: 'Buncăr', hp: 1300, cost: 110, size: 3.4, time: 22, h: 2, ty: 1.35, ts: 1, rb: -1, dm: 1.25, req: 'bunker', wps: ['mg', 'cannon', 'flame', 'laser'] },
   hard: { name: 'Fortificație', hp: 1700, cost: 170, size: 3.8, time: 28, h: 3.8, ty: 3.5, ts: 1.15, rb: 3, dm: 1.6, req: 'hardpoint', wps: ['mg', 'cannon', 'flame', 'rockets', 'laser'] },
   fort: { name: 'Fortăreață', hp: 5200, cost: 560, size: 8, time: 70, h: 6, ty: 5.6, ts: 1.9, rb: 6, dm: 3.6, req: 'fortress', wps: ['cannon', 'rockets', 'laser'] },
-  pit: { name: 'Amplasament', hp: 650, cost: 80, size: 3.6, time: 18, h: 1.5, ty: 0.75, ts: 1.1, rb: 0, dm: 1.4, req: null, wps: ['mortar'] },
+  pit: { name: 'Amplasament', hp: 700, cost: 80, size: 3.6, time: 18, h: 1.5, ty: 0.75, ts: 1.1, rb: 0, dm: 1.4, req: null, wps: ['mortar', 'imortar', 'empmortar', 'salvo', 'howitzer', 'ihowitzer', 'rhowitzer', 'hhowitzer', 'plasma', 'ballistic'] },
 };
-const WSHORT = { mg: 'mitralieră', cannon: 'tun', flame: 'flăcări', rockets: 'rachete', laser: 'laser', mortar: 'mortier' };
-for (const [ck, c] of Object.entries(DCLASS)) for (const w of c.wps) BD['d_' + ck + '_' + w] = { name: `${c.name} ${WSHORT[w]}`, icon: '', hp: c.hp, cost: c.cost + 0 * 1, size: c.size, time: c.time, h: c.h, tw: w, cls: ck, req: c.req, ty: c.ty, ts: c.ts, rb: c.rb, dm: c.dm };
+const ART_W = ['mortar', 'imortar', 'empmortar', 'salvo', 'howitzer', 'ihowitzer', 'rhowitzer', 'hhowitzer', 'plasma', 'ballistic'];
+const WSHORT = { mg: 'mitralieră', cannon: 'tun', flame: 'flăcări', rockets: 'rachete', laser: 'laser', mortar: 'mortier', imortar: 'mortier incendiar', empmortar: 'mortier IEM', salvo: 'salve', howitzer: 'obuzier', ihowitzer: 'obuzier incendiar', rhowitzer: 'obuzier rapid', hhowitzer: 'obuzier greu', plasma: 'plasmă', ballistic: 'rachetă balistică' };
+for (const [ck, c] of Object.entries(DCLASS)) for (const w of c.wps) BD['d_' + ck + '_' + w] = { short: WSHORT[w][0].toUpperCase() + WSHORT[w].slice(1), name: `${c.name} ${WSHORT[w]}`, icon: '', hp: c.hp, cost: c.cost + 0 * 1, size: c.size, time: c.time, h: c.h, tw: w, cls: ck, req: c.req, ty: c.ty, ts: c.ts, rb: c.rb, dm: c.dm };
 // enemy technology tiers: 0 = outer ring (weak) … 3 = citadel (latest technology)
 const TIERS = [
   { name: 'Avanpost', ch: ['light'], pr: ['wheels'], wp: ['mg'], tower: 'mg', hp: 1, garrison: 3, towers: 2 },
@@ -410,7 +420,16 @@ const RS = [
   { id: 'bunker', name: 'Buncăre', cost: 110, time: 24, req: [] },
   { id: 'hardpoint', name: 'Fortificații', cost: 200, time: 36, req: ['bunker', 'armor'] },
   { id: 'fortress', name: 'Fortărețe', cost: 380, time: 60, req: ['hardpoint', 'heavy'] },
-  { id: 'mortar', name: 'Mortier (artilerie)', cost: 150, time: 30, req: ['cannon'] },
+  { id: 'mortar', name: 'Mortier', cost: 150, time: 30, req: ['cannon'] },
+  { id: 'imortar', name: 'Mortier incendiar', cost: 170, time: 32, req: ['mortar', 'flame'] },
+  { id: 'empmortar', name: 'Mortier IEM', cost: 220, time: 40, req: ['imortar', 'radar'] },
+  { id: 'salvo', name: 'Lansator salve', cost: 190, time: 36, req: ['mortar', 'rockets'] },
+  { id: 'howitzer', name: 'Obuzier', cost: 230, time: 42, req: ['mortar', 'heavy'] },
+  { id: 'ihowitzer', name: 'Obuzier incendiar', cost: 250, time: 44, req: ['howitzer', 'imortar'] },
+  { id: 'rhowitzer', name: 'Obuzier rapid', cost: 280, time: 48, req: ['howitzer', 'prod'] },
+  { id: 'hhowitzer', name: 'Obuzier greu', cost: 330, time: 55, req: ['rhowitzer', 'titan'] },
+  { id: 'plasma', name: 'Lansator plasmă', cost: 380, time: 60, req: ['howitzer', 'laser'] },
+  { id: 'ballistic', name: 'Rachetă balistică', cost: 420, time: 65, req: ['salvo', 'hhowitzer'] },
   { id: 'flame', name: 'Aruncător de flăcări', cost: 120, time: 26, req: [] },
   { id: 'laser', name: 'Laser de luptă', cost: 240, time: 45, req: ['rockets'] },
   { id: 'nova', name: 'Șasiu Nova (auriu)', cost: 300, time: 52, req: ['titan', 'laser'] },
@@ -423,7 +442,8 @@ const SV = (inner) => `<svg class="ric" viewBox="0 0 48 48" fill="none" stroke-l
 const BRANCHES = [
   { name: 'Mobilitate', ids: ['tracks', 'hover', 'engine'] },
   { name: 'Corp și blindaj', ids: ['scout', 'medium', 'assault', 'heavy', 'armor', 'titan', 'nova'] },
-  { name: 'Armament', ids: ['cannon', 'flame', 'mortar', 'rockets', 'laser'] },
+  { name: 'Armament', ids: ['cannon', 'flame', 'rockets', 'laser'] },
+  { name: 'Artilerie', ids: ['mortar', 'imortar', 'empmortar', 'salvo', 'howitzer', 'ihowitzer', 'rhowitzer', 'hhowitzer', 'plasma', 'ballistic'] },
   { name: 'Sprijin', ids: ['radar', 'radar2', 'repair', 'repair2'] },
   { name: 'Apărare', ids: ['traps', 'tower2', 'bunker', 'hardpoint', 'fortress'] },
   { name: 'Industrie', ids: ['prod'] },
@@ -449,6 +469,15 @@ const RICON = {
   hardpoint: SV(`<rect x="8" y="20" width="32" height="22" fill="#8c867a" stroke="#c9b48a" stroke-width="2"/><path d="M8 26h32M8 34h32M18 20v6M30 26v8M18 34v8" stroke="#5a564f" stroke-width="1.5"/><path d="M14 20l4-8h12l4 8z" fill="#5c6a3e" stroke="#c9b48a" stroke-width="1.5"/><path d="M28 14h16" stroke="#3a3a36" stroke-width="3"/>`),
   fortress: SV(`<path d="M3 42V22l6-4 6 4v-6l9-6 9 6v6l6-4 6 4v20z" fill="#8c867a" stroke="#c9b48a" stroke-width="2"/><path d="M17 16a7 5 0 0 1 14 0z" fill="#5c6a3e"/><path d="M28 12h18M28 16h16" stroke="#3a3a36" stroke-width="3"/><rect x="20" y="32" width="8" height="10" rx="4" fill="#2a2823"/>`),
   mortar: SV(`<ellipse cx="22" cy="40" rx="18" ry="4" fill="#5a564f"/><path d="M14 38l6-22 6 2-4 21z" fill="#3a3a36" stroke="#c9b48a" stroke-width="1.5"/><path d="M10 38h20" stroke="#c9b48a" stroke-width="3"/><path d="M24 12q10-10 20 2" stroke="#ffcf5a" stroke-width="2" stroke-dasharray="3 3"/><circle cx="44" cy="15" r="3" fill="#e0402a"/>`),
+  imortar: SV(`<ellipse cx="22" cy="40" rx="18" ry="4" fill="#5a564f"/><path d="M14 38l6-22 6 2-4 21z" fill="#3a3a36" stroke="#c9b48a" stroke-width="1.5"/><path d="M15 32l9 3M17 26l8 3" stroke="#e0402a" stroke-width="2"/><path d="M34 14c4-6 8-2 10-7 0 6-2 8 0 12-3-1-6 2-10-1z" fill="#ff8a2a"/>`),
+  empmortar: SV(`<ellipse cx="22" cy="40" rx="18" ry="4" fill="#5a564f"/><path d="M14 38l6-22 6 2-4 21z" fill="#3a3a36" stroke="#66ccff" stroke-width="1.5"/><path d="M34 6l-4 8h6l-4 9" stroke="#66e0ff" stroke-width="2.5"/><circle cx="40" cy="30" r="5" stroke="#66e0ff" stroke-width="2"/><circle cx="40" cy="30" r="9" stroke="#66e0ff" stroke-width="1" opacity=".6"/>`),
+  salvo: SV(`<rect x="6" y="30" width="34" height="8" rx="2" fill="#3d432f"/><g transform="rotate(-30 22 26)"><rect x="8" y="16" width="30" height="12" rx="2" fill="#71804e" stroke="#c9b48a" stroke-width="1.5"/><circle cx="36" cy="19" r="2" fill="#1c1c1c"/><circle cx="36" cy="25" r="2" fill="#1c1c1c"/><circle cx="31" cy="19" r="2" fill="#1c1c1c"/><circle cx="31" cy="25" r="2" fill="#1c1c1c"/></g><path d="M38 6l4 4M42 4l3 5" stroke="#ff9a2a" stroke-width="2"/>`),
+  howitzer: SV(`<path d="M6 40l8-10h20l8 10z" fill="#3d432f"/><path d="M16 30l24-18" stroke="#3a3a36" stroke-width="5"/><path d="M18 31l12-9" stroke="#71804e" stroke-width="7"/><circle cx="12" cy="38" r="4" fill="#2a2823" stroke="#c9b48a" stroke-width="1.5"/><circle cx="36" cy="38" r="4" fill="#2a2823" stroke="#c9b48a" stroke-width="1.5"/><path d="M40 12l5-3" stroke="#ffcf5a" stroke-width="2"/>`),
+  ihowitzer: SV(`<path d="M6 40l8-10h20l8 10z" fill="#3d432f"/><path d="M16 30l24-18" stroke="#3a3a36" stroke-width="5"/><path d="M18 31l12-9" stroke="#b8432c" stroke-width="7"/><path d="M38 8c3-5 6-1 8-5 0 5-2 6 0 9-3-1-5 1-8-1z" fill="#ff8a2a"/>`),
+  rhowitzer: SV(`<path d="M6 40l8-10h20l8 10z" fill="#3d432f"/><path d="M14 28l24-18M18 32l24-18" stroke="#3a3a36" stroke-width="4"/><path d="M18 31l10-7" stroke="#71804e" stroke-width="8"/><path d="M40 6l5-2M44 12l4-1" stroke="#ffcf5a" stroke-width="2"/>`),
+  hhowitzer: SV(`<path d="M3 42l8-12h26l8 12z" fill="#3d432f"/><path d="M14 30l30-22" stroke="#2e2e2a" stroke-width="7"/><path d="M16 32l14-10" stroke="#50565e" stroke-width="10"/><text x="10" y="18" font-size="9" fill="#f0b44a" font-family="sans-serif" font-weight="bold">XL</text>`),
+  plasma: SV(`<path d="M6 40l8-10h20l8 10z" fill="#3d432f"/><path d="M16 30l22-16" stroke="#3a3a40" stroke-width="7"/><path d="M20 27l4-3M26 23l4-3M32 19l4-3" stroke="#60ff90" stroke-width="3"/><circle cx="41" cy="11" r="5" fill="#9affb8" stroke="#2eaa4a" stroke-width="2"/>`),
+  ballistic: SV(`<path d="M10 42h28" stroke="#c9b48a" stroke-width="3"/><path d="M24 4c5 6 6 12 6 30h-12c0-18 1-24 6-30z" fill="#e8e8e8" stroke="#c9b48a" stroke-width="1.5"/><path d="M18 26l-5 8h5zM30 26l5 8h-5z" fill="#b8432c"/><path d="M20 34l4 7 4-7" fill="#ff9a2a"/><rect x="20" y="12" width="8" height="3" fill="#b8432c"/>`),
   flame: SV(`<rect x="6" y="20" width="9" height="18" rx="4.5" fill="#b8432c" stroke="#c9b48a" stroke-width="1.5"/><rect x="16" y="22" width="9" height="16" rx="4.5" fill="#b8432c" stroke="#c9b48a" stroke-width="1.5"/><path d="M24 28h8" stroke="#3a3a36" stroke-width="4"/><path d="M32 28c6-8 10-2 14-8-1 7-4 9-2 14-4-2-7 2-12-2z" fill="#ff8a2a"/><path d="M33 28c4-4 6-1 9-4-1 4-2 5-1 8-3-1-5 1-8-1z" fill="#ffe680"/>`),
   laser: SV(`<path d="M8 34a10 7 0 0 1 20 0z" fill="#71804e" stroke="#c9b48a" stroke-width="2"/><rect x="18" y="22" width="16" height="5" rx="2.5" fill="#3a3a40" transform="rotate(-15 18 24)"/><circle cx="34" cy="19" r="3" fill="#fff2a0"/><path d="M36 18l10-3" stroke="#ffd84a" stroke-width="3"/><path d="M36 18l10-3" stroke="#fff" stroke-width="1"/><rect x="6" y="34" width="26" height="6" rx="3" fill="#3d432f"/>`),
   radar2: SV(`<path d="M24 44V28" stroke="#c9b48a" stroke-width="3"/><path d="M14 44h20" stroke="#c9b48a" stroke-width="3"/><rect x="8" y="10" width="32" height="16" rx="2" fill="#3d4a52" stroke="#c9b48a" stroke-width="2"/><path d="M14 12v12M20 12v12M26 12v12M32 12v12" stroke="#6fa8c8" stroke-width="2.5"/><path d="M40 4l4 6h-3v6h-2v-6h-3z" fill="#7fb84a"/>`),
@@ -590,6 +619,27 @@ function unitGeo(d, team) {
       tb.add(G.cyl16, 0.33 * s, 1.1 * s, 0.33 * s, sx * 0.42 * s, 0.5 * s, 0.1 * s, T.body, PI2 - 0.25, 0, 0);
       tb.add(G.cyl16, 0.35 * s, 0.1 * s, 0.35 * s, sx * 0.42 * s, 0.37 * s, 0.6 * s, T.acc, PI2 - 0.25, 0, 0);
       for (const ox of [-0.12, 0.12]) for (const oy of [-0.12, 0.12]) tb.add(G.cyl6, 0.08 * s, 0.1, 0.08 * s, sx * 0.42 * s + ox * s, 0.5 * s + oy * s + 0.15 * s, 0.67 * s, 0x111111, PI2 - 0.25, 0, 0);
+    }
+  } else if (WP[d.wp].art && d.wp !== 'mortar') {
+    const w = WP[d.wp], A = w.art; const tint = w.fire ? 0xb8432c : w.emp ? 0x3f9fe0 : w.plasma ? 0x2eaa4a : T.body;
+    if (A === 'mortar') {
+      tb.add(G.cyl16, 0.55 * s, 0.12 * s, 0.55 * s, 0, 0.06 * s, 0, 0x5a564f); tb.add(G.cyl16, 0.57 * s, 0.05 * s, 0.57 * s, 0, 0.14 * s, 0, T.acc);
+      tb.add(G.cyl16, 0.17 * s, 1.1 * s, 0.17 * s, 0, 0.6 * s, 0.2 * s, 0x34342e, 0.75, 0, 0); for (let k = 0; k < 2; k++) tb.add(G.cyl16, 0.2 * s, 0.08 * s, 0.2 * s, 0, (0.45 + k * 0.3) * s, (0.08 + k * 0.28) * s, tint, 0.75, 0, 0);
+      if (w.emp) for (const sx of [-1, 1]) tb.add(G.sph, 0.12 * s, 0.12 * s, 0.12 * s, sx * 0.4 * s, 0.3 * s, -0.3 * s, 0x66e0ff);
+      else tb.box(0.6 * s, 0.3 * s, 0.35 * s, 0, 0.25 * s, -0.4 * s, w.fire ? 0xa83a26 : 0x6a5a3a);
+    } else if (A === 'salvo') {
+      tb.add(G.cyl16, 0.5 * s, 0.15 * s, 0.5 * s, 0, 0.08 * s, 0, T.dark);
+      if (w.big) { tb.box(0.25 * s, 0.9 * s, 0.25 * s, 0.35 * s, 0.5 * s, -0.2 * s, 0x5a564f); tb.add(G.cyl16, 0.2 * s, 2.0 * s, 0.2 * s, 0, 0.75 * s, 0.1 * s, 0xe8e8e8, 0.95, 0, 0); tb.add(G.cone, 0.2 * s, 0.45 * s, 0.2 * s, 0, 1.23 * s, 0.98 * s, 0xb8432c, 0.95, 0, 0); for (const sx of [-1, 1]) tb.box(0.04 * s, 0.25 * s, 0.25 * s, sx * 0.2 * s, 0.25 * s, -0.75 * s, 0xb8432c, 0.95, 0, 0); }
+      else { tb.box(0.9 * s, 0.5 * s, 1.4 * s, 0, 0.55 * s, 0.1 * s, T.body, -0.55, 0, 0); for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) tb.add(G.cyl10, 0.1 * s, 0.1 * s, 0.1 * s, (i - 1) * 0.27 * s, (0.62 + j * 0.2) * s + 0.38 * s, 0.68 * s - j * 0.1 * s, 0x111111, Math.PI / 2 - 0.55, 0, 0); tb.box(0.95 * s, 0.06 * s, 1.42 * s, 0, 0.82 * s, 0.1 * s, T.acc, -0.55, 0, 0); }
+    } else {
+      const L = (w.big ? 2.6 : 2.0) * s, rr = (w.big ? 0.15 : 0.11) * s;
+      tb.add(G.cyl16, 0.55 * s, 0.15 * s, 0.55 * s, 0, 0.08 * s, 0, T.dark); tb.box(0.9 * s, 0.5 * s, 0.4 * s, 0, 0.4 * s, 0.25 * s, T.body, -0.2, 0, 0);
+      const tubes = d.wp === 'rhowitzer' ? [-0.14, 0.14] : [0];
+      for (const ox of tubes) { tb.add(G.cyl16, rr, L, rr, ox * s, 0.45 * s + Math.sin(0.55) * L * 0.5, 0.2 * s + Math.cos(0.55) * L * 0.5, w.plasma ? 0x3a3a40 : 0x2e2e2a, Math.PI / 2 - 0.55, 0, 0); }
+      tb.add(G.cyl16, rr * 1.6, L * 0.35, rr * 1.6, 0, 0.45 * s + Math.sin(0.55) * L * 0.2, 0.2 * s + Math.cos(0.55) * L * 0.2, tint, Math.PI / 2 - 0.55, 0, 0);
+      if (w.plasma) for (let k = 1; k <= 3; k++) tb.add(G.cyl16, rr * 1.8, 0.08 * s, rr * 1.8, 0, 0.45 * s + Math.sin(0.55) * L * k * 0.22, 0.2 * s + Math.cos(0.55) * L * k * 0.22, 0x60ff90, Math.PI / 2 - 0.55, 0, 0);
+      for (const sx of [-1, 1]) tb.box(0.08 * s, 0.4 * s, 0.6 * s, sx * 0.5 * s, 0.35 * s, 0.1 * s, T.dark);
+      tb.box(0.6 * s, 0.25 * s, 0.4 * s, 0, 0.25 * s, -0.5 * s, 0x6a5a3a);
     }
   } else if (d.wp === 'mortar') {
     tb.add(G.cyl16, 0.55 * s, 0.12 * s, 0.55 * s, 0, 0.06 * s, 0, 0x5a564f); tb.add(G.cyl16, 0.57 * s, 0.05 * s, 0.57 * s, 0, 0.14 * s, 0, T.acc);
@@ -833,7 +883,8 @@ function makeBldMesh(type, team) {
   if (type === 'radartower') { const d = new THREE.Mesh(g.anim.dish, matVC); d.position.set(0, 7.05, 0); grp.add(d); parts.dish = d; }
   if (type === 'tower' || BD[type].tw) {
     const t = new THREE.Group(); t.position.y = BD[type].ty || 3.3; t.scale.setScalar(BD[type].ts || 1); grp.add(t);
-    for (const w of ['mg', 'cannon', 'rockets', 'laser', 'flame', 'mortar']) { const m = new THREE.Mesh(unitGeo({ ch: 'heavy', pr: 'wheels', wp: w }, team).tur, matUnit); m.castShadow = true; m.visible = false; t.add(m); parts[w] = m; }
+    parts.wl = BD[type].tw ? [BD[type].tw] : ['mg', 'cannon', 'rockets', 'laser'];
+    for (const w of parts.wl) { const m = new THREE.Mesh(unitGeo({ ch: 'heavy', pr: 'wheels', wp: w }, team).tur, matUnit); m.castShadow = true; m.visible = false; t.add(m); parts[w] = m; }
     parts.tur = t;
   }
   return { grp, parts };
@@ -909,13 +960,21 @@ const beams = []; for (let i = 0; i < 24; i++) { const m = new THREE.Mesh(beamGe
 let bmIdx = 0;
 function beam(x1, y1, z1, x2, y2, z2) { const t = beams[bmIdx = (bmIdx + 1) % beams.length]; const d = Math.hypot(x2 - x1, y2 - y1, z2 - z1); t.m.position.set((x1 + x2) / 2, (y1 + y2) / 2, (z1 + z2) / 2); t.m.lookAt(x2, y2, z2); t.m.scale.set(1, 1, d); t.m.visible = true; t.life = 0.14; }
 function tracer(x1, y1, z1, x2, y2, z2) { const t = tracers[trIdx = (trIdx + 1) % tracers.length]; const d = Math.hypot(x2 - x1, y2 - y1, z2 - z1); t.m.position.set((x1 + x2) / 2, (y1 + y2) / 2, (z1 + z2) / 2); t.m.lookAt(x2, y2, z2); t.m.scale.set(1, 1, d); t.m.visible = true; t.life = 0.06; }
+const plasmaMat = new THREE.MeshBasicMaterial({ color: 0x9affb8 });
 const shellGeo = new THREE.SphereGeometry(0.2, 6, 4), rocketGeo = new THREE.ConeGeometry(0.13, 0.7, 5).rotateX(Math.PI / 2);
 const shellMat = new THREE.MeshBasicMaterial({ color: 0xffd27a }), rocketMat = new THREE.MeshBasicMaterial({ color: 0xe8e8e8 });
 const projs = [];
-function spawnProj(kind, src, tgt, dmg, splash, ox, oy, oz) {
-  const m = new THREE.Mesh(kind === 'rocket' ? rocketGeo : shellGeo, kind === 'rocket' ? rocketMat : shellMat); scene.add(m); if (kind === 'mortar') m.scale.setScalar(1.6);
+function spawnProj(kind, src, tgt, dmg, splash, ox, oy, oz, w, realT) {
+  const rk = kind === 'rocket' || (w && w.kind === 'salvo'); const m = new THREE.Mesh(rk ? rocketGeo : shellGeo, w && w.plasma ? plasmaMat : rk ? rocketMat : shellMat); scene.add(m); if (kind === 'mortar') m.scale.setScalar(w && w.big ? 2.6 : w && w.plasma ? 2.4 : 1.6);
   const tx = tgt.x, tz = tgt.z, ty = tgt.y + (tgt.kind === 'bld' ? 1.5 : 0.8); const d = Math.hypot(tx - ox, tz - oz); const spd = kind === 'shell' ? 34 : kind === 'mortar' ? 15 : 22;
-  projs.push({ kind, m, team: src.team, src, tgt, ox, oy, oz, tx, ty, tz, t: 0, dur: Math.max(0.12, d / spd), arc: kind === 'shell' ? d * 0.05 : kind === 'mortar' ? d * 0.55 : d * 0.13, dmg, splash, smokeT: 0 });
+  projs.push({ kind, m, team: src.team, src, tgt, ox, oy, oz, tx, ty, tz, t: 0, dur: Math.max(0.12, d / spd), arc: kind === 'shell' ? d * 0.05 : kind === 'mortar' ? d * 0.55 : d * 0.13, dmg, splash, smokeT: 0, w, realT });
+}
+const fireZones = [];
+function updFireZones(dt) {
+  for (let i = fireZones.length - 1; i >= 0; i--) { const f = fireZones[i]; f.t -= dt; f.fxT -= dt;
+    if (f.fxT <= 0) { f.fxT = 0.12; fx('flame', f.x + rand(-f.r, f.r) * 0.7, heightAt(f.x, f.z) + 0.4, f.z + rand(-f.r, f.r) * 0.7, 1.2); }
+    for (const e of ents) if (e.alive && e.team !== f.team && Math.hypot(e.x - f.x, e.z - f.z) < f.r + e.r * 0.5) damage(e, f.dps * dt, f.src);
+    if (f.t <= 0) fireZones.splice(i, 1); }
 }
 function updProjs(dt) {
   for (let i = projs.length - 1; i >= 0; i--) {
@@ -923,11 +982,14 @@ function updProjs(dt) {
     if (p.tgt.alive) { p.tx = p.tgt.x; p.tz = p.tgt.z; p.ty = p.tgt.y + (p.tgt.kind === 'bld' ? 1.5 : 0.8); }
     const k = Math.min(1, p.t); const x = lerp(p.ox, p.tx, k), z = lerp(p.oz, p.tz, k), y = lerp(p.oy, p.ty, k) + Math.sin(k * Math.PI) * p.arc;
     const px = p.m.position.x, py = p.m.position.y, pz = p.m.position.z;
-    p.m.position.set(x, y, z); if (p.kind === 'rocket') { p.m.lookAt(x + (x - px), y + (y - py), z + (z - pz)); p.smokeT -= dt; if (p.smokeT <= 0) { p.smokeT = 0.03; fx('smoke', x, y, z, 0.35); fx('fire', x, y, z, 0.3); } }
+    p.m.position.set(x, y, z); if (p.w && p.w.plasma && Math.random() < 0.5) fx('spark', x, y, z, 0.6); if (p.kind === 'rocket' || (p.w && p.w.kind === 'salvo')) { p.m.lookAt(x + (x - px), y + (y - py), z + (z - pz)); p.smokeT -= dt; if (p.smokeT <= 0) { p.smokeT = 0.03; fx('smoke', x, y, z, 0.35); fx('fire', x, y, z, 0.3); } }
     if (k >= 1) {
       scene.remove(p.m); projs.splice(i, 1);
       fx('flash', x, y, z, p.kind === 'rocket' ? 1 : 0.7); fx('fire', x, y, z, 0.7); fx('smoke', x, y, z, 0.6); for (let s = 0; s < 4; s++) fx('spark', x, y, z, 1);
-      if (p.kind === 'mortar') { fx('flash', x, y, z, 1.6); fx('dust', x, y, z, 1.4); sfx('boom', x, z); } else sfx('hit', x, z);
+      if (p.kind === 'mortar') { const big = p.w && p.w.big; fx('flash', x, y, z, big ? 3 : 1.6); fx('dust', x, y, z, big ? 2.6 : 1.4); if (big) for (let s = 0; s < 3; s++) fx('fire', x + rand(-1.5, 1.5), y, z + rand(-1.5, 1.5), 1.4); sfx(big ? 'bigboom' : 'boom', x, z); } else sfx('hit', x, z);
+      if (p.w && p.w.fire) fireZones.push({ x, z, r: p.splash, t: 5, dps: p.w.fire, team: p.team, src: p.src, fxT: 0 });
+      if (p.w && p.w.emp) { for (const e of ents) if (e.alive && e.kind === 'unit' && e.team !== p.team && Math.hypot(e.x - x, e.z - z) < p.splash) e.stun = p.w.emp; for (let s = 0; s < 6; s++) fx('spark', x + rand(-2, 2), y + rand(0, 2), z + rand(-2, 2), 1.2); }
+      if (p.realT && p.realT.alive && Math.hypot(p.realT.x - x, p.realT.z - z) < p.splash + p.realT.r) damage(p.realT, p.dmg, p.src);
       if (p.tgt.alive) damage(p.tgt, p.dmg, p.src);
       if (p.splash) for (const e of ents) if (e.alive && e.team !== p.team && e !== p.tgt && Math.hypot(e.x - x, e.z - z) < p.splash + e.r * 0.5) damage(e, p.dmg * 0.5, p.src);
     }
@@ -989,7 +1051,8 @@ function fireWeapon(src, t, w, mx, my, mz, mul) {
   fx('muzzle', mx, my, mz, w.kind === 'mg' ? 0.8 : 1.4);
   if (w.kind === 'mg') { const ty = t.y + (t.kind === 'bld' ? 1.5 : 0.7); tracer(mx, my, mz, t.x + rand(-0.4, 0.4), ty, t.z + rand(-0.4, 0.4)); if (Math.random() < 0.3) fx('spark', t.x, ty, t.z, 1); damage(t, dmg, src); sfx('mg', mx, mz); }
   else if (w.kind === 'shell') { spawnProj('shell', src, t, dmg, 0, mx, my, mz); fx('smoke', mx, my, mz, 0.6); sfx('shell', mx, mz); }
-  else if (w.kind === 'mortar') { spawnProj('mortar', src, t, dmg, w.splash, mx, my, mz); fx('smoke', mx, my, mz, 0.9); fx('flash', mx, my, mz, 0.6); sfx('shell', mx, mz); }
+  else if (w.kind === 'mortar') { spawnProj('mortar', src, t, dmg, w.splash, mx, my, mz, w); fx('smoke', mx, my, mz, w.big ? 1.6 : 0.9); fx('flash', mx, my, mz, w.big ? 1.2 : 0.6); sfx(w.plasma ? 'laser' : 'shell', mx, mz); }
+  else if (w.kind === 'salvo') { for (let i = 0; i < w.n; i++) later(i * 0.12, () => { if (src.alive && t.alive) spawnProj('mortar', src, { ...t, x: t.x + rand(-2.5, 2.5) * (w.n > 1 ? 1 : 0), z: t.z + rand(-2.5, 2.5) * (w.n > 1 ? 1 : 0), alive: false, kind: t.kind, y: t.y }, dmg, w.splash, mx, my, mz, w, t); }); sfx('rocket', mx, mz); }
   else if (w.kind === 'flame') { const ty = t.y + (t.kind === 'bld' ? 1.2 : 0.6);
     for (let k = 1; k <= 5; k++) { const f = k / 5; fx('flame', lerp(mx, t.x, f) + rand(-0.3, 0.3), lerp(my, ty, f) + rand(-0.2, 0.3), lerp(mz, t.z, f) + rand(-0.3, 0.3), 0.6 + f * 1.1); }
     if (Math.random() < 0.4) fx('smoke', t.x, ty + 1, t.z, 0.7); damage(t, dmg, src);
@@ -1053,6 +1116,7 @@ function supportTick(u, dt) {
 }
 function updUnit(u, dt) {
   const w = u.st.w;
+  if (u.stun > 0) { u.stun -= dt; u.vx *= 0.8; u.vz *= 0.8; if (Math.random() < dt * 6) fx('spark', u.x + rand(-0.6, 0.6), u.y + u.h * 0.7, u.z + rand(-0.6, 0.6), 0.8); return; }
   if (u.rbT > 0) { u.rbT -= dt; if (u.rbT <= 0) u.rb = 1; }
   if (w.kind === 'radar' || w.kind === 'repair') supportTick(u, dt);
   if (u.target && !u.target.alive) { u.target = null; if (u.state === 'engage' || u.state === 'attack') u.state = u.amove ? 'amove' : 'idle'; }
@@ -1104,7 +1168,7 @@ function updUnit(u, dt) {
     u.cd -= dt;
     if (inRange(u, t, 0.5) && Math.abs(angDiff(u.turYaw, local)) < 0.25 && u.cd <= 0) {
       const wy = u.heading + u.turYaw; const s = CH[u.d.ch].size;
-      const ml = (w.kind === 'shell' ? 3.5 : w.kind === 'laser' ? 2.3 : w.kind === 'flame' ? 1.5 : w.kind === 'mortar' ? 1.2 : 1.6) * s; fireWeapon(u, t, w, u.x + Math.sin(wy) * ml, u.y + u.h - 0.3, u.z + Math.cos(wy) * ml, u.rb > 1.3 ? 1.25 : u.rb > 1 ? 1.15 : 1);
+      const ml = (w.kind === 'shell' ? 3.5 : w.kind === 'laser' ? 2.3 : w.kind === 'flame' ? 1.5 : w.kind === 'mortar' ? (w.art === 'how' ? 2.2 : 1.2) : 1.6) * s; fireWeapon(u, t, w, u.x + Math.sin(wy) * ml, u.y + u.h - 0.3, u.z + Math.cos(wy) * ml, u.rb > 1.3 ? 1.25 : u.rb > 1 ? 1.15 : 1);
       u.cd = w.rof * rand(0.9, 1.1);
     }
   } else if ((!u.isTruck || u.state !== 'build') && w.kind !== 'radar' && !(w.kind === 'repair' && u.heal)) { u.cd = Math.max(0, u.cd - dt); u.turYaw += clamp(angDiff(u.turYaw, 0), -2 * dt, 2 * dt); }
@@ -1159,7 +1223,7 @@ function updBld(b, dt) {
   }
   if (b.type === 'tower' || b.def.tw) {
     const wk = b.def.tw || (b.tier !== undefined ? TIERS[b.tier].tower : (T.tech.has('tower2') ? 'cannon' : 'mg'));
-    for (const k of ['mg', 'cannon', 'rockets', 'laser', 'flame', 'mortar']) b.parts[k].visible = k === wk; const w = WP[wk]; const range = w.range + (b.def.rb !== undefined ? b.def.rb : 2);
+    for (const k of b.parts.wl) b.parts[k].visible = k === wk; const w = WP[wk]; const range = w.range + (b.def.rb !== undefined ? b.def.rb : 2);
     b.acq -= dt; if (b.acq <= 0) { b.acq = 0.4; if (!b.target || !b.target.alive || Math.hypot(b.target.x - b.x, b.target.z - b.z) - b.target.r > range) b.target = nearestEnemy(b.team, b.x, b.z, range); }
     b.cd -= dt;
     if (b.target && b.target.alive) {
@@ -1218,7 +1282,7 @@ function canPlace(type, x, z, team) {
 // ================= AI =================
 // Every outpost has a factory that builds units of its technology tier, keeps a garrison,
 // defends itself and, after a while, sends attack waves toward the player.
-const ENEMY_DEF = [['tower'], ['tower', 'd_bunker_flame', 'd_bunker_mg'], ['d_hard_cannon', 'd_pit_mortar', 'd_hard_rockets', 'd_bunker_flame'], ['d_hard_laser']];
+const ENEMY_DEF = [['tower'], ['tower', 'd_bunker_flame', 'd_pit_mortar'], ['d_hard_cannon', 'd_pit_howitzer', 'd_hard_rockets', 'd_pit_salvo'], ['d_hard_laser']];
 function tierDesign(t) { const T = TIERS[t]; return { ch: pick(T.ch), pr: pick(T.pr), wp: pick(T.wp) }; }
 const AI = { tick: 0 };
 const CAP_E = 95;
@@ -1481,7 +1545,7 @@ function buildMenu(T) {
   }
   return h;
 }
-function bdBtn(type) { const d = BD[type]; return `<button data-act="build" data-v="${type}" ${TEAMS[0].energy < d.cost ? 'disabled' : ''}>${BIC(type)}<span class="bn">${d.name}</span><small>${d.cost}<i class="eu">⚡</i></small></button>`; }
+function bdBtn(type) { const d = BD[type]; return `<button data-act="build" data-v="${type}" ${TEAMS[0].energy < d.cost ? 'disabled' : ''}>${BIC(type)}<span class="bn">${d.short || d.name}</span><small>${d.cost}<i class="eu">⚡</i></small></button>`; }
 let lastDesigns = [];
 function renderPanel() {
   const T = TEAMS[0]; let h = '';
@@ -1576,7 +1640,7 @@ function renderDesigner() {
     return `<button data-f="${field}" data-k="${k}" class="dcard ${dsg[field] === k ? 'on' : ''}" ${ok ? '' : 'disabled'}>${DICON[k] || ''}<span class="rn">${o.name}</span><span class="rm">${ok ? sub(o) : '🔒 cercetează'}</span></button>`; };
   $('dPr').innerHTML = Object.keys(PR).map(k => card(PR, 'pr', k, o => `${o.cost}⚡ · viteză ×${o.spd}`)).join('');
   $('dCh').innerHTML = Object.keys(CH).map(k => card(CH, 'ch', k, o => `${o.cost}⚡ · ${o.hp} viață`)).join('');
-  $('dWp').innerHTML = ['mg', 'cannon', 'flame', 'rockets', 'laser', 'radar', 'repair', 'truck'].map(k => card(WP, 'wp', k, o => o.kind === 'radar' ? `${o.cost}⚡ · +25% rază aliați` : o.kind === 'repair' ? `${o.cost}⚡ · repară ${o.heal}/s` : o.kind === 'truck' ? `${o.cost}⚡ · construiește` : `${o.cost}⚡ · rază ${o.range}`)).join('');
+  $('dWp').innerHTML = ['mg', 'cannon', 'flame', 'rockets', 'laser', 'mortar', ...ART_W.filter(k => k !== 'mortar' && T.tech.has(k)), 'radar', 'repair', 'truck'].map(k => card(WP, 'wp', k, o => o.kind === 'radar' ? `${o.cost}⚡ · +25% rază aliați` : o.kind === 'repair' ? `${o.cost}⚡ · repară ${o.heal}/s` : o.kind === 'truck' ? `${o.cost}⚡ · construiește` : `${o.cost}⚡ · rază ${o.range}`)).join('');
   const st = unitStats(dsg, 0); const bar = (n, v, mx, lbl) => `<div class="st"><span>${n}</span><div class="bar"><i style="width:${clamp(v / mx, 0, 1) * 100}%"></i></div><span>${lbl}</span></div>`;
   const w = st.w; const third = w.kind === 'radar' ? bar('Radar', w.aura, 30, w.aura + 'm') : w.kind === 'repair' ? bar('Reparare', w.heal, 20, w.heal + '/s') : w.kind === 'truck' ? '<div class="hint">Construiește și repară clădiri.</div>' : bar('Atac', w.dmg / w.rof, 35, Math.round(w.dmg / w.rof)) + bar('Rază', st.range, 20, st.range);
   $('dStats').innerHTML = `<b>${designName(dsg)}</b><br>${bar('Viață', st.hp, 800, st.hp)}${bar('Viteză', st.speed, 10, st.speed.toFixed(1))}${third}<div>Cost: <b style="color:#f0b44a">${st.cost}⚡</b> · Timp: ${Math.round(st.time)}s</div>`;
@@ -1787,7 +1851,7 @@ function update(dt) {
   for (const e of ents) if (e.alive) (e.kind === 'unit' ? updUnit : updBld)(e, dt);
   separate();
   for (let i = ents.length - 1; i >= 0; i--) if (!ents[i].alive) ents.splice(i, 1);
-  updProjs(dt); updWrecks(dt); updWells(dt);
+  updProjs(dt); updWrecks(dt); updWells(dt); updFireZones(dt);
   for (let i = markers.length - 1; i >= 0; i--) { const m = markers[i]; m.t -= dt; m.m.scale.setScalar(0.4 + m.t); m.m.material.opacity = m.t; if (m.t <= 0) { scene.remove(m.m); markers.splice(i, 1); } }
   engineAudio(dt); heat = Math.max(0, heat - dt * 0.08); AU.heat = lerp(AU.heat, clamp(heat, 0, 1), dt * 0.5);
   winT += dt; if (winT > 1) { winT = 0; checkEnd(); }
@@ -1855,7 +1919,7 @@ window.onBack = () => {
   if (S.paused) return false;
   S.paused = true; $('pause').classList.remove('hidden'); return true;
 };
-window.__game = { S, TEAMS, ents, cam, setSel, sel: () => sel, createUnit, createBuilding, sfx, AU, SB, buildSfx };
+window.__game = { S, TEAMS, ents, cam, setSel, sel: () => sel, createUnit, createBuilding, sfx, AU, SB, buildSfx, projs: () => projs, BD, WP };
 
 resize(); updateCamera(0); requestAnimationFrame(loop);
 // background scene behind the intro

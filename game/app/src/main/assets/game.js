@@ -82,13 +82,14 @@ const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPrefere
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.12;
 const scene = new THREE.Scene();
 const FOG = 0xb09a78;
 scene.background = new THREE.Color(FOG);
 scene.fog = new THREE.Fog(FOG, 80, 200);
 const camera = new THREE.PerspectiveCamera(50, 1, 0.5, 500); const tmpC = new THREE.Color();
-scene.add(new THREE.HemisphereLight(0xf0e2c4, 0x4a3c2c, 1.5));
-const sun = new THREE.DirectionalLight(0xffe2b8, 2.4);
+scene.add(new THREE.HemisphereLight(0xdfe8f5, 0x5a4832, 1.9));
+const sun = new THREE.DirectionalLight(0xfff0d6, 3.1);
 sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
 const sc = sun.shadow.camera; sc.left = -45; sc.right = 45; sc.top = 45; sc.bottom = -45; sc.near = 1; sc.far = 220; sun.shadow.bias = -0.0008;
 scene.add(sun); scene.add(sun.target);
@@ -110,6 +111,29 @@ const groundTex = canvasTex(256, (g, n) => {
   g.fillStyle = '#d0d0d0'; g.fillRect(0, 0, n, n); grain(g, n, 40, 0);
   for (let i = 0; i < 900; i++) { g.fillStyle = `rgba(${Math.random() < 0.5 ? '60,50,40' : '255,250,240'},${Math.random() * 0.18})`; const r = Math.random() * 2.5 + 0.5; g.beginPath(); g.arc(Math.random() * n, Math.random() * n, r, 0, TAU); g.fill(); }
 });
+const skyMat = new THREE.ShaderMaterial({
+  side: THREE.BackSide, depthWrite: false, fog: false,
+  uniforms: { top: { value: new THREE.Color(0x3d7fd1) }, horizon: { value: new THREE.Color(0xd8cdb8) }, sunDir: { value: new THREE.Vector3(-0.45, 0.6, 0.35).normalize() }, time: { value: 0 } },
+  vertexShader: 'varying vec3 vDir; void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
+  fragmentShader: `uniform vec3 top; uniform vec3 horizon; uniform vec3 sunDir; uniform float time; varying vec3 vDir;
+    float h(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453); }
+    float n(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f); return mix(mix(h(i),h(i+vec2(1,0)),f.x), mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x), f.y); }
+    float fbm(vec2 p){ float s=0.0, a=0.5; for(int i=0;i<5;i++){ s+=n(p)*a; p*=2.03; a*=0.5; } return s; }
+    void main(){
+      float y = max(vDir.y, 0.0);
+      vec3 col = mix(horizon, top, pow(y, 0.55));
+      float sd = max(dot(vDir, sunDir), 0.0);
+      col += vec3(1.0,0.85,0.6) * (pow(sd, 400.0) * 3.0 + pow(sd, 12.0) * 0.35);
+      vec2 cp = vDir.xz / (vDir.y + 0.15) * 1.6 + vec2(time * 0.01, time * 0.004);
+      float c = smoothstep(0.48, 0.78, fbm(cp));
+      vec3 cc = mix(vec3(0.82,0.84,0.88), vec3(1.0,0.97,0.92), smoothstep(0.0,1.0,sd));
+      col = mix(col, cc, c * smoothstep(0.02, 0.25, y) * 0.85);
+      gl_FragColor = vec4(col, 1.0);
+      #include <tonemapping_fragment>
+      #include <colorspace_fragment>
+    }`
+});
+const sky = new THREE.Mesh(new THREE.SphereGeometry(420, 32, 16), skyMat); sky.renderOrder = -1; sky.frustumCulled = false;
 const matVC = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, map: panelTex });
 const matUnit = new THREE.MeshLambertMaterial({ vertexColors: true, map: panelTex }); // smooth shading = rounder look
 const matPlain = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
@@ -193,7 +217,8 @@ function buildTerrain() {
     const sc2 = fbm(cx * 0.05 - 200, cz * 0.05 + 100); if (sc2 > 0.7) { const t = clamp((sc2 - 0.7) / 0.08, 0, 1) * 0.6; r = lerp(r, 0.24, t); gg = lerp(gg, 0.21, t); bb = lerp(bb, 0.19, t); }
     for (const B of FLAT) { const d = Math.hypot(cx - B.x, cz - B.z); const pr = B.r - 4; if (d < pr) { const t = clamp((pr - d) / 4, 0, 1); const grid = ((Math.floor(cx / 4) + Math.floor(cz / 4)) & 1) ? 0.55 : 0.5; r = lerp(r, grid, t); gg = lerp(gg, grid * 0.98, t); bb = lerp(bb, grid * 0.92, t); } }
     for (const w of WELLS) { const d = Math.hypot(cx - w.x, cz - w.z); if (d < 2.6) { r = 0.08; gg = 0.07; bb = 0.06; } else if (d < 4) { r *= 0.6; gg *= 0.55; bb *= 0.5; } }
-    const v = 0.92 + hash2(i, 7) * 0.14; c.setRGB(r * v, gg * v, bb * v, THREE.SRGBColorSpace);
+    const conc = (heightAt(cx + 4, cz) + heightAt(cx - 4, cz) + heightAt(cx, cz + 4) + heightAt(cx, cz - 4)) / 4 - cy;
+    const v = (0.92 + hash2(i, 7) * 0.14) * clamp(1 - conc * 0.05, 0.72, 1.12); c.setRGB(r * v, gg * v, bb * v, THREE.SRGBColorSpace);
     for (let k = 0; k < 3; k++) { cols[(i + k) * 3] = c.r; cols[(i + k) * 3 + 1] = c.g; cols[(i + k) * 3 + 2] = c.b; }
   }
   ng.setAttribute('color', new THREE.BufferAttribute(cols, 3)); ng.computeVertexNormals();
@@ -268,6 +293,33 @@ function buildDecor() {
   for (const w of WELLS) for (let k = 0; k < 7; k++) { const a = k / 7 * TAU; const x = w.x + Math.cos(a) * 3.3, z = w.z + Math.sin(a) * 3.3; B.add(G.ico, 0.5, 0.35, 0.5, x, heightAt(x, z), z, 0x3b342b, a, a, 0); }
   B.uvScale = 0.35; const m = new THREE.Mesh(B.build(), new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, map: groundTex })); m.castShadow = true; m.receiveShadow = true; scene.add(m);
   indexObst();
+  buildGroundCover();
+}
+function buildGroundCover() {
+  const tuft = new THREE.ConeGeometry(0.12, 0.9, 3); tuft.translate(0, 0.45, 0);
+  const blob = new THREE.IcosahedronGeometry(0.28, 0);
+  const flower = new THREE.SphereGeometry(0.12, 5, 4); flower.translate(0, 0.55, 0);
+  const mat = new THREE.MeshLambertMaterial();
+  const N = 9000, NB = 2500, NF = 1600;
+  const grass = new THREE.InstancedMesh(tuft, mat, N), blobs = new THREE.InstancedMesh(blob, mat, NB), flowers = new THREE.InstancedMesh(flower, new THREE.MeshBasicMaterial(), NF);
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), sc = new THREE.Vector3(), ps = new THREE.Vector3(), col = new THREE.Color();
+  const near = (x, z) => { for (const f of FLAT) if (Math.hypot(x - f.x, z - f.z) < f.r - 3) return true; for (const w of WELLS) if (Math.hypot(x - w.x, z - w.z) < 4.5) return true; return false; };
+  let gi = 0, bi = 0, fi = 0;
+  for (let tries = 0; tries < 60000 && (gi < N || bi < NB); tries++) {
+    const x = rand(-EDGE, EDGE), z = rand(-EDGE, EDGE); if (near(x, z)) continue; const y = heightAt(x, z); if (y > 15) continue;
+    const w = biomeW(x, z); const r = Math.random();
+    if (r < w.green && gi < N) {
+      if (fbm(x * 0.09 + 11, z * 0.09) < 0.4) continue;
+      for (let k = 0; k < 3 && gi < N; k++) { const xx = x + rand(-0.5, 0.5), zz = z + rand(-0.5, 0.5); e.set(rand(-0.25, 0.25), rand(0, 6), rand(-0.25, 0.25)); q.setFromEuler(e); const s2 = rand(0.6, 1.4); sc.set(s2, s2 * rand(0.7, 1.3), s2); ps.set(xx, heightAt(xx, zz) - 0.05, zz); m.compose(ps, q, sc); grass.setMatrixAt(gi, m); col.setHSL(rand(0.22, 0.3), rand(0.45, 0.65), rand(0.22, 0.36)); grass.setColorAt(gi++, col); }
+      if (fi < NF && Math.random() < 0.18) { ps.set(x, y, z); sc.set(1, 1, 1); q.identity(); m.compose(ps, q, sc); flowers.setMatrixAt(fi, m); flowers.setColorAt(fi++, C(pick([0xffe24a, 0xff5a5a, 0xffffff, 0xb07aff, 0xff9a3a]))); }
+    } else if (bi < NB) {
+      let c2; if (w.snow > 0.5) c2 = pick([0xf2f6fa, 0xdfe7ef]); else if (w.sand > 0.5) c2 = pick([0x8a7a4a, 0x9a8650, 0x6f6a3a]); else if (w.mtn > 0.5) c2 = pick([0x7a7166, 0x6a635a]); else c2 = pick([0x5a6a32, 0x6e6a3c]);
+      if (w.green > 0.5) continue;
+      e.set(rand(0, 3), rand(0, 6), rand(0, 3)); q.setFromEuler(e); const s2 = rand(0.5, 1.6); sc.set(s2, s2 * rand(0.4, 0.8), s2); ps.set(x, y + 0.05, z); m.compose(ps, q, sc); blobs.setMatrixAt(bi, m); blobs.setColorAt(bi++, C(c2));
+    }
+  }
+  grass.count = gi; blobs.count = bi; flowers.count = fi;
+  for (const im of [grass, blobs, flowers]) { im.instanceMatrix.needsUpdate = true; if (im.instanceColor) im.instanceColor.needsUpdate = true; im.receiveShadow = true; scene.add(im); }
 }
 
 // ================= DEFINITIONS =================
@@ -365,6 +417,13 @@ function unitGeo(d, team) {
   B.add(G.sph, W * 0.52, H * 0.32, L * 0.52, 0, by + H * 0.42, -L * 0.05, T.body);
   B.add(G.cyl16, H * 0.25, W * 0.6, H * 0.18, 0, by + H * 0.35, -L * 0.42, T.dark, 0, 0, PI2); // engine grille
   B.add(G.cyl16, W * 0.5, 0.06 * s, L * 0.3, 0, by + H * 0.66, 0.1 * s, T.acc);        // team stripe (oval)
+  if (d.wp !== 'truck') {
+    B.add(G.cyl6, 0.025, 1.6 * s, 0.025, -W * 0.32, by + H * 0.5 + 0.8 * s, -L * 0.32, 0x222222, -0.15, 0, 0); // antenna
+    B.add(G.sph, 0.05, 0.05, 0.05, -W * 0.32, by + H * 0.5 + 1.6 * s, -L * 0.36, 0xff3020);
+    for (const sx of [-1, 1]) B.box(0.22 * s, 0.32 * s, 0.14 * s, sx * W * 0.22, by + H * 0.62, -L * 0.42, 0x4a5a2a); // jerrycans
+    B.box(0.5 * s, 0.22 * s, 0.32 * s, W * 0.18, by + H * 0.6, -L * 0.24, 0x6a5a3a); // crate
+  }
+  for (const sx of [-1, 1]) B.add(G.cyl16, 0.07 * s, 0.35 * s, 0.07 * s, sx * W * 0.3, by + H * 0.2, -L * 0.5 - 0.1 * s, 0x2a2a2a, Math.PI / 2, 0, 0); // exhausts
   for (const sx of [-1, 1]) B.add(G.sph, 0.13 * s, 0.13 * s, 0.08 * s, sx * W * 0.3, by + H * 0.1, L * 0.4 + H * 0.45, 0xfff2c0); // round headlights
   const top = by + H / 2 + 0.05;
   if (d.wp === 'mg') {
@@ -799,6 +858,7 @@ function updUnit(u, dt) {
   const hf = heightAt(u.x + sh, u.z + ch), hb = heightAt(u.x - sh, u.z - ch), hr = heightAt(u.x + ch, u.z - sh), hl = heightAt(u.x - ch, u.z + sh);
   const pitch = u.d.pr === 'hover' ? 0 : -Math.atan2(hf - hb, 2), roll = u.d.pr === 'hover' ? 0 : Math.atan2(hr - hl, 2);
   u.mesh.position.set(u.x, yy, u.z); u.mesh.rotation.set(pitch, u.heading, roll);
+  if (sp > 1 && Math.abs(u.x - cam.x) < 60 && Math.abs(u.z - cam.z) < 60 && Math.random() < dt * 4) fx('smoke', u.x - sh * 1.4 * CH[u.d.ch].size, yy + 0.6, u.z - ch * 1.4 * CH[u.d.ch].size, 0.22);
   if (sp > 2 && Math.random() < dt * (u.d.pr === 'hover' ? 8 : 4)) fx('dust', u.x - sh * 1.2, u.y + 0.3, u.z - ch * 1.2, u.d.pr === 'hover' ? 0.9 : 0.6);
   if (u.hp < u.maxHp * 0.5) { u.smokeT -= dt; if (u.smokeT <= 0) { u.smokeT = 0.25; fx('smoke', u.x, yy + 1.2, u.z, 0.5); if (u.hp < u.maxHp * 0.25) fx('fire', u.x, yy + 1, u.z, 0.45); } }
 }
@@ -998,13 +1058,14 @@ function setupEnemy() {
 const cam = { x: PLAYER.x, z: PLAYER.z - 8, dist: 46, yaw: 0, ty: 0 };
 function updateCamera(dt) {
   cam.dist = clamp(cam.dist, 14, 120); cam.x = clamp(cam.x, -EDGE, EDGE); cam.z = clamp(cam.z, -EDGE, EDGE);
-  const pitch = lerp(0.62, 1.05, (cam.dist - 14) / 106);
+  const pitch = lerp(0.55, 1.05, Math.pow((cam.dist - 14) / 106, 0.7));
   cam.ty = lerp(cam.ty, Math.max(0, heightAt(cam.x, cam.z)), Math.min(1, dt * 5));
   const cp = Math.cos(pitch) * cam.dist; let sx = 0, sy = 0; if (shake > 0) { sx = rand(-1, 1) * shake; sy = rand(-1, 1) * shake; shake = Math.max(0, shake - dt * 1.5); }
   camera.position.set(cam.x + Math.sin(cam.yaw) * cp + sx, cam.ty + Math.sin(pitch) * cam.dist + sy, cam.z + Math.cos(cam.yaw) * cp);
+  { const gh = heightAt(camera.position.x, camera.position.z) + 4; if (camera.position.y < gh) camera.position.y = gh; }
   camera.lookAt(cam.x, cam.ty, cam.z);
   scene.fog.near = cam.dist * 1.1 + 20; scene.fog.far = cam.dist * 2.6 + 90;
-  { const w = biomeW(cam.x, cam.z); const c = scene.fog.color; const tr = 0.62 * w.green + 0.86 * w.sand + 0.80 * w.snow + 0.66 * w.mtn, tg = 0.70 * w.green + 0.74 * w.sand + 0.84 * w.snow + 0.64 * w.mtn, tb = 0.62 * w.green + 0.56 * w.sand + 0.90 * w.snow + 0.62 * w.mtn; const k = Math.min(1, dt * 1.5) || 1; tmpC.setRGB(tr, tg, tb, THREE.SRGBColorSpace); c.lerp(tmpC, k); scene.background.copy(c);
+  { const w = biomeW(cam.x, cam.z); const c = scene.fog.color; const tr = 0.62 * w.green + 0.86 * w.sand + 0.80 * w.snow + 0.66 * w.mtn, tg = 0.70 * w.green + 0.74 * w.sand + 0.84 * w.snow + 0.64 * w.mtn, tb = 0.62 * w.green + 0.56 * w.sand + 0.90 * w.snow + 0.62 * w.mtn; const k = Math.min(1, dt * 1.5) || 1; tmpC.setRGB(tr, tg, tb, THREE.SRGBColorSpace); c.lerp(tmpC, k); scene.background.copy(c); skyMat.uniforms.horizon.value.copy(c).lerp(C(0xffffff), 0.15); skyMat.uniforms.time.value = S.time; sky.position.copy(camera.position);
     if (S.running && !S.paused && w.snow > 0.45) for (let i = 0; i < 3; i++) if (Math.random() < w.snow) fx('snow', cam.x + rand(-40, 40), cam.ty + rand(15, 30), cam.z + rand(-40, 40), 1); }
   sun.position.set(cam.x - 40, 90, cam.z + 30); sun.target.position.set(cam.x, 0, cam.z);
   const sr = clamp(cam.dist * 0.9, 30, 80); sc.left = -sr; sc.right = sr; sc.top = sr; sc.bottom = -sr; sc.updateProjectionMatrix();
@@ -1360,6 +1421,7 @@ function sfx(type, x, z) {
 
 // ================= GAME FLOW =================
 function setupGame() {
+  scene.add(sky);
   buildTerrain(); buildDecor(); buildMiniBg();
   const B = PLAYER;
   createBuilding(0, 'hq', B.x - 6, B.z + 6, true, Math.PI);

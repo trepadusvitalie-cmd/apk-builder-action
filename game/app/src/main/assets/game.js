@@ -400,6 +400,7 @@ const DCLASS = {
   fort: { name: 'Fortăreață', hp: 5200, cost: 560, size: 8, time: 70, h: 6, ty: 5.6, ts: 1.9, rb: 6, dm: 3.6, req: 'fortress', wps: ['cannon', 'rockets', 'laser'] },
   pit: { name: 'Amplasament', hp: 700, cost: 80, size: 3.6, time: 18, h: 1.5, ty: 0.75, ts: 1.1, rb: 0, dm: 1.4, req: null, wps: ['mortar', 'imortar', 'empmortar', 'salvo', 'howitzer', 'ihowitzer', 'rhowitzer', 'hhowitzer', 'plasma', 'ballistic'] },
 };
+const IMP_SND = { mortar: 'imp_mortar', rmortar: 'imp_mortar', imortar: 'imp_inc', ihowitzer: 'imp_inc', empmortar: 'imp_salvo', salvo: 'imp_salvo', howitzer: 'imp_how', rhowitzer: 'imp_how', hhowitzer: 'imp_hhow', ballistic: 'imp_hhow', plasma: 'imp_plasma' };
 const ART_SND = { mortar: 'art_mortar', imortar: 'art_inc', empmortar: 'art_emp', rmortar: 'art_rmortar', salvo: 'art_salvo', howitzer: 'art_how', ihowitzer: 'art_inc', rhowitzer: 'art_rhow', hhowitzer: 'art_hhow', plasma: 'art_plasma', ballistic: 'art_ball' };
 const ART_W = ['mortar', 'imortar', 'empmortar', 'salvo', 'howitzer', 'ihowitzer', 'rhowitzer', 'hhowitzer', 'plasma', 'ballistic'];
 const WSHORT = { mg: 'mitralieră', cannon: 'tun', flame: 'flăcări', rockets: 'rachete', laser: 'laser', mortar: 'mortier', imortar: 'mortier incendiar', empmortar: 'mortier IEM', salvo: 'salve', howitzer: 'obuzier', ihowitzer: 'obuzier incendiar', rhowitzer: 'obuzier rapid', hhowitzer: 'obuzier greu', plasma: 'plasmă', ballistic: 'rachetă balistică' };
@@ -1018,10 +1019,12 @@ function updProjs(dt) {
     const k = Math.min(1, p.t); const x = lerp(p.ox, p.tx, k), z = lerp(p.oz, p.tz, k), y = lerp(p.oy, p.ty, k) + Math.sin(k * Math.PI) * p.arc;
     const px = p.m.position.x, py = p.m.position.y, pz = p.m.position.z;
     p.m.position.set(x, y, z); if (p.w && p.w.plasma && Math.random() < 0.5) fx('spark', x, y, z, 0.6); if (p.kind === 'rocket' || (p.w && p.w.kind === 'salvo')) { p.m.lookAt(x + (x - px), y + (y - py), z + (z - pz)); p.smokeT -= dt; if (p.smokeT <= 0) { p.smokeT = 0.03; fx('smoke', x, y, z, 0.35); fx('fire', x, y, z, 0.3); } }
+    if (p.kind === 'mortar' && !p.wh && p.dur > 1.2 && (1 - p.t) * p.dur < 0.95 && !(p.w && (p.w.plasma || p.w.kind === 'salvo' || p.w.id === 'ballistic'))) { p.wh = 1; sfx('whistle', p.tx, p.tz); }
     if (k >= 1) {
       scene.remove(p.m); projs.splice(i, 1);
       fx('flash', x, y, z, p.kind === 'rocket' ? 1 : 0.7); fx('fire', x, y, z, 0.7); fx('smoke', x, y, z, 0.6); for (let s = 0; s < 4; s++) fx('spark', x, y, z, 1);
-      if (p.kind === 'mortar') { const big = p.w && p.w.big; fx('flash', x, y, z, big ? 3 : 1.6); fx('dust', x, y, z, big ? 2.6 : 1.4); if (big) for (let s = 0; s < 3; s++) fx('fire', x + rand(-1.5, 1.5), y, z + rand(-1.5, 1.5), 1.4); sfx(big ? 'bigboom' : 'boom', x, z); } else sfx('hit', x, z);
+      if (p.kind === 'mortar') { const big = p.w && p.w.big; fx('flash', x, y, z, big ? 3 : 1.6); fx('dust', x, y, z, big ? 2.6 : 1.4); if (big) for (let s = 0; s < 3; s++) fx('fire', x + rand(-1.5, 1.5), y, z + rand(-1.5, 1.5), 1.4); }
+      sfx(p.kind === 'shell' ? 'imp_shell' : p.kind === 'rocket' ? 'imp_rocket' : (p.w && IMP_SND[p.w.id]) || 'imp_mortar', x, z); if (p.kind !== 'mortar' && p.tgt.alive) sfx('hit', x, z);
       if (p.w && p.w.fire) fireZones.push({ x, z, r: p.splash, t: 5, dps: p.w.fire, team: p.team, src: p.src, fxT: 0 });
       if (p.w && p.w.emp) { sfx('art_emp', x, z); for (const e of ents) if (e.alive && e.kind === 'unit' && e.team !== p.team && Math.hypot(e.x - x, e.z - z) < p.splash) e.stun = p.w.emp; for (let s = 0; s < 6; s++) fx('spark', x + rand(-2, 2), y + rand(0, 2), z + rand(-2, 2), 1.2); }
       if (p.realT && p.realT.alive && Math.hypot(p.realT.x - x, p.realT.z - z) < p.splash + p.realT.r) damage(p.realT, p.dmg, p.src);
@@ -1084,7 +1087,7 @@ function inRange(u, t, extra) { return Math.hypot(t.x - u.x, t.z - u.z) - t.r <=
 function fireWeapon(src, t, w, mx, my, mz, mul) {
   const dmg = w.dmg * (mul || 1) * (TEAMS[src.team].dmg[wfam(w)] || 1);
   fx('muzzle', mx, my, mz, w.kind === 'mg' ? 0.8 : 1.4);
-  if (w.kind === 'mg') { const ty = t.y + (t.kind === 'bld' ? 1.5 : 0.7); tracer(mx, my, mz, t.x + rand(-0.4, 0.4), ty, t.z + rand(-0.4, 0.4)); if (Math.random() < 0.3) fx('spark', t.x, ty, t.z, 1); damage(t, dmg, src); sfx('mg', mx, mz); }
+  if (w.kind === 'mg') { const ty = t.y + (t.kind === 'bld' ? 1.5 : 0.7); tracer(mx, my, mz, t.x + rand(-0.4, 0.4), ty, t.z + rand(-0.4, 0.4)); if (Math.random() < 0.3) { fx('spark', t.x, ty, t.z, 1); if (Math.random() < 0.5) sfx('ric', t.x, t.z); } damage(t, dmg, src); sfx('mg', mx, mz); }
   else if (w.kind === 'shell') { spawnProj('shell', src, t, dmg, 0, mx, my, mz); fx('smoke', mx, my, mz, 0.6); sfx('shell', mx, mz); }
   else if (w.kind === 'mortar') { spawnProj('mortar', src, t, dmg, w.splash, mx, my, mz, w); fx('smoke', mx, my, mz, w.big ? 1.6 : 0.9); fx('flash', mx, my, mz, w.big ? 1.2 : 0.6); sfx(ART_SND[w.id] || 'art_mortar', mx, mz); }
   else if (w.kind === 'salvo') { sfx(ART_SND[w.id], mx, mz); for (let i = 0; i < w.n; i++) later(i * 0.12, () => { if (src.alive && t.alive) spawnProj('mortar', src, { ...t, x: t.x + rand(-2.5, 2.5) * (w.n > 1 ? 1 : 0), z: t.z + rand(-2.5, 2.5) * (w.n > 1 ? 1 : 0), alive: false, kind: t.kind, y: t.y }, dmg, w.splash, mx, my, mz, w, t); }); }
@@ -1860,6 +1863,28 @@ function buildSfx() {
   { const l = LP(); let ph = 0; SB.art_plasma = mk(1.4, t => { ph += TAU2 * (200 + 900 * (1 - Math.exp(-t * 4))) / SR; const crackle = (Math.random() < 0.03 ? W() : 0) * Math.exp(-t * 2); return (Math.sin(ph) + 0.5 * Math.sin(ph * 2.02)) * Math.min(1, t * 10) * Math.exp(-t * 2.4) * 0.6 + crackle + l(W(), 500) * Math.exp(-t * 10) * 1.2; }); }
   { const l = LP(), l2 = LP(); SB.art_salvo = mk(1.3, t => { let s = 0; for (let k = 0; k < 4; k++) { const tt = t - k * 0.12; if (tt > 0) s += (W() * Math.exp(-tt * 140) * 0.6 + l(W(), 3000 * Math.exp(-tt * 2)) * Math.exp(-tt * 4) * 0.6); } return s + l2(W(), 250) * Math.exp(-t * 3) * 0.6; }); }
   { const l = LP(), l2 = LP(), br = BR(); SB.art_ball = mk(4, t => { const ign = W() * Math.exp(-t * 40) * 0.8; const roar = (l(br(), 220) * 1.6 + l2(W(), 1400) * 0.5) * Math.min(1, t * 2.5) * Math.exp(-t * 0.9); return ign + roar; }, 1.6); }
+  // ---- impacts: every projectile lands with its own explosion (blast + sub thump + dirt/debris rain)
+  const blast = (dur, o) => { const l = LP(), l2 = LP(), l3 = LP(), br = BR(); let ph = 0;
+    return mk(dur, t => { const crack = W() * Math.exp(-t * o.crack) * o.ca;
+      const f = o.f1 + (o.f0 - o.f1) * Math.exp(-t * 4); const body = l(br() * 0.6 + W() * 0.4, f) * Math.exp(-t * o.decay) * 2.2;
+      ph += TAU2 * o.sub * (0.55 + 0.45 * Math.exp(-t * 5)) / SR; const sub = Math.sin(ph) * Math.exp(-t * o.decay * 1.4) * o.sa;
+      const t2 = t - o.dd; const deb = t2 > 0 && Math.random() < o.deb * Math.exp(-t2 * 2.5) ? W() : 0;
+      const dirt = l2(deb, 3500) * 1.6 + (t2 > 0 ? l3(W(), 1800) * Math.exp(-t2 * 3) * o.sand * Math.min(1, t2 * 10) : 0);
+      return crack + body + sub + dirt; }, 1.5); };
+  SB.imp_shell = [blast(1.6, { crack: 160, ca: 1, f0: 2600, f1: 150, decay: 4, sub: 65, sa: 0.8, dd: 0.12, deb: 0.006, sand: 0.25 }), blast(1.6, { crack: 180, ca: 1, f0: 2300, f1: 140, decay: 4.4, sub: 70, sa: 0.8, dd: 0.1, deb: 0.006, sand: 0.3 })];
+  SB.imp_rocket = [blast(1.4, { crack: 200, ca: 1.2, f0: 3500, f1: 200, decay: 5, sub: 80, sa: 0.6, dd: 0.1, deb: 0.004, sand: 0.2 }), blast(1.4, { crack: 230, ca: 1.2, f0: 3800, f1: 220, decay: 5.4, sub: 85, sa: 0.6, dd: 0.08, deb: 0.004, sand: 0.2 })];
+  SB.imp_mortar = [blast(2.2, { crack: 110, ca: 0.9, f0: 1800, f1: 110, decay: 2.8, sub: 52, sa: 1, dd: 0.2, deb: 0.008, sand: 0.45 }), blast(2.2, { crack: 120, ca: 0.9, f0: 2000, f1: 120, decay: 3, sub: 56, sa: 1, dd: 0.18, deb: 0.009, sand: 0.4 })];
+  SB.imp_how = [blast(3, { crack: 80, ca: 1, f0: 1500, f1: 80, decay: 1.8, sub: 42, sa: 1.2, dd: 0.25, deb: 0.01, sand: 0.5 })];
+  SB.imp_hhow = [blast(4.5, { crack: 60, ca: 1, f0: 1300, f1: 60, decay: 1.1, sub: 34, sa: 1.4, dd: 0.3, deb: 0.012, sand: 0.6 })];
+  SB.imp_salvo = [blast(1.2, { crack: 220, ca: 1, f0: 3000, f1: 180, decay: 5.5, sub: 70, sa: 0.5, dd: 0.1, deb: 0.003, sand: 0.15 })];
+  { const l = LP(), l2 = LP(), br = BR(); let ph = 0; SB.imp_inc = mk(2.4, t => { ph += TAU2 * (35 + 40 * Math.exp(-t * 6)) / SR; const whump = Math.sin(ph) * Math.exp(-t * 4) * 1.3;
+      const roar = (l(br(), 300) * 1.2 + l2(W(), 1600) * 0.5) * Math.min(1, t * 6) * Math.exp(-t * 1.2); const crackle = Math.random() < 0.02 * Math.exp(-t) ? W() * 0.9 : 0; return W() * Math.exp(-t * 120) * 0.6 + whump + roar + crackle; }); }
+  { const l = LP(); let ph = 0; const b = blast(2, { crack: 140, ca: 0.8, f0: 2200, f1: 150, decay: 2.6, sub: 60, sa: 0.9, dd: 0.2, deb: 0.004, sand: 0.2 }).getChannelData(0);
+    SB.imp_plasma = mk(2, (t, i) => { ph += TAU2 * (1400 * Math.exp(-t * 3) + 180) / SR; const zap = (Math.random() < 0.05 * Math.exp(-t * 2) ? W() : 0) + Math.sin(ph) * 0.35 * Math.exp(-t * 4); return b[i] + l(zap, 6000) * 1.2; }); }
+  // incoming artillery whistle (falling pitch) heard just before the shell lands
+  SB.whistle = [0, 1].map(k => { const l = LP(); let ph = 0; return mk(1.0, t => { const f = (1700 - k * 200) - 900 * t + 25 * Math.sin(TAU2 * 7 * t); ph += TAU2 * f / SR; return (Math.sin(ph) * 0.7 + l(W(), f) * 0.35) * Math.min(1, t * 2.5) * Math.min(1, (1 - t) * 30); }, 1); });
+  // bullet ricochet off armour
+  SB.ric = [0, 1, 2].map(k => { const l = LP(); let ph = 0; return mk(0.4, t => { ph += TAU2 * ((3200 - k * 500) - 1400 * t) / SR; return W() * Math.exp(-t * 400) * 0.8 + Math.sin(ph) * Math.exp(-t * 9) * 0.6 + l(W(), 5000) * Math.exp(-t * 30) * 0.3; }, 1); });
   const bell = (f, dur) => mk(dur, t => (Math.sin(TAU2 * f * t) + 0.45 * Math.sin(TAU2 * f * 2.01 * t) * Math.exp(-t * 3) + 0.2 * Math.sin(TAU2 * f * 3.02 * t) * Math.exp(-t * 6)) * Math.min(1, t * 400) * Math.exp(-t * 3.2), 1);
   SB.done = [bell(784, 1.2)]; SB.done2 = [bell(1175, 1.4)];
   SB.alert = mk(1.1, t => { const on = (t % 0.5) < 0.38 ? 1 : 0; const f = 420 + 40 * Math.sin(TAU2 * 6 * t); let s = 0; for (let k = 1; k <= 7; k += 2) s += Math.sin(TAU2 * f * k * t) / k; return s * on * 0.7; }, 1.4);
@@ -1881,14 +1906,14 @@ const lastS = {};
 function sfx(type, x, z) {
   const ctx = AU.ctx; if (!ctx || !AU.sfx || ctx.state !== 'running') return; if (!SB.click) buildSfx();
   const t = ctx.currentTime;
-  const thr = { weld: 0.55, flame: 0.12, laser: 0.06, mg: 0.07, shell: 0.05, rocket: 0.08, boom: 0.06, bigboom: 0.2, hit: 0.05,  click: 0.03, ack: 0.25 }[type] || 0; if (lastS[type] && t - lastS[type] < thr) return; lastS[type] = t;
+  const thr = { weld: 0.55, flame: 0.12, laser: 0.06, mg: 0.07, shell: 0.05, rocket: 0.08, boom: 0.06, bigboom: 0.2, hit: 0.05, imp_shell: 0.05, imp_rocket: 0.06, imp_mortar: 0.07, imp_how: 0.12, imp_hhow: 0.2, imp_inc: 0.15, imp_plasma: 0.12, imp_salvo: 0.09, whistle: 0.15, ric: 0.12, click: 0.03, ack: 0.25 }[type] || 0; if (lastS[type] && t - lastS[type] < thr) return; lastS[type] = t;
   let vol = 1, pan = 0;
   if (x !== undefined) { const dx = x - cam.x, dz = z - cam.z, d = Math.hypot(dx, dz); vol = clamp(1 - d / (60 + cam.dist), 0, 1) * clamp(70 / (cam.dist + 20), 0.4, 1); if (vol < 0.03) return; pan = clamp((dx * Math.cos(cam.yaw) - dz * Math.sin(cam.yaw)) / 40, -0.7, 0.7); }
   const key = type === 'shell' ? 'cannon' : type; let buf = SB[key]; if (!buf) return; if (Array.isArray(buf)) buf = pick(buf);
-  const VOL = { art_mortar: 0.7, art_rmortar: 0.6, art_how: 0.85, art_rhow: 0.75, art_hhow: 1, art_inc: 0.75, art_emp: 0.5, art_plasma: 0.55, art_salvo: 0.6, art_ball: 0.9, weld: 0.14, flame: 0.3, laser: 0.35, cannon: 0.75, mg: 0.32, rocket: 0.5, boom: 0.85, bigboom: 1, hit: 0.35, click: 0.25, ack: 0.22, done: 0.3, done2: 0.3, alert: 0.25 }[key] || 0.4;
+  const VOL = { art_mortar: 0.7, art_rmortar: 0.6, art_how: 0.85, art_rhow: 0.75, art_hhow: 1, art_inc: 0.75, art_emp: 0.5, art_plasma: 0.55, art_salvo: 0.6, art_ball: 0.9, weld: 0.14, flame: 0.3, laser: 0.35, cannon: 0.75, mg: 0.32, rocket: 0.5, boom: 0.85, bigboom: 1, hit: 0.35, imp_shell: 0.7, imp_rocket: 0.75, imp_mortar: 0.85, imp_how: 0.95, imp_hhow: 1, imp_inc: 0.8, imp_plasma: 0.75, imp_salvo: 0.6, whistle: 0.3, ric: 0.22, click: 0.25, ack: 0.22, done: 0.3, done2: 0.3, alert: 0.25 }[key] || 0.4;
   const s = ctx.createBufferSource(); s.buffer = buf; s.playbackRate.value = ['click', 'ack', 'done', 'done2', 'alert'].includes(key) ? 1 : rand(0.9, 1.1);
   const g = ctx.createGain(); g.gain.value = VOL * vol; const p = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
-  s.connect(g); if (p) { p.pan.value = pan; g.connect(p); p.connect(AU.sfxG); if (['cannon', 'boom', 'bigboom', 'rocket', 'hit'].includes(key) || key.startsWith('art_')) p.connect(AU.srev); } else g.connect(AU.sfxG);
+  s.connect(g); if (p) { p.pan.value = pan; g.connect(p); p.connect(AU.sfxG); if (['cannon', 'boom', 'bigboom', 'rocket', 'hit'].includes(key) || key.startsWith('art_') || key.startsWith('imp_')) p.connect(AU.srev); } else g.connect(AU.sfxG);
   s.start(t);
   if (type === 'done') setTimeout(() => sfx('done2'), 140);
 }

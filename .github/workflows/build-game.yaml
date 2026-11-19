@@ -7,6 +7,9 @@ on:
       - ".github/workflows/build-game.yaml"
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -32,3 +35,15 @@ jobs:
           name: Ironfall2200-apk
           path: game/app/build/outputs/apk/debug/*.apk
           retention-days: 30
+
+      - name: Rename APK
+        run: cp game/app/build/outputs/apk/debug/app-debug.apk Ironfall2200.apk
+
+      - name: Publish direct download (GitHub Release)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ironfall-latest
+          name: Ironfall 2200 (versiune de test)
+          body: "Descarcă **Ironfall2200.apk** de mai jos și instalează-l pe telefon."
+          prerelease: true
+          files: Ironfall2200.apk

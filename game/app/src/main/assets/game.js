@@ -445,20 +445,44 @@ function bldGeo(type, team) {
       for (const sx of [-1, 1]) for (const sz of [-1, 1]) B.box(0.5, 0.5, 0.5, sx * 1.35, 3.35, sz * 1.35, T.dark);
       for (let k = 0; k < 4; k++) B.add(G.ico, 0.5, 0.3, 0.5, Math.sin(k * 1.6) * 2, 0.3, Math.cos(k * 1.6) * 2, 0x8a7d62, k, k, 0);
       break;
-    case 'wall':
-      B.box(5.6, 3.2, 1.6, 0, 1.2, 0, 0x6d675e); B.box(5.8, 0.4, 1.9, 0, 2.9, 0, T.dark);
-      for (let i = -2; i <= 2; i++) B.box(0.7, 0.7, 1.9, i * 1.2, 3.4, 0, 0x6d675e);
-      B.box(5.62, 0.25, 1.62, 0, 1.6, 0, T.acc);
-      break;
-    case 'citadel':
-      B.box(14, 2.4, 14, 0, -0.6, 0, 0x5f5a52);
-      B.box(10, 4.5, 10, 0, 2.6, 0, T.body); B.box(10.1, 0.5, 10.1, 0, 4.2, 0, T.acc);
-      B.box(10.05, 0.6, 8.6, 0, 3, 0, 0x1c2228); B.box(8.6, 0.6, 10.05, 0, 3, 0, 0x1c2228);
-      B.box(6.5, 3.2, 6.5, 0, 6.4, 0, T.dark); B.box(6.6, 0.4, 6.6, 0, 7.4, 0, T.acc);
-      B.box(3.5, 3, 3.5, 0, 9.4, 0, T.body);
-      for (const sx of [-1, 1]) for (const sz of [-1, 1]) { B.cyl(1.3, 8, sx * 5.2, 3.4, sz * 5.2, T.dark); B.add(G.cone, 1.6, 2.2, 1.6, sx * 5.2, 8.5, sz * 5.2, T.acc); }
-      B.add(G.cyl6, 0.14, 6, 0.14, 0, 13.5, 0, 0x333333); B.add(G.ico, 0.5, 0.5, 0.5, 0, 16.6, 0, 0xff3020);
-      break;
+    case 'wall': {
+      const st = 0x7a7368, st2 = 0x655f56;
+      B.box(5.7, 3.6, 2.0, 0, 1.3, 0, st);                       // main wall body
+      B.box(5.8, 0.5, 2.6, 0, -0.1, 0, st2);                      // footing
+      for (const sz of [-1, 1]) B.box(0.7, 2.6, 0.5, 0, 0.9, sz * 1.15, st2); // buttresses
+      B.box(5.75, 0.3, 2.3, 0, 3.15, 0, T.dark);                  // walkway
+      for (let i = -2; i <= 2; i++) for (const sz of [-1, 1]) B.box(0.75, 0.8, 0.35, i * 1.15, 3.7, sz * 1.0, st); // crenellations both sides
+      B.box(5.72, 0.28, 2.02, 0, 2.2, 0, T.acc);                  // team band
+      for (const sx of [-1.9, 1.9]) B.box(0.18, 0.45, 2.04, sx, 1.4, 0, 0x2a2622); // arrow slits
+      break; }
+    case 'citadel': {
+      const st = 0x6e675c, st2 = 0x5a544b, win = 0xffd27a;
+      B.box(15, 2.4, 15, 0, -0.6, 0, st2); B.box(14.2, 0.3, 14.2, 0, 0.7, 0, 0x4a453e);
+      // tier 1: wide base with buttresses and lit windows
+      B.box(11, 4.6, 11, 0, 2.9, 0, T.body); B.box(11.15, 0.45, 11.15, 0, 4.9, 0, T.acc);
+      for (let k = -2; k <= 2; k++) for (const sd of [-1, 1]) { B.box(0.6, 0.9, 0.12, k * 2, 3.2, sd * 5.53, win); B.box(0.12, 0.9, 0.6, sd * 5.53, 3.2, k * 2, win); B.box(0.9, 4.2, 0.6, k * 2 + 1, 2.4, sd * 5.7, st2); B.box(0.6, 4.2, 0.9, sd * 5.7, 2.4, k * 2 + 1, st2); }
+      // gate on the front
+      B.box(3, 3, 0.4, 0, 1.6, 5.6, 0x241f1a); B.box(3.8, 0.6, 0.6, 0, 3.3, 5.7, T.dark); for (let k = 0; k < 5; k++) B.box(0.12, 2.8, 0.1, -1.2 + k * 0.6, 1.6, 5.82, 0x3a3530);
+      // tier 2
+      B.box(7.6, 3.4, 7.6, 0, 6.8, 0, T.dark); B.box(7.75, 0.4, 7.75, 0, 8.6, 0, T.acc);
+      for (let k = -1; k <= 1; k++) for (const sd of [-1, 1]) { B.box(0.55, 1.1, 0.12, k * 2.2, 7, sd * 3.83, win); B.box(0.12, 1.1, 0.55, sd * 3.83, 7, k * 2.2, win); }
+      for (let k = -3; k <= 3; k++) for (const sd of [-1, 1]) { B.box(0.6, 0.6, 0.3, k * 1.1, 9.1, sd * 3.75, T.dark); B.box(0.3, 0.6, 0.6, sd * 3.75, 9.1, k * 1.1, T.dark); }
+      // keep / spire
+      B.box(4, 3.6, 4, 0, 10.6, 0, T.body); B.box(4.15, 0.35, 4.15, 0, 12.4, 0, T.acc);
+      for (const sd of [-1, 1]) { B.box(0.5, 1.2, 0.12, 0, 10.8, sd * 2.03, win); B.box(0.12, 1.2, 0.5, sd * 2.03, 10.8, 0, win); }
+      B.add(G.cone, 2.6, 3.6, 2.6, 0, 14.4, 0, T.dark, 0, Math.PI / 4, 0);
+      B.add(G.cyl6, 0.12, 5, 0.12, 0, 18.5, 0, 0x333333); B.add(G.ico, 0.45, 0.45, 0.45, 0, 21, 0, 0xff3020);
+      B.box(1.6, 0.9, 0.06, 0.85, 20.2, 0, T.acc);
+      // round corner towers with crenellations and banners
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+        const x = sx * 5.6, z = sz * 5.6;
+        B.cyl(1.55, 9.5, x, 4.2, z, st); B.cyl(1.7, 0.35, x, 3, z, T.acc); B.cyl(1.8, 0.5, x, 9.1, z, T.dark);
+        for (let k = 0; k < 8; k++) { const a = k / 8 * TAU; B.box(0.5, 0.7, 0.5, x + Math.sin(a) * 1.6, 9.7, z + Math.cos(a) * 1.6, st, 0, a, 0); }
+        B.add(G.cone, 1.7, 2.6, 1.7, x, 10.8, z, T.dark);
+        B.add(G.cyl6, 0.06, 2.4, 0.06, x, 13, z, 0x333333); B.box(0.05, 0.8, 1.2, x, 13.6, z + 0.6, T.acc);
+        B.box(0.4, 0.7, 0.1, x + sx * 0.2, 6.5, z + sz * 1.56, win);
+      }
+      break; }
   }
   const res = { geo: B.build(), anim }; bldCache[key] = res; return res;
 }
@@ -857,6 +881,45 @@ function aiTick() {
     }
   }
 }
+// decorative (non-entity) fortifications around every enemy base
+function fortDecor(o) {
+  const B = new Builder(); const T = TEAMC[1];
+  const gy = (x, z) => heightAt(x, z);
+  const flag = (x, z, h) => { const y = gy(x, z); B.add(G.cyl6, 0.08, h, 0.08, x, y + h / 2, z, 0x333333); B.box(0.05, 0.9, 1.5, x, y + h - 0.5, z + 0.75, T.acc); B.box(0.06, 0.3, 1.5, x, y + h - 0.85, z + 0.75, 0x1c1c1c); };
+  if (o.citadel) {
+    const WR = 25;
+    for (const g of [0, Math.PI / 2, Math.PI, Math.PI * 1.5]) {
+      for (const side of [-1, 1]) { // gate towers
+        const a = g + side * 0.2; const x = Math.sin(a) * WR, z = Math.cos(a) * WR, y = gy(x, z);
+        B.box(3, 6.5, 3, x, y + 2.6, z, 0x7a7368, 0, a, 0); B.box(3.2, 0.4, 3.2, x, y + 5.9, z, TEAMC[1].dark, 0, a, 0);
+        for (const [dx, dz] of [[-1.1, -1.1], [1.1, -1.1], [-1.1, 1.1], [1.1, 1.1], [0, -1.1], [0, 1.1], [-1.1, 0], [1.1, 0]]) { const c = Math.cos(a), s2 = Math.sin(a); B.box(0.6, 0.8, 0.6, x + dx * c + dz * s2, y + 6.5, z - dx * s2 + dz * c, 0x7a7368, 0, a, 0); }
+        B.box(0.5, 1, 0.1, x + Math.sin(g) * 1.55, y + 4, z + Math.cos(g) * 1.55, 0xffd27a, 0, g, 0);
+        flag(x, z, 10);
+      }
+      const x = Math.sin(g) * WR, z = Math.cos(g) * WR, y = gy(x, z); // arch over the gate
+      B.box(7, 1.2, 2.6, x, y + 5.4, z, 0x6e675c, 0, g, 0); B.box(7.1, 0.22, 2.7, x, y + 4.9, z, T.acc, 0, g, 0); for (let k = -3; k <= 3; k++) B.box(0.6, 0.7, 2.6, x + Math.cos(g) * k, y + 6.3, z - Math.sin(g) * k, 0x6e675c, 0, g, 0);
+      for (let k = 0; k < 6; k++) { const r = WR + 6 + k * 1.2; const xx = Math.sin(g) * r, zz = Math.cos(g) * r; B.box(4, 0.08, 1, xx, gy(xx, zz) + 0.05, zz, 0x4a453e, 0, g + Math.PI / 2, 0); } // road
+    }
+    for (let k = 0; k < 40; k++) { const a = k / 40 * TAU; const r = WR + 4.5; const x = Math.sin(a) * r, z = Math.cos(a) * r; if ([0, Math.PI / 2, Math.PI, Math.PI * 1.5].some(g => Math.abs(angDiff(a, g)) < 0.3)) continue; czech(B, x, gy(x, z), z, a); }
+  } else {
+    const R = 15, n = 26, ang = Math.atan2(PLAYER.x - o.x, PLAYER.z - o.z);
+    for (let k = 0; k < n; k++) { // sandbag ring with an opening toward the centre
+      const a = k / n * TAU; if (Math.abs(angDiff(a, ang + Math.PI)) < 0.35) continue;
+      const x = o.x + Math.sin(a) * R, z = o.z + Math.cos(a) * R, y = gy(x, z);
+      for (let l = 0; l < 2 + (o.tier > 0 ? 1 : 0); l++) B.add(G.ico, 1.0, 0.38, 0.6, x + Math.cos(a) * (l % 2 ? 0.5 : 0), y + 0.3 + l * 0.42, z - Math.sin(a) * (l % 2 ? 0.5 : 0), l % 2 ? 0x8c7a56 : 0x7d6c4b, 0, a + Math.PI / 2, 0);
+    }
+    for (let k = 0; k < 7 + o.tier * 3; k++) { const a = ang + (k - (6 + o.tier * 3) / 2) * 0.22; const r = R + 4 + (k % 2) * 1.5; const x = o.x + Math.sin(a) * r, z = o.z + Math.cos(a) * r; czech(B, x, gy(x, z), z, a); }
+    // watchtower with searchlight
+    const wa = ang + Math.PI * 0.75; const wx = o.x + Math.sin(wa) * 10, wz = o.z + Math.cos(wa) * 10, wy = gy(wx, wz);
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) B.add(G.cyl6, 0.12, 6, 0.12, wx + sx * 0.8, wy + 3, wz + sz * 0.8, 0x4a3a2a, sz * 0.06, 0, -sx * 0.06);
+    B.box(2.4, 0.2, 2.4, wx, wy + 6, wz, 0x5a4a36); B.box(2.4, 1, 0.1, wx, wy + 6.6, wz + 1.2, 0x5a4a36); B.box(2.4, 1, 0.1, wx, wy + 6.6, wz - 1.2, 0x5a4a36); B.box(0.1, 1, 2.4, wx + 1.2, wy + 6.6, wz, 0x5a4a36);
+    B.add(G.cone, 1.9, 1.2, 1.9, wx, wy + 7.9, wz, T.dark, 0, Math.PI / 4, 0); B.cyl(0.3, 0.4, wx, wy + 6.6, wz + 0.4, 0xfff4c0, Math.PI / 2, 0, 0);
+    flag(o.x + Math.sin(ang + 0.5) * 7, o.z + Math.cos(ang + 0.5) * 7, 7 + o.tier);
+    if (o.tier >= 1) for (let k = 0; k < 4; k++) { const a = ang + Math.PI + (k - 1.5) * 0.7; const x = o.x + Math.sin(a) * 6, z = o.z + Math.cos(a) * 6; B.box(2.5, 1.6, 2, x, gy(x, z) + 0.6, z, 0x6a645a, 0, a, 0); B.box(2.6, 0.25, 2.1, x, gy(x, z) + 1.5, z, T.dark, 0, a, 0); } // crates/bunkers
+  }
+  B.uvScale = 0.6; const m = new THREE.Mesh(B.build(), matVC); m.castShadow = true; m.receiveShadow = true; scene.add(m);
+}
+function czech(B, x, y, z, a) { for (let k = 0; k < 3; k++) B.box(0.18, 0.18, 2, x, y + 0.6, z, 0x3a3631, k === 0 ? 0.6 : (k === 1 ? -0.6 : 0), a + k * 1.05, k === 2 ? 0.6 : 0); }
 function setupEnemy() {
   const dm = [1.4, 1, 0.75][S.diff];
   for (const o of OUTPOSTS) {
@@ -879,6 +942,7 @@ function setupEnemy() {
       for (let i = 0; i < T.towers; i++) { const a = ang + (i - (T.towers - 1) / 2) * 0.9; o.towers.push(createBuilding(1, 'tower', o.x + Math.sin(a) * 11, o.z + Math.cos(a) * 11, true, a, o.tier)); }
       const w = WELLS.find(w => Math.hypot(w.x - o.x, w.z - o.z) < 14); if (w) createBuilding(1, 'pump', w.x, w.z, true, null, o.tier);
     }
+    fortDecor(o);
     for (let i = 0; i < T.garrison; i++) { const a = rand(0, TAU), r = rand(5, o.citadel ? 18 : 10); const u = createUnit(1, tierDesign(o.tier), o.x + Math.sin(a) * r, o.z + Math.cos(a) * r, o.tier); u.post = o; }
   }
 }

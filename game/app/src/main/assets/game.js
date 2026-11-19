@@ -122,6 +122,7 @@ const G = {
   cyl10: new THREE.CylinderGeometry(1, 1, 1, 12).toNonIndexed(),
   cyl16: new THREE.CylinderGeometry(1, 1, 1, 16).toNonIndexed(),
   sph: new THREE.SphereGeometry(1, 14, 10).toNonIndexed(),
+  cool: new THREE.LatheGeometry(Array.from({ length: 9 }, (_, i) => { const t = i / 8; return new THREE.Vector2(0.78 + 0.32 * Math.pow(2 * t - 1.15, 2), t); }), 18).toNonIndexed(),
   cone: new THREE.ConeGeometry(1, 1, 8).toNonIndexed(),
   dome: new THREE.SphereGeometry(1, 12, 6, 0, TAU, 0, Math.PI / 2).toNonIndexed(),
   ico: new THREE.IcosahedronGeometry(1, 0).toNonIndexed(),
@@ -296,6 +297,7 @@ const BD = {
   factory: { name: 'Fabrică', icon: '🏭', hp: 1100, cost: 250, size: 7, time: 35, h: 5 },
   lab: { name: 'Laborator', icon: '🔬', hp: 700, cost: 150, size: 5, time: 25, h: 4.5 },
   pump: { name: 'Pompă petrol', icon: '🛢', hp: 450, cost: 50, size: 3.6, time: 12, h: 4 },
+  generator: { name: 'Generator', icon: '⚡', hp: 900, cost: 120, size: 5.5, time: 22, h: 6 },
   tower: { name: 'Turn apărare', icon: '🗼', hp: 700, cost: 120, size: 3, time: 18, h: 4 },
   citadel: { name: 'CETATEA', icon: '🏰', hp: 6000, cost: 0, size: 10, time: 1, h: 9 },
   wall: { name: 'Zid', icon: '🧱', hp: 1400, cost: 0, size: 5, time: 1, h: 3, r: 2.7 },
@@ -446,6 +448,27 @@ function bldGeo(type, team) {
       B.box(4.25, 0.35, 0.6, 0, 1.9, 0, 0x7fc4d8); B.box(0.6, 0.35, 4.25, 0, 1.9, 0, 0x7fc4d8);
       B.cyl(0.5, 1.4, 2.7, 0.9, 1.5, 0x8a8a84); B.cyl(0.5, 1.4, 2.7, 0.9, 0.3, 0x8a8a84); B.add(G.cyl6, 0.08, 1.4, 0.08, 2.7, 1.8, 0.9, 0x4a4a46, Math.PI / 2, 0, 0);
       break;
+    case 'generator': {
+      B.box(6.2, 2, 6.2, 0, -0.5, 0, conc); B.box(6, 0.12, 6, 0, 0.52, 0, 0x7a746a);
+      B.box(3.2, 2.4, 2.6, -0.9, 1.7, 0.9, T.body); B.box(3.25, 0.3, 2.65, -0.9, 2.95, 0.9, T.acc);
+      for (let k = 0; k < 4; k++) B.box(0.08, 1.2, 0.5, 0.72, 1.6, -0.1 + k * 0.62, 0x22201d); // vents
+      // cooling towers (hyperboloid look from stacked tapered rings)
+      for (const [cx, cz] of [[1.6, -1.4], [-1.7, -1.7]]) {
+        B.add(G.cool, 1.05, 3.5, 1.05, cx, 0.85, cz, 0xc4beb2); B.add(G.cool, 0.98, 3.4, 0.98, cx, 0.9, cz, 0x5a554d);
+        B.cyl(0.98, 0.15, cx, 4.35, cz, T.dark); B.cyl(0.88, 0.2, cx, 4.3, cz, 0x2a2622); B.cyl(1.0, 0.2, cx, 1.6, cz, T.acc);
+      }
+      // transformer coils + insulators
+      for (let k = 0; k < 3; k++) { const x = 2.1, z = 0.6 + k * 0.9; B.cyl(0.32, 1.2, x, 1.2, z, 0x5a5650); for (let r = 0; r < 4; r++) B.cyl(0.22, 0.08, x, 2.0 + r * 0.18, z, 0xd8d4c8); B.cyl(0.1, 0.5, x, 2.9, z, 0x8a8a84); }
+      B.box(0.06, 0.06, 2.0, 2.1, 3.15, 1.5, 0x222222);
+      // pylon with cables
+      B.box(0.15, 4.5, 0.15, -2.6, 2.6, 2.5, 0x4a4a46); B.box(1.6, 0.12, 0.12, -2.6, 4.6, 2.5, 0x4a4a46); B.box(1.0, 0.12, 0.12, -2.6, 4.0, 2.5, 0x4a4a46);
+      B.box(0.05, 0.05, 2.4, -2.0, 4.5, 1.3, 0x222222, 0.25, 0, 0);
+      // fuel pipe + hazard fence
+      B.add(G.cyl6, 0.14, 4.6, 0.14, 0, 0.75, 2.75, 0x6a645a, 0, 0, Math.PI / 2);
+      for (const sx of [-1, 1]) B.box(0.1, 0.7, 6, sx * 2.95, 0.9, 0, 0xd9b23a); B.box(6, 0.1, 0.1, 0, 1.2, -2.95, 0xd9b23a);
+      { const d = new Builder(); d.cyl(0.62, 0.12, 0, 0, 0, 0x3a3833); for (let k = 0; k < 4; k++) d.box(1.1, 0.04, 0.22, 0, 0.08, 0, 0x8a8a84, 0, k * Math.PI / 4, 0.25); anim.fan = d.build();
+        const c = new Builder(); for (let k = 0; k < 3; k++) c.cyl(0.24, 0.08, 2.1, 2.62, 0.6 + k * 0.9, 0x7fe8ff); anim.glow = c.build(); }
+      break; }
     case 'pump':
       B.box(3.8, 1.2, 3.8, 0, -0.2, 0, conc2);
       for (const sx of [-1, 1]) for (const sz of [-1, 1]) B.add(G.cyl6, 0.09, 3.3, 0.09, sx * 0.75, 1.8, sz * 0.75, 0x3a3a3a, -sz * 0.2, 0, sx * 0.2);
@@ -525,6 +548,7 @@ function bldY(x, z, size) { const r = size * 0.4; let s = 0; const pts = [[0, 0]
 function makeBldMesh(type, team) {
   const g = bldGeo(type, team); const grp = new THREE.Group(); const main = new THREE.Mesh(g.geo, matVC); main.castShadow = true; main.receiveShadow = true; grp.add(main); const parts = {};
   if (type === 'hq') { const d = new THREE.Mesh(g.anim.dish, matVC); d.position.set(-1.2, 5.4, -1.2); grp.add(d); parts.dish = d; }
+  if (type === 'generator') { const f = new THREE.Mesh(g.anim.fan, matVC); f.position.set(-0.9, 3.15, 0.9); grp.add(f); parts.fan = f; const gl = new THREE.Mesh(g.anim.glow, matGlow); grp.add(gl); parts.glow = gl; }
   if (type === 'pump') { const b = new THREE.Mesh(g.anim.beam, matVC); b.position.set(0, 3.55, 0); grp.add(b); parts.beam = b; }
   if (type === 'tower') {
     const t = new THREE.Group(); t.position.y = 3.3; grp.add(t);
@@ -564,10 +588,11 @@ const FXT = {
   dust: { life: 1.1, s0: 1, s1: 2.8, a: 0.4, color: 0xb59c78, v: 0.8, vy: 0.6 },
   muzzle: { life: 0.06, s0: 0.7, s1: 1.1, a: 1, color: 0xfff3c0, v: 0, vy: 0 },
   snow: { life: 5, s0: 0.35, s1: 0.3, a: 0.9, color: 0xffffff, v: 0.6, vy: -5, wind: 0.8 },
+  steam: { life: 3, s0: 1.2, s1: 4.5, a: 0.5, color: 0xf2f2ee, v: 0.3, vy: 2.2, wind: 0.5 },
   flame: { life: 0.5, s0: 1.4, s1: 0.4, a: 0.9, color: 0xff8a30, v: 0.3, vy: 3 },
 };
 function fx(type, x, y, z, size = 1) {
-  const P = FXT[type]; const normal = type === 'smoke' || type === 'dust' || type === 'snow';
+  const P = FXT[type]; const normal = type === 'smoke' || type === 'dust' || type === 'snow' || type === 'steam';
   const p = normal ? normPool[normIdx = (normIdx + 1) % normPool.length] : addPool[addIdx = (addIdx + 1) % addPool.length];
   p.life = p.max = P.life * rand(0.8, 1.2); p.s0 = P.s0 * size; p.s1 = P.s1 * size; p.a0 = P.a; p.smoke = normal;
   p.vx = rand(-P.v, P.v) + (P.wind || 0); p.vy = P.vy * rand(0.6, 1.2); p.vz = rand(-P.v, P.v); p.g = P.g || 0;
@@ -790,6 +815,11 @@ function updBld(b, dt) {
   b.anim += dt; const T = TEAMS[b.team];
   if (b.parts.beam) { b.parts.beam.rotation.x = Math.sin(b.anim * 2.2) * 0.35; if (Math.random() < dt * 0.8) fx('smoke', b.x, b.y + 4, b.z, 0.4); }
   if (b.parts.dish) b.parts.dish.rotation.y += dt * 0.8;
+  if (b.type === 'generator') {
+    b.parts.fan.rotation.y += dt * 9; b.parts.glow.visible = Math.sin(b.anim * 6) > -0.6;
+    if (Math.random() < dt * 3) { for (const [lx, lz] of [[1.6, -1.4], [-1.7, -1.7]]) { const [wx, wz] = localToWorld(b, lx, lz); fx('steam', wx, b.y + 4.8, wz, 1); } }
+    if (Math.random() < dt * 1.5) { const [wx, wz] = localToWorld(b, 2.1, 1.5); fx('spark', wx, b.y + 3, wz, 1); }
+  }
   if (b.type === 'factory') {
     if (b.queue.length) {
       if (Math.random() < dt * 4) { const [wx, wz] = localToWorld(b, -2.6, -1.9); fx('smoke', wx, b.y + 7, wz, 0.9); }
@@ -948,6 +978,7 @@ function setupEnemy() {
     if (o.citadel) {
       createBuilding(1, 'citadel', 0, 0, true, 0, 3);
       for (const [fx2, fz2, r] of [[0, 14, 0], [0, -14, Math.PI]]) o.factories.push(createBuilding(1, 'factory', fx2, fz2, true, r, 3));
+      createBuilding(1, 'generator', 10, 10, true, 0, 3); createBuilding(1, 'generator', -10, -10, true, Math.PI, 3);
       createBuilding(1, 'lab', 13, 0, true, -Math.PI / 2, 3); createBuilding(1, 'hq', -13, 0, true, Math.PI / 2, 3);
       // ring wall with four gates
       const WR = 25; const n = 30;
@@ -957,6 +988,7 @@ function setupEnemy() {
       for (const w of WELLS) if (Math.hypot(w.x, w.z) < 20) createBuilding(1, 'pump', w.x, w.z, true, null, 3);
     } else {
       o.factories.push(createBuilding(1, 'factory', o.x, o.z, true, Math.round(ang / (Math.PI / 2)) * (Math.PI / 2), o.tier));
+      { const ga = ang + Math.PI + 0.9; createBuilding(1, 'generator', o.x + Math.sin(ga) * 9, o.z + Math.cos(ga) * 9, true, Math.round(ga / (Math.PI / 2)) * (Math.PI / 2), o.tier); }
       for (let i = 0; i < T.towers; i++) { const a = ang + (i - (T.towers - 1) / 2) * 0.9; o.towers.push(createBuilding(1, 'tower', o.x + Math.sin(a) * 11, o.z + Math.cos(a) * 11, true, a, o.tier)); }
       const w = WELLS.find(w => Math.hypot(w.x - o.x, w.z - o.z) < 14); if (w) createBuilding(1, 'pump', w.x, w.z, true, null, o.tier);
     }
@@ -1121,7 +1153,7 @@ function renderPanel() {
     const trucks = sel.filter(u => u.isTruck), army = sel.filter(u => !u.isTruck);
     h = `<div class="ph"><span>${army.length ? '🪖 ' + army.length + ' unități ' : ''}${trucks.length ? '🚜 ' + trucks.length + ' constructori' : ''}</span></div>`;
     if (sel.length === 1) h += `<div class="hint">${designName(sel[0].d)}</div><div class="bar"><i id="pHp"></i></div>`;
-    if (trucks.length) h += `<div class="lbl">Construiește</div><div class="grid">${bdBtn('pump')}${bdBtn('factory')}${bdBtn('lab')}${bdBtn('tower')}${ents.some(e => e.alive && e.team === 0 && e.type === 'hq') ? '' : bdBtn('hq')}</div><div class="hint">Atinge o sondă de petrol pentru pompă rapidă. Atinge o clădire avariată pentru reparație.</div>`;
+    if (trucks.length) h += `<div class="lbl">Construiește</div><div class="grid">${bdBtn('pump')}${bdBtn('generator')}${bdBtn('factory')}${bdBtn('lab')}${bdBtn('tower')}${ents.some(e => e.alive && e.team === 0 && e.type === 'hq') ? '' : bdBtn('hq')}</div><div class="hint">Atinge o sondă de petrol pentru pompă rapidă. Atinge o clădire avariată pentru reparație.</div>`;
     if (army.length) h += `<div class="row"><button data-act="amove" class="${amoveNext ? 'on' : ''}">⚔ Atac-deplasare</button><button data-act="stop">■ Stop</button></div>`;
   } else {
     const b = sel[0];
@@ -1144,7 +1176,8 @@ function renderPanel() {
         else if (busy) h += `<div class="rs"><span class="lock">⏳ ${r.name} (în curs)</span></div>`;
         else h += `<div class="rs"><button data-act="research" data-v="${r.id}" ${b.res || T.energy < r.cost ? 'disabled' : ''}>${r.name} — ${r.cost}⚡ · ${r.time}s</button></div>`;
       }
-    } else if (b.type === 'pump') h += `<div class="hint">Produce +2.6 ⚡/s</div>`;
+    } else if (b.type === 'pump') { const T0 = TEAMS[0]; h += T0.powered >= T0.pumps ? `<div class="hint">Produce +2.6 ⚡/s (alimentată de generator)</div>` : `<div class="hint">⚠ Unele pompe nu au generator! Construiește un Generator (1 generator = 4 pompe).</div>`; }
+    else if (b.type === 'generator') { const T0 = TEAMS[0]; h += `<div class="hint">Transformă petrolul în energie. Alimentează 4 pompe.<br>Pompe alimentate: ${T0.powered || 0}/${T0.pumps || 0} · Generatoare: ${T0.gens || 0}</div>`; }
     else if (b.type === 'tower') h += `<div class="hint">Atacă automat inamicii din apropiere. ${TEAMS[0].tech.has('tower2') ? 'Armă: tun.' : 'Armă: mitralieră (cercetează „Turnuri cu tun”).'}</div>`;
     else if (b.type === 'hq') h += `<div class="hint">Centrul de comandă. Dă +1.5 ⚡/s. Nu-l pierde!</div>`;
   }
@@ -1334,6 +1367,7 @@ function setupGame() {
   const B = PLAYER;
   createBuilding(0, 'hq', B.x - 6, B.z + 6, true, Math.PI);
   createBuilding(0, 'factory', B.x + 9, B.z - 2, true, Math.PI);
+  createBuilding(0, 'generator', B.x - 11, B.z - 8, true, Math.PI);
   for (let i = 0; i < 3; i++) createUnit(0, { ch: 'light', pr: 'wheels', wp: 'truck' }, B.x - 4 + i * 3, B.z - 10);
   for (let i = 0; i < 4; i++) createUnit(0, { ch: 'light', pr: 'wheels', wp: 'mg' }, B.x + 6 + i * 3, B.z - 13);
   for (const u of ents) if (u.kind === 'unit') u.heading = Math.PI;
@@ -1343,7 +1377,8 @@ let ecoT = 0, aiT = 0, uiT = 0, winT = 0;
 function update(dt) {
   S.time += dt;
   for (let i = timers.length - 1; i >= 0; i--) if (S.time >= timers[i].t) { const f = timers[i].fn; timers.splice(i, 1); f(); }
-  ecoT += dt; if (ecoT >= 1) { ecoT -= 1; for (const T of TEAMS) { const pumps = ents.filter(e => e.alive && e.team === T.i && e.type === 'pump' && e.complete).length; const hq = ents.some(e => e.alive && e.team === T.i && e.type === 'hq'); T.inc = (hq ? 1.5 : 0.5) + 2.6 * pumps; T.energy += T.inc; } }
+  ecoT += dt; if (ecoT >= 1) { ecoT -= 1; for (const T of TEAMS) { const pumpsAll = ents.filter(e => e.alive && e.team === T.i && e.type === 'pump' && e.complete).length; const gens = ents.filter(e => e.alive && e.team === T.i && e.type === 'generator' && e.complete).length; const pumps = Math.min(pumpsAll, gens * 4); T.pumps = pumpsAll; T.powered = pumps; T.gens = gens; const hq = ents.some(e => e.alive && e.team === T.i && e.type === 'hq'); T.inc = (hq ? 1.5 : 0.5) + 2.6 * pumps; T.energy += T.inc; }
+    const P0 = TEAMS[0]; if (P0.pumps > P0.powered && S.time - (P0.genWarn || -99) > 30) { P0.genWarn = S.time; toast('⚡ Construiește un Generator! (1 generator = 4 pompe)'); } }
   aiT += dt; if (aiT >= 1) { aiT = 0; aiTick(); }
   for (const e of ents) if (e.alive) (e.kind === 'unit' ? updUnit : updBld)(e, dt);
   separate();

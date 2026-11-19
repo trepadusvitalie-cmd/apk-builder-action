@@ -382,10 +382,19 @@ const RS = [
   { id: 'prod', name: 'Producție automată +40%', cost: 200, time: 38, req: [] },
   { id: 'radar', name: 'Radar de luptă', cost: 110, time: 24, req: [] },
   { id: 'repair', name: 'Modul reparator', cost: 130, time: 28, req: [] },
+  { id: 'radar2', name: 'Radar avansat', cost: 180, time: 34, req: ['radar'] },
+  { id: 'repair2', name: 'Reparare rapidă', cost: 170, time: 32, req: ['repair'] },
 ];
 
 // research icons: small original SVG drawings
 const SV = (inner) => `<svg class="ric" viewBox="0 0 48 48" fill="none" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
+const BRANCHES = [
+  { name: 'Mobilitate', ids: ['tracks', 'hover', 'engine'] },
+  { name: 'Corp și blindaj', ids: ['medium', 'heavy', 'armor'] },
+  { name: 'Armament', ids: ['cannon', 'rockets', 'tower2'] },
+  { name: 'Sprijin', ids: ['radar', 'radar2', 'repair', 'repair2'] },
+  { name: 'Industrie', ids: ['prod'] },
+];
 const RICON = {
   tracks: SV(`<rect x="5" y="22" width="38" height="16" rx="8" fill="#2a2823" stroke="#c9b48a" stroke-width="2"/><circle cx="13" cy="30" r="4" fill="#6b6658"/><circle cx="24" cy="30" r="4" fill="#6b6658"/><circle cx="35" cy="30" r="4" fill="#6b6658"/><path d="M9 22h30" stroke="#8a826e" stroke-width="2" stroke-dasharray="3 3"/><rect x="12" y="12" width="24" height="9" rx="4" fill="#71804e"/>`),
   cannon: SV(`<path d="M10 34a14 10 0 0 1 28 0z" fill="#71804e" stroke="#c9b48a" stroke-width="2"/><rect x="22" y="20" width="22" height="5" rx="2" fill="#3a3a36" stroke="#c9b48a" stroke-width="1.5" transform="rotate(-18 22 22)"/><rect x="8" y="34" width="32" height="6" rx="3" fill="#3d432f"/><circle cx="44" cy="12" r="3" fill="#ffcf5a"/>`),
@@ -398,6 +407,8 @@ const RICON = {
   engine: SV(`<circle cx="22" cy="26" r="11" fill="#5a564f" stroke="#c9b48a" stroke-width="2"/><circle cx="22" cy="26" r="4" fill="#f0b44a"/><path d="M22 15v-4M22 41v-4M11 26H7M37 26h-4M14 18l-3-3M30 34l3 3M14 34l-3 3M30 18l3-3" stroke="#c9b48a" stroke-width="3"/><path d="M38 12h8M36 18h10M40 24h6" stroke="#66ccff" stroke-width="2.5"/>`),
   radar: SV(`<path d="M24 44V26" stroke="#c9b48a" stroke-width="3"/><path d="M14 44h20" stroke="#c9b48a" stroke-width="3"/><path d="M8 10a20 20 0 0 0 26 22z" fill="#9ab0b8" stroke="#c9b48a" stroke-width="2"/><path d="M21 21l9-9" stroke="#3a3a36" stroke-width="2"/><circle cx="31" cy="11" r="2.5" fill="#e0402a"/><path d="M34 6a10 10 0 0 1 8 8M36 2a15 15 0 0 1 10 10" stroke="#66ccff" stroke-width="2"/>`),
   repair: SV(`<path d="M10 38l16-16" stroke="#c9b48a" stroke-width="7"/><path d="M10 38l16-16" stroke="#8c867a" stroke-width="4"/><path d="M24 12a9 9 0 0 0 12 12l4 4 4-4-4-4a9 9 0 0 0-12-12l5 5-3 4-4 1z" fill="#c9c2b0" stroke="#5a564f" stroke-width="1.5"/><circle cx="14" cy="14" r="8" fill="#2e8a3e" stroke="#bff08a" stroke-width="2"/><path d="M14 9v10M9 14h10" stroke="#fff" stroke-width="3"/>`),
+  radar2: SV(`<path d="M24 44V28" stroke="#c9b48a" stroke-width="3"/><path d="M14 44h20" stroke="#c9b48a" stroke-width="3"/><rect x="8" y="10" width="32" height="16" rx="2" fill="#3d4a52" stroke="#c9b48a" stroke-width="2"/><path d="M14 12v12M20 12v12M26 12v12M32 12v12" stroke="#6fa8c8" stroke-width="2.5"/><path d="M40 4l4 6h-3v6h-2v-6h-3z" fill="#7fb84a"/>`),
+  repair2: SV(`<path d="M8 40l14-14" stroke="#8c867a" stroke-width="6"/><path d="M20 14a8 8 0 0 0 11 11l4 4 4-4-4-4a8 8 0 0 0-11-11l5 5-3 3-4 1z" fill="#c9c2b0" stroke="#5a564f" stroke-width="1.5"/><circle cx="13" cy="14" r="8" fill="#2e8a3e" stroke="#bff08a" stroke-width="2"/><path d="M13 9v10M8 14h10" stroke="#fff" stroke-width="3"/><path d="M36 36l6-6M36 42l6-6" stroke="#ffcf5a" stroke-width="3"/>`),
   wheels: SV(`<rect x="8" y="16" width="32" height="10" rx="4" fill="#71804e" stroke="#c9b48a" stroke-width="2"/><circle cx="14" cy="32" r="7" fill="#2a2823" stroke="#c9b48a" stroke-width="2"/><circle cx="34" cy="32" r="7" fill="#2a2823" stroke="#c9b48a" stroke-width="2"/><circle cx="14" cy="32" r="2.5" fill="#8a826e"/><circle cx="34" cy="32" r="2.5" fill="#8a826e"/>`),
   light: SV(`<rect x="8" y="28" width="32" height="8" rx="4" fill="#2a2823"/><path d="M11 28l3-6h20l3 6z" fill="#71804e" stroke="#c9b48a" stroke-width="2"/><text x="24" y="46" font-size="8" text-anchor="middle" fill="#f0b44a" font-family="sans-serif" font-weight="bold">I</text>`),
   mg: SV(`<path d="M14 32a10 7 0 0 1 20 0z" fill="#71804e" stroke="#c9b48a" stroke-width="2"/><rect x="26" y="22" width="18" height="3" rx="1.5" fill="#3a3a36"/><rect x="26" y="27" width="18" height="3" rx="1.5" fill="#3a3a36"/><rect x="10" y="32" width="28" height="6" rx="3" fill="#3d432f"/><path d="M45 20l2-2M45 31l2 2" stroke="#ffcf5a" stroke-width="2"/>`),
@@ -887,7 +898,7 @@ function supportTick(u, dt) {
   const w = u.st.w;
   if (w.kind === 'radar') {
     u.turYaw += dt * 1.8; u.tur.rotation.y = u.turYaw; u.sT = (u.sT || 0) - dt;
-    if (u.sT <= 0) { u.sT = 0.5; for (const e of ents) if (e.alive && e.kind === 'unit' && e.team === u.team && e !== u && e.st.w.dmg > 0 && Math.hypot(e.x - u.x, e.z - u.z) < w.aura) { e.rb = 1.25; e.rbT = 1.2; } }
+    if (u.sT <= 0) { u.sT = 0.5; const adv = TEAMS[u.team].tech.has('radar2'); const ar = w.aura * (adv ? 1.4 : 1); for (const e of ents) if (e.alive && e.kind === 'unit' && e.team === u.team && e !== u && e.st.w.dmg > 0 && Math.hypot(e.x - u.x, e.z - u.z) < ar) { e.rb = adv ? 1.35 : 1.25; e.rbT = 1.2; } }
     return;
   }
   if (w.kind === 'repair') {
@@ -895,11 +906,11 @@ function supportTick(u, dt) {
     if (u.sT <= 0) { u.sT = 0.6; let best = null, bd = 18;
       for (const e of ents) if (e.alive && e.team === u.team && e !== u && e.hp < e.maxHp && (e.kind === 'unit' || e.complete)) { const d = Math.hypot(e.x - u.x, e.z - u.z) - e.r; if (d < bd) { bd = d; best = e; } }
       u.heal = best;
-      if (best && bd > w.reach && (u.state === 'idle' || u.state === 'heal')) { u.state = 'heal'; u.tx = best.x; u.tz = best.z; }
-      else if (u.state === 'heal' && (!best || bd <= w.reach)) { u.state = 'idle'; } }
-    const t = u.heal;
-    if (t && t.alive && t.hp < t.maxHp && Math.hypot(t.x - u.x, t.z - u.z) - t.r <= w.reach) {
-      t.hp = Math.min(t.maxHp, t.hp + w.heal * dt * (t.kind === 'bld' ? 1.5 : 1));
+      if (best && bd > w.reach + (TEAMS[u.team].tech.has('repair2') ? 3 : 0) && (u.state === 'idle' || u.state === 'heal')) { u.state = 'heal'; u.tx = best.x; u.tz = best.z; }
+      else if (u.state === 'heal' && (!best || bd <= w.reach + (TEAMS[u.team].tech.has('repair2') ? 3 : 0))) { u.state = 'idle'; } }
+    const t = u.heal; const fast = TEAMS[u.team].tech.has('repair2');
+    if (t && t.alive && t.hp < t.maxHp && Math.hypot(t.x - u.x, t.z - u.z) - t.r <= w.reach + (fast ? 3 : 0)) {
+      t.hp = Math.min(t.maxHp, t.hp + w.heal * (fast ? 1.8 : 1) * dt * (t.kind === 'bld' ? 1.5 : 1));
       const a = Math.atan2(t.x - u.x, t.z - u.z); u.turYaw += clamp(angDiff(u.turYaw, angDiff(u.heading, a)), -4 * dt, 4 * dt);
       if (Math.random() < dt * 8) { const ty = t.y + (t.kind === 'bld' ? 1.5 : 0.8); tracer(u.x, u.y + u.h - 0.2, u.z, t.x + rand(-0.4, 0.4), ty, t.z + rand(-0.4, 0.4)); fx('spark', t.x + rand(-0.5, 0.5), ty, t.z + rand(-0.5, 0.5), 0.8); }
       if (u.team === 0 && Math.random() < dt * 2) sfx('weld', u.x, u.z);
@@ -959,7 +970,7 @@ function updUnit(u, dt) {
     u.cd -= dt;
     if (inRange(u, t, 0.5) && Math.abs(angDiff(u.turYaw, local)) < 0.25 && u.cd <= 0) {
       const wy = u.heading + u.turYaw; const s = CH[u.d.ch].size;
-      const ml = (w.kind === 'shell' ? 3.5 : 1.6) * s; fireWeapon(u, t, w, u.x + Math.sin(wy) * ml, u.y + u.h - 0.3, u.z + Math.cos(wy) * ml, u.rb > 1 ? 1.15 : 1);
+      const ml = (w.kind === 'shell' ? 3.5 : 1.6) * s; fireWeapon(u, t, w, u.x + Math.sin(wy) * ml, u.y + u.h - 0.3, u.z + Math.cos(wy) * ml, u.rb > 1.3 ? 1.25 : u.rb > 1 ? 1.15 : 1);
       u.cd = w.rof * rand(0.9, 1.1);
     }
   } else if ((!u.isTruck || u.state !== 'build') && w.kind !== 'radar' && !(w.kind === 'repair' && u.heal)) { u.cd = Math.max(0, u.cd - dt); u.turYaw += clamp(angDiff(u.turYaw, 0), -2 * dt, 2 * dt); }
@@ -1344,15 +1355,17 @@ function renderPanel() {
     } else if (b.type === 'lab') {
       h += `<div class="lbl">Cercetare</div>`;
       if (b.res) h += `<div class="rnow">${RICON[b.res.id]}<div><b>${b.res.name}</b><div class="bar b"><i id="pRes"></i></div></div></div>`;
-      h += `<div class="rgrid">`;
-      for (const r of RS) {
-        const done = T.tech.has(r.id), locked = !done && r.req.some(q => !T.tech.has(q)), busy = !done && T.researching.has(r.id);
-        const meta = done ? '✔ Cercetat' : locked ? '🔒 ' + r.req.map(q => RS.find(x => x.id === q).name).join(', ') : busy ? '⏳ În curs' : `${r.cost}⚡ · ${r.time}s`;
-        const cls = done ? 'done' : locked ? 'locked' : busy ? 'busy' : '';
-        const dis = done || locked || busy || b.res || T.energy < r.cost;
-        h += `<button class="rcard ${cls}" data-act="research" data-v="${r.id}" ${dis ? 'disabled' : ''}>${RICON[r.id]}<span class="rn">${r.name}</span><span class="rm">${meta}</span></button>`;
+      for (const br of BRANCHES) {
+        h += `<div class="rbr">${br.name}</div><div class="rgrid">`;
+        for (const id of br.ids) { const r = RS.find(x => x.id === id);
+          const done = T.tech.has(r.id), locked = !done && r.req.some(q => !T.tech.has(q)), busy = !done && T.researching.has(r.id);
+          const meta = done ? '✔ Cercetat' : locked ? '🔒 ' + r.req.map(q => RS.find(x => x.id === q).name).join(', ') : busy ? '⏳ În curs' : `${r.cost}⚡ · ${r.time}s`;
+          const cls = done ? 'done' : locked ? 'locked' : busy ? 'busy' : '';
+          const dis = done || locked || busy || b.res || T.energy < r.cost;
+          h += `<button class="rcard ${cls}" data-act="research" data-v="${r.id}" ${dis ? 'disabled' : ''}>${RICON[r.id]}<span class="rn">${r.name}</span><span class="rm">${meta}</span></button>`;
+        }
+        h += `</div>`;
       }
-      h += `</div>`;
     } else if (b.type === 'generator') { h += `<div class="hint">Extrage petrol din sondă și produce +4 ⚡/s.</div>`; }
     else if (b.type === 'tower') h += `<div class="hint">Atacă automat inamicii din apropiere. ${TEAMS[0].tech.has('tower2') ? 'Armă: tun.' : 'Armă: mitralieră (cercetează „Turnuri cu tun”).'}</div>`;
     else if (b.type === 'hq') h += `<div class="hint">Centrul de comandă. Dă +1.5 ⚡/s. Nu-l pierde!</div>`;

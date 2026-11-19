@@ -251,3 +251,6 @@ i.eu { font-style: normal; color: var(--amber); font-size: .9em; margin-left: 1p
 #designer .mh { margin-bottom: 2px; font-size: 16px; }
 #designer .lbl { margin: 4px 0 3px; font-size: 10.5px; }
 @media (max-height: 420px) { .dcard .ric { width: 26px; height: 26px; } .dmods { grid-template-columns: repeat(6, 1fr); } .dprev { width: 220px; } #prev { width: 220px; height: 120px; } }
+.rbr { font-size: 10px; color: #9fd0f0; text-transform: uppercase; letter-spacing: 1px; margin: 5px 0 3px; display: flex; align-items: center; gap: 6px; }
+.rbr::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--blue); box-shadow: 0 0 4px var(--blue); }
+.rbr::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, #3f9fe060, transparent); }

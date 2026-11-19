@@ -1554,6 +1554,7 @@ function fmtTime(s) { s = Math.floor(s); return Math.floor(s / 60) + ':' + Strin
 function computeSig() {
   const T = TEAMS[0]; let s = (placing ? 'P' + placing.type + placing.valid : '') + '|' + sel.map(e => e.id).join(',') + '|' + T.tech.size + '|' + amoveNext;
   for (const e of sel) if (e.kind === 'bld') s += `|${e.complete}|${e.queue.length}|${e.res ? e.res.id : ''}|${[...T.researching].join()}`;
+  if (sel[0] && sel[0].type === 'lab') s += '|L' + ents.filter(e => e.alive && e.team === 0 && e.type === 'lab').map(e => e.id + (e.complete ? 'c' : '') + (e.res ? e.res.id : '')).join(',');
   const costs = [35, 50, 65, 75, 100, 120, 130, 140, 150, 160, 180, 200, 220, 250, 300]; s += '|' + costs.map(c => T.energy >= c ? 1 : 0).join('');
   return s;
 }
@@ -1602,7 +1603,11 @@ function renderPanel() {
       h += `<button data-act="designer" class="ok">${UIC.design}<span class="bn">Proiectant</span></button></div><div class="hint">Atinge harta pentru punctul de adunare.</div>`;
     } else if (b.type === 'lab') {
       h += `<div class="lbl">Cercetare</div>`;
-      if (b.res) h += `<div class="rnow">${RICON[b.res.id]}<div><b>${b.res.name}</b><div class="bar b"><i id="pRes"></i></div></div></div>`;
+      const labs = ents.filter(e => e.alive && e.team === 0 && e.type === 'lab');
+      const busy = labs.filter(l => l.res).length;
+      h += `<div class="labs"><div class="labsh">Laboratoare: <b>${labs.length}</b> · ocupate <b>${busy}</b> · libere <b>${labs.length - busy}</b></div>`;
+      labs.forEach((l, i) => { h += `<button class="labrow ${l === b ? 'cur' : ''} ${l.res ? '' : 'idle'}" data-act="sellab" data-v="${l.id}">${l.res ? RICON[l.res.id] : UIC.lab.replace('class="ui"', 'class="ric"')}<span class="ln">#${i + 1}</span><span class="lt"><b>${!l.complete ? 'În construcție' : l.res ? l.res.name : 'Liber — alege o cercetare'}</b>${l.res ? `<span class="bar b"><i id="labB${l.id}"></i></span>` : ''}</span><span class="lr" id="labT${l.id}"></span></button>`; });
+      h += `</div>`;
       const avail = br => br.ids.filter(id => { const r = RS.find(x => x.id === id); return !T.tech.has(id) && !r.req.some(q => !T.tech.has(q)); }).length;
       h += `<div class="chips">${BRANCHES.map((br, i) => `<button data-act="rbr" data-v="${i}" class="${labBr === i ? 'on' : ''}">${br.name}${avail(br) ? ` <b class="cnt">${avail(br)}</b>` : ''}</button>`).join('')}</div>`;
       for (const br of [BRANCHES[labBr]]) {
@@ -1634,12 +1639,16 @@ function updDyn() {
   const pb = $('pBuild'); if (pb) pb.style.width = (e.built * 100) + '%';
   const pp = $('pProd'); if (pp) pp.style.width = e.queue && e.queue.length ? (e.prod / unitStats(e.queue[0], 0).time * 100) + '%' : '0%';
   const pr = $('pRes'); if (pr && e.res) pr.style.width = (e.resProg / e.res.time * 100) + '%';
+  if (e.type === 'lab') for (const l of ents) if (l.alive && l.type === 'lab' && l.team === 0) { const bb = $('labB' + l.id), tt = $('labT' + l.id);
+    if (bb && l.res) bb.style.width = (l.resProg / l.res.time * 100) + '%';
+    if (tt) tt.textContent = l.res ? fmtTime(Math.ceil((l.res.time - l.resProg) / (TEAMS[0].rsMul || 1))) : ''; }
 }
 function updatePanel() { const s = computeSig(); if (s !== panelSig) { panelSig = s; renderPanel(); } updDyn(); }
 panel.addEventListener('click', ev => {
   const b = ev.target.closest('[data-act]'); if (!b || b.disabled) return; const act = b.dataset.act, v = b.dataset.v; sfx('click');
   const T = TEAMS[0]; const e = sel[0];
   if (act === 'pmin') { panelMini = !panelMini; panelSig = ''; return; }
+  if (act === 'sellab') { const l = ents.find(x => x.id === +v); if (l) { setSel([l]); cam.x = l.x; cam.z = l.z; } return; }
   if (act === 'rbr') { labBr = +v; panelSig = ''; return; }
   if (act === 'btab') { buildTab = v; panelSig = ''; return; }
   if (act === 'dcls') { defCls = v; panelSig = ''; return; }

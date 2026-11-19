@@ -334,9 +334,13 @@ const TEAMC = [
   { body: 0x7e5544, dark: 0x3d2a23, acc: 0xe0402a, mini: '#ff5a3a', name: 'Inamic' },
 ];
 const CH = {
+  scout: { name: 'Cercetaș', hp: 80, cost: 25, spd: 1.25, size: 0.8, hue: 0xb8a868 },
   light: { name: 'Ușor', hp: 110, cost: 35, spd: 1, size: 0.9 },
   medium: { name: 'Mediu', hp: 210, cost: 65, spd: 0.88, size: 1.1 },
+  assault: { name: 'Asalt', hp: 290, cost: 90, spd: 0.84, size: 1.2, hue: 0x3a4a2a },
   heavy: { name: 'Greu', hp: 360, cost: 105, spd: 0.74, size: 1.3 },
+  titan: { name: 'Titan', hp: 560, cost: 170, spd: 0.6, size: 1.55, hue: 0x50565e },
+  nova: { name: 'Nova', hp: 420, cost: 150, spd: 0.95, size: 1.25, gold: true },
 };
 const PR = {
   wheels: { name: 'Roți', hp: 1, spd: 1, cost: 10 },
@@ -346,6 +350,7 @@ const PR = {
 const WP = {
   mg: { name: 'Mitralieră', dmg: 7, rof: 0.22, range: 12, cost: 20, kind: 'mg' },
   cannon: { name: 'Tun', dmg: 42, rof: 1.7, range: 14, cost: 45, kind: 'shell' },
+  laser: { name: 'Laser', dmg: 22, rof: 0.55, range: 17, cost: 80, kind: 'laser' },
   rockets: { name: 'Rachete', dmg: 30, rof: 2.4, range: 18, cost: 60, kind: 'rocket', splash: 2.8 },
   radar: { name: 'Radar', dmg: 0, range: 0, cost: 40, kind: 'radar', aura: 24 },
   repair: { name: 'Reparator', dmg: 0, range: 0, cost: 50, kind: 'repair', heal: 16, reach: 7 },
@@ -366,8 +371,8 @@ const BD = {
 const TIERS = [
   { name: 'Avanpost', ch: ['light'], pr: ['wheels'], wp: ['mg'], tower: 'mg', hp: 1, garrison: 3, towers: 2 },
   { name: 'Fort', ch: ['light', 'medium'], pr: ['wheels', 'tracks'], wp: ['mg', 'cannon'], tower: 'mg', hp: 1.1, garrison: 5, towers: 3 },
-  { name: 'Bastion', ch: ['medium', 'heavy'], pr: ['tracks', 'hover'], wp: ['cannon', 'rockets'], tower: 'cannon', hp: 1.25, garrison: 7, towers: 4 },
-  { name: 'Cetate', ch: ['heavy'], pr: ['tracks', 'hover'], wp: ['rockets', 'cannon'], tower: 'rockets', hp: 1.5, garrison: 10, towers: 8 },
+  { name: 'Bastion', ch: ['medium', 'assault', 'heavy'], pr: ['tracks', 'hover'], wp: ['cannon', 'rockets'], tower: 'cannon', hp: 1.25, garrison: 7, towers: 4 },
+  { name: 'Cetate', ch: ['heavy', 'titan', 'nova'], pr: ['tracks', 'hover'], wp: ['rockets', 'cannon', 'laser'], tower: 'rockets', hp: 1.5, garrison: 10, towers: 8 },
 ];
 const RS = [
   { id: 'tracks', name: 'Șenile', cost: 90, time: 22, req: [] },
@@ -382,6 +387,11 @@ const RS = [
   { id: 'prod', name: 'Producție automată +40%', cost: 200, time: 38, req: [] },
   { id: 'radar', name: 'Radar de luptă', cost: 110, time: 24, req: [] },
   { id: 'repair', name: 'Modul reparator', cost: 130, time: 28, req: [] },
+  { id: 'scout', name: 'Șasiu Cercetaș', cost: 80, time: 18, req: [] },
+  { id: 'assault', name: 'Șasiu de Asalt', cost: 170, time: 34, req: ['medium'] },
+  { id: 'titan', name: 'Șasiu Titan', cost: 260, time: 48, req: ['heavy', 'armor'] },
+  { id: 'laser', name: 'Laser de luptă', cost: 240, time: 45, req: ['rockets'] },
+  { id: 'nova', name: 'Șasiu Nova (auriu)', cost: 300, time: 52, req: ['titan', 'laser'] },
   { id: 'radar2', name: 'Radar avansat', cost: 180, time: 34, req: ['radar'] },
   { id: 'repair2', name: 'Reparare rapidă', cost: 170, time: 32, req: ['repair'] },
 ];
@@ -390,8 +400,8 @@ const RS = [
 const SV = (inner) => `<svg class="ric" viewBox="0 0 48 48" fill="none" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
 const BRANCHES = [
   { name: 'Mobilitate', ids: ['tracks', 'hover', 'engine'] },
-  { name: 'Corp și blindaj', ids: ['medium', 'heavy', 'armor'] },
-  { name: 'Armament', ids: ['cannon', 'rockets', 'tower2'] },
+  { name: 'Corp și blindaj', ids: ['scout', 'medium', 'assault', 'heavy', 'armor', 'titan', 'nova'] },
+  { name: 'Armament', ids: ['cannon', 'rockets', 'tower2', 'laser'] },
   { name: 'Sprijin', ids: ['radar', 'radar2', 'repair', 'repair2'] },
   { name: 'Industrie', ids: ['prod'] },
 ];
@@ -407,6 +417,11 @@ const RICON = {
   engine: SV(`<circle cx="22" cy="26" r="11" fill="#5a564f" stroke="#c9b48a" stroke-width="2"/><circle cx="22" cy="26" r="4" fill="#f0b44a"/><path d="M22 15v-4M22 41v-4M11 26H7M37 26h-4M14 18l-3-3M30 34l3 3M14 34l-3 3M30 18l3-3" stroke="#c9b48a" stroke-width="3"/><path d="M38 12h8M36 18h10M40 24h6" stroke="#66ccff" stroke-width="2.5"/>`),
   radar: SV(`<path d="M24 44V26" stroke="#c9b48a" stroke-width="3"/><path d="M14 44h20" stroke="#c9b48a" stroke-width="3"/><path d="M8 10a20 20 0 0 0 26 22z" fill="#9ab0b8" stroke="#c9b48a" stroke-width="2"/><path d="M21 21l9-9" stroke="#3a3a36" stroke-width="2"/><circle cx="31" cy="11" r="2.5" fill="#e0402a"/><path d="M34 6a10 10 0 0 1 8 8M36 2a15 15 0 0 1 10 10" stroke="#66ccff" stroke-width="2"/>`),
   repair: SV(`<path d="M10 38l16-16" stroke="#c9b48a" stroke-width="7"/><path d="M10 38l16-16" stroke="#8c867a" stroke-width="4"/><path d="M24 12a9 9 0 0 0 12 12l4 4 4-4-4-4a9 9 0 0 0-12-12l5 5-3 4-4 1z" fill="#c9c2b0" stroke="#5a564f" stroke-width="1.5"/><circle cx="14" cy="14" r="8" fill="#2e8a3e" stroke="#bff08a" stroke-width="2"/><path d="M14 9v10M9 14h10" stroke="#fff" stroke-width="3"/>`),
+  scout: SV(`<rect x="10" y="29" width="28" height="7" rx="3.5" fill="#2a2823"/><path d="M12 29l4-5h14l8 5z" fill="#8a9a5e" stroke="#c9b48a" stroke-width="2"/><path d="M22 24l2-4h5l1 4z" fill="#9fd3e6"/><path d="M40 16h6M38 20h8" stroke="#66ccff" stroke-width="2"/>`),
+  assault: SV(`<rect x="5" y="29" width="38" height="10" rx="5" fill="#2a2823"/><path d="M6 29l5-9h26l6 9z" fill="#71804e" stroke="#c9b48a" stroke-width="2"/><path d="M4 30l6-12M44 30l-6-12" stroke="#3d432f" stroke-width="4"/><path d="M16 20a8 6 0 0 1 16 0z" fill="#5c6a3e"/><path d="M30 15l14-4" stroke="#3a3a36" stroke-width="3"/>`),
+  titan: SV(`<rect x="2" y="30" width="44" height="12" rx="6" fill="#2a2823"/><path d="M3 30l3-12h36l3 12z" fill="#5c6a3e" stroke="#c9b48a" stroke-width="2"/><path d="M7 22h34" stroke="#3d432f" stroke-width="5"/><path d="M12 18a12 8 0 0 1 24 0z" fill="#71804e" stroke="#c9b48a" stroke-width="1.5"/><rect x="32" y="8" width="14" height="4" rx="2" fill="#3a3a36"/><rect x="32" y="13" width="14" height="4" rx="2" fill="#3a3a36"/>`),
+  nova: SV(`<rect x="6" y="30" width="36" height="9" rx="4.5" fill="#2a2823"/><path d="M7 30q2-10 17-10t17 10z" fill="#d4a832" stroke="#fff0b0" stroke-width="2"/><ellipse cx="22" cy="23" rx="7" ry="3.5" fill="#2a3a44"/><path d="M9 29h30" stroke="#66e0ff" stroke-width="2"/><path d="M40 10l2 4 4 2-4 2-2 4-2-4-4-2 4-2z" fill="#ffe680"/>`),
+  laser: SV(`<path d="M8 34a10 7 0 0 1 20 0z" fill="#71804e" stroke="#c9b48a" stroke-width="2"/><rect x="18" y="22" width="16" height="5" rx="2.5" fill="#3a3a40" transform="rotate(-15 18 24)"/><circle cx="34" cy="19" r="3" fill="#fff2a0"/><path d="M36 18l10-3" stroke="#ffd84a" stroke-width="3"/><path d="M36 18l10-3" stroke="#fff" stroke-width="1"/><rect x="6" y="34" width="26" height="6" rx="3" fill="#3d432f"/>`),
   radar2: SV(`<path d="M24 44V28" stroke="#c9b48a" stroke-width="3"/><path d="M14 44h20" stroke="#c9b48a" stroke-width="3"/><rect x="8" y="10" width="32" height="16" rx="2" fill="#3d4a52" stroke="#c9b48a" stroke-width="2"/><path d="M14 12v12M20 12v12M26 12v12M32 12v12" stroke="#6fa8c8" stroke-width="2.5"/><path d="M40 4l4 6h-3v6h-2v-6h-3z" fill="#7fb84a"/>`),
   repair2: SV(`<path d="M8 40l14-14" stroke="#8c867a" stroke-width="6"/><path d="M20 14a8 8 0 0 0 11 11l4 4 4-4-4-4a8 8 0 0 0-11-11l5 5-3 3-4 1z" fill="#c9c2b0" stroke="#5a564f" stroke-width="1.5"/><circle cx="13" cy="14" r="8" fill="#2e8a3e" stroke="#bff08a" stroke-width="2"/><path d="M13 9v10M8 14h10" stroke="#fff" stroke-width="3"/><path d="M36 36l6-6M36 42l6-6" stroke="#ffcf5a" stroke-width="3"/>`),
   wheels: SV(`<rect x="8" y="16" width="32" height="10" rx="4" fill="#71804e" stroke="#c9b48a" stroke-width="2"/><circle cx="14" cy="32" r="7" fill="#2a2823" stroke="#c9b48a" stroke-width="2"/><circle cx="34" cy="32" r="7" fill="#2a2823" stroke="#c9b48a" stroke-width="2"/><circle cx="14" cy="32" r="2.5" fill="#8a826e"/><circle cx="34" cy="32" r="2.5" fill="#8a826e"/>`),
@@ -458,7 +473,8 @@ function designName(d) { return d.wp === 'truck' && d.ch === 'light' && d.pr ===
 const geoCache = {};
 function unitGeo(d, team) {
   const key = d.ch + d.pr + d.wp + team; if (geoCache[key]) return geoCache[key];
-  const T = TEAMC[team], s = CH[d.ch].size, B = new Builder(), tb = new Builder(); B.uvScale = tb.uvScale = 1.1;
+  const hu = CH[d.ch].hue; const tn = (c, k) => new THREE.Color(c).lerp(new THREE.Color(hu), 0.65).multiplyScalar(k).getHex(); const tk = hu ? 1 : 1;
+  const T = CH[d.ch].gold ? { ...TEAMC[team], body: 0xd4a832, dark: 0x5e4c1c } : hu ? { ...TEAMC[team], body: tn(TEAMC[team].body, 1), dark: tn(TEAMC[team].dark, 0.55) } : TEAMC[team], s = CH[d.ch].size, B = new Builder(), tb = new Builder(); B.uvScale = tb.uvScale = 1.1;
   const L = 2.4 * s, W = 1.65 * s, H = (d.pr === 'tracks' ? 0.6 : 0.72) * s; const PI2 = Math.PI / 2;
   let by;
   if (d.pr === 'wheels') {
@@ -489,7 +505,23 @@ function unitGeo(d, team) {
     for (let k = 0; k < 5; k++) B.box(0.08 * s, H * 0.6, 0.03 * s, x, by - H * 0.18, -L * 0.37 + k * L * 0.185, T.dark);
     B.box(0.09 * s, 0.06 * s, L * 0.9, x, by + H * 0.12, 0, T.acc);
   }
-  if (d.wp !== 'truck') {
+  // body-specific shapes
+  if (d.ch === 'scout') { B.box(W * 0.45, 0.06 * s, L * 0.22, 0, by + H * 0.52, L * 0.12, 0x9fd3e6); B.add(G.cyl6, 0.02, 0.9 * s, 0.02, W * 0.3, by + H + 0.4 * s, -L * 0.35, 0x222222); }
+  if (d.ch === 'assault') {
+    for (const sx of [-1, 1]) { B.box(0.08 * s, H * 0.8, L * 0.72, sx * (W * 0.5 + 0.03 * s), by + H * 0.05, 0.05 * s, T.dark, 0, 0, -sx * 0.28); for (let k = 0; k < 4; k++) B.add(G.sph, 0.04 * s, 0.04 * s, 0.04 * s, sx * (W * 0.53 + 0.03 * s), by + H * 0.1, -L * 0.25 + k * L * 0.17, 0x8a826e); }
+    B.box(W * 0.92, 0.08 * s, L * 0.2, 0, by + H * 0.3, L * 0.42, T.dark, 0.6, 0, 0);
+  }
+  if (d.ch === 'titan') {
+    B.add(G.hull, W * 1.04, H * 0.35, L * 0.86, 0, by + H * 0.55, -L * 0.04, T.dark);
+    for (const sx of [-1, 1]) for (let k = 0; k < 4; k++) B.box(0.14 * s, H * 0.5, L * 0.19, sx * (W * 0.5 + 0.1 * s), by + H * 0.02, -L * 0.31 + k * L * 0.21, T.body);
+    B.box(W * 0.5, 0.22 * s, 0.25 * s, 0, by + H * 0.45, -L * 0.48, 0x2a2a2a);
+  }
+  if (d.ch === 'nova') {
+    B.add(G.sph, W * 0.4, H * 0.42, L * 0.34, 0, by + H * 0.5, -L * 0.14, 0x22323c);
+    for (const sx of [-1, 1]) { B.box(0.05 * s, 0.06 * s, L * 0.86, sx * W * 0.5, by + H * 0.18, 0, 0x66e0ff); B.add(G.cone, 0.13 * s, 0.4 * s, 0.13 * s, sx * W * 0.32, by, -L * 0.55, 0x66e0ff, -PI2, 0, 0); }
+    B.box(W * 0.72, 0.06 * s, 0.05 * s, 0, by + H * 0.22, L * 0.5, 0x66e0ff);
+  }
+  if (d.wp !== 'truck' && d.ch !== 'nova') {
     for (const sx of [-1, 1]) B.box(0.22 * s, 0.26 * s, 0.14 * s, sx * W * 0.3, by + H * 0.55, -L * 0.47, 0x4a5a2a); // jerrycans
   }
   for (const sx of [-1, 1]) B.box(0.16 * s, 0.1 * s, 0.05 * s, sx * W * 0.36, by + H * 0.08, L * 0.5, 0xfff2c0); // LED headlights
@@ -527,6 +559,12 @@ function unitGeo(d, team) {
       tb.add(G.cyl16, 0.35 * s, 0.1 * s, 0.35 * s, sx * 0.42 * s, 0.37 * s, 0.6 * s, T.acc, PI2 - 0.25, 0, 0);
       for (const ox of [-0.12, 0.12]) for (const oy of [-0.12, 0.12]) tb.add(G.cyl6, 0.08 * s, 0.1, 0.08 * s, sx * 0.42 * s + ox * s, 0.5 * s + oy * s + 0.15 * s, 0.67 * s, 0x111111, PI2 - 0.25, 0, 0);
     }
+  } else if (d.wp === 'laser') {
+    tb.add(G.dome, 0.58 * s, 0.42 * s, 0.62 * s, 0, 0.02, -0.12 * s, T.body); tb.add(G.cyl16, 0.6 * s, 0.06 * s, 0.64 * s, 0, 0.05, -0.12 * s, T.acc);
+    tb.add(G.cyl16, 0.1 * s, 2.0 * s, 0.1 * s, 0, 0.3 * s, 1.15 * s, 0x34343a, Math.PI / 2, 0, 0);
+    for (let k = 0; k < 3; k++) tb.add(G.cyl16, 0.16 * s, 0.08 * s, 0.16 * s, 0, 0.3 * s, 0.55 * s + k * 0.45 * s, 0xffd84a, Math.PI / 2, 0, 0);
+    tb.add(G.sph, 0.13 * s, 0.13 * s, 0.13 * s, 0, 0.3 * s, 2.15 * s, 0xfff2a0);
+    for (const sx of [-1, 1]) { tb.box(0.18 * s, 0.24 * s, 0.5 * s, sx * 0.5 * s, 0.22 * s, -0.25 * s, T.dark); tb.box(0.04 * s, 0.16 * s, 0.4 * s, sx * 0.6 * s, 0.22 * s, -0.25 * s, 0x66e0ff); }
   } else if (d.wp === 'radar') {
     tb.add(G.cyl16, 0.42 * s, 0.22 * s, 0.42 * s, 0, 0.11 * s, 0, T.dark); tb.add(G.cyl16, 0.44 * s, 0.05 * s, 0.44 * s, 0, 0.22 * s, 0, T.acc);
     tb.add(G.cyl10, 0.07 * s, 0.9 * s, 0.07 * s, 0, 0.65 * s, 0, 0x3a3a36);
@@ -782,6 +820,11 @@ function explosion(x, y, z, size) {
 const tracerGeo = new THREE.BoxGeometry(0.07, 0.07, 1); const tracerMat = new THREE.MeshBasicMaterial({ color: 0xffe9a0 });
 const tracers = []; for (let i = 0; i < 50; i++) { const m = new THREE.Mesh(tracerGeo, tracerMat); m.visible = false; scene.add(m); tracers.push({ m, life: 0 }); }
 let trIdx = 0;
+const beamGeo = new THREE.BoxGeometry(0.26, 0.26, 1), beamMat = new THREE.MeshBasicMaterial({ color: 0xffe04a, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false });
+const beamCore = new THREE.MeshBasicMaterial({ color: 0xffffff }); const beamCoreGeo = new THREE.BoxGeometry(0.05, 0.05, 1);
+const beams = []; for (let i = 0; i < 24; i++) { const m = new THREE.Mesh(beamGeo, beamMat); m.add(new THREE.Mesh(beamCoreGeo, beamCore)); m.visible = false; scene.add(m); beams.push({ m, life: 0 }); }
+let bmIdx = 0;
+function beam(x1, y1, z1, x2, y2, z2) { const t = beams[bmIdx = (bmIdx + 1) % beams.length]; const d = Math.hypot(x2 - x1, y2 - y1, z2 - z1); t.m.position.set((x1 + x2) / 2, (y1 + y2) / 2, (z1 + z2) / 2); t.m.lookAt(x2, y2, z2); t.m.scale.set(1, 1, d); t.m.visible = true; t.life = 0.14; }
 function tracer(x1, y1, z1, x2, y2, z2) { const t = tracers[trIdx = (trIdx + 1) % tracers.length]; const d = Math.hypot(x2 - x1, y2 - y1, z2 - z1); t.m.position.set((x1 + x2) / 2, (y1 + y2) / 2, (z1 + z2) / 2); t.m.lookAt(x2, y2, z2); t.m.scale.set(1, 1, d); t.m.visible = true; t.life = 0.06; }
 const shellGeo = new THREE.SphereGeometry(0.2, 6, 4), rocketGeo = new THREE.ConeGeometry(0.13, 0.7, 5).rotateX(Math.PI / 2);
 const shellMat = new THREE.MeshBasicMaterial({ color: 0xffd27a }), rocketMat = new THREE.MeshBasicMaterial({ color: 0xe8e8e8 });
@@ -807,6 +850,7 @@ function updProjs(dt) {
     }
   }
   for (const t of tracers) if (t.m.visible) { t.life -= dt; if (t.life <= 0) t.m.visible = false; }
+  for (const t of beams) if (t.m.visible) { t.life -= dt; t.m.scale.x = t.m.scale.y = Math.max(0.2, t.life / 0.14); if (t.life <= 0) t.m.visible = false; }
 }
 
 // wrecks
@@ -862,6 +906,7 @@ function fireWeapon(src, t, w, mx, my, mz, mul) {
   fx('muzzle', mx, my, mz, w.kind === 'mg' ? 0.8 : 1.4);
   if (w.kind === 'mg') { const ty = t.y + (t.kind === 'bld' ? 1.5 : 0.7); tracer(mx, my, mz, t.x + rand(-0.4, 0.4), ty, t.z + rand(-0.4, 0.4)); if (Math.random() < 0.3) fx('spark', t.x, ty, t.z, 1); damage(t, dmg, src); sfx('mg', mx, mz); }
   else if (w.kind === 'shell') { spawnProj('shell', src, t, dmg, 0, mx, my, mz); fx('smoke', mx, my, mz, 0.6); sfx('shell', mx, mz); }
+  else if (w.kind === 'laser') { const ty = t.y + (t.kind === 'bld' ? 1.5 : 0.7); beam(mx, my, mz, t.x, ty, t.z); fx('spark', t.x, ty, t.z, 1.4); fx('flash', t.x, ty, t.z, 0.8); damage(t, dmg, src); sfx('laser', mx, mz); }
   else if (w.kind === 'rocket') { for (let i = 0; i < 2; i++) later(i * 0.15, () => { if (src.alive && t.alive) spawnProj('rocket', src, t, dmg, w.splash, mx, my, mz); }); sfx('rocket', mx, mz); }
 }
 
@@ -970,7 +1015,7 @@ function updUnit(u, dt) {
     u.cd -= dt;
     if (inRange(u, t, 0.5) && Math.abs(angDiff(u.turYaw, local)) < 0.25 && u.cd <= 0) {
       const wy = u.heading + u.turYaw; const s = CH[u.d.ch].size;
-      const ml = (w.kind === 'shell' ? 3.5 : 1.6) * s; fireWeapon(u, t, w, u.x + Math.sin(wy) * ml, u.y + u.h - 0.3, u.z + Math.cos(wy) * ml, u.rb > 1.3 ? 1.25 : u.rb > 1 ? 1.15 : 1);
+      const ml = (w.kind === 'shell' ? 3.5 : w.kind === 'laser' ? 2.3 : 1.6) * s; fireWeapon(u, t, w, u.x + Math.sin(wy) * ml, u.y + u.h - 0.3, u.z + Math.cos(wy) * ml, u.rb > 1.3 ? 1.25 : u.rb > 1 ? 1.15 : 1);
       u.cd = w.rof * rand(0.9, 1.1);
     }
   } else if ((!u.isTruck || u.state !== 'build') && w.kind !== 'radar' && !(w.kind === 'repair' && u.heal)) { u.cd = Math.max(0, u.cd - dt); u.turYaw += clamp(angDiff(u.turYaw, 0), -2 * dt, 2 * dt); }
@@ -1413,10 +1458,10 @@ function renderDesigner() {
     return `<button data-f="${field}" data-k="${k}" class="dcard ${dsg[field] === k ? 'on' : ''}" ${ok ? '' : 'disabled'}>${DICON[k] || ''}<span class="rn">${o.name}</span><span class="rm">${ok ? sub(o) : '🔒 cercetează'}</span></button>`; };
   $('dPr').innerHTML = Object.keys(PR).map(k => card(PR, 'pr', k, o => `${o.cost}⚡ · viteză ×${o.spd}`)).join('');
   $('dCh').innerHTML = Object.keys(CH).map(k => card(CH, 'ch', k, o => `${o.cost}⚡ · ${o.hp} viață`)).join('');
-  $('dWp').innerHTML = ['mg', 'cannon', 'rockets', 'radar', 'repair', 'truck'].map(k => card(WP, 'wp', k, o => o.kind === 'radar' ? `${o.cost}⚡ · +25% rază aliați` : o.kind === 'repair' ? `${o.cost}⚡ · repară ${o.heal}/s` : o.kind === 'truck' ? `${o.cost}⚡ · construiește` : `${o.cost}⚡ · rază ${o.range}`)).join('');
+  $('dWp').innerHTML = ['mg', 'cannon', 'rockets', 'laser', 'radar', 'repair', 'truck'].map(k => card(WP, 'wp', k, o => o.kind === 'radar' ? `${o.cost}⚡ · +25% rază aliați` : o.kind === 'repair' ? `${o.cost}⚡ · repară ${o.heal}/s` : o.kind === 'truck' ? `${o.cost}⚡ · construiește` : `${o.cost}⚡ · rază ${o.range}`)).join('');
   const st = unitStats(dsg, 0); const bar = (n, v, mx, lbl) => `<div class="st"><span>${n}</span><div class="bar"><i style="width:${clamp(v / mx, 0, 1) * 100}%"></i></div><span>${lbl}</span></div>`;
   const w = st.w; const third = w.kind === 'radar' ? bar('Radar', w.aura, 30, w.aura + 'm') : w.kind === 'repair' ? bar('Reparare', w.heal, 20, w.heal + '/s') : w.kind === 'truck' ? '<div class="hint">Construiește și repară clădiri.</div>' : bar('Atac', w.dmg / w.rof, 35, Math.round(w.dmg / w.rof)) + bar('Rază', st.range, 20, st.range);
-  $('dStats').innerHTML = `<b>${designName(dsg)}</b><br>${bar('Viață', st.hp, 500, st.hp)}${bar('Viteză', st.speed, 10, st.speed.toFixed(1))}${third}<div>Cost: <b style="color:#f0b44a">${st.cost}⚡</b> · Timp: ${Math.round(st.time)}s</div>`;
+  $('dStats').innerHTML = `<b>${designName(dsg)}</b><br>${bar('Viață', st.hp, 800, st.hp)}${bar('Viteză', st.speed, 10, st.speed.toFixed(1))}${third}<div>Cost: <b style="color:#f0b44a">${st.cost}⚡</b> · Timp: ${Math.round(st.time)}s</div>`;
   updatePreview();
 }
 $('designer').addEventListener('click', ev => {
@@ -1567,6 +1612,7 @@ function buildSfx() {
   { const l = LP(); let g = 0; SB.weld = mk(0.35, (t, i) => { if (i % 64 === 0) g = Math.random() < 0.35 ? 1 : 0.15; const hum = Math.sin(TAU2 * 100 * t) * 0.15; return ((W() - l(W(), 2500)) * g * 0.9 + hum) * Math.min(1, t / 0.01) * Math.exp(-t * 6); }); }
   { const l = LP(); SB.click = mk(0.05, t => (Math.sin(TAU2 * 1800 * t) * 0.6 + l(W(), 4000) * 0.6) * Math.exp(-t * 140), 1); }
   { const l = LP(), l2 = LP(); SB.ack = mk(0.32, t => { const radio = (l(W(), 3200) - l2(W(), 900)) * (t < 0.06 || t > 0.24 ? 0.9 : 0.12); const beep = t > 0.07 && t < 0.2 ? Math.sin(TAU2 * 1250 * t) * 0.5 * Math.min(1, (t - 0.07) * 200) : 0; return radio + beep; }, 1); }
+  { const l = LP(); let ph = 0; SB.laser = mk(0.45, t => { const f = 600 + 2600 * Math.exp(-t * 9); ph += TAU2 * (f + 180 * Math.sin(TAU2 * 55 * t)) / SR; return (Math.sin(ph) * 0.8 + Math.sin(ph * 1.5) * 0.3 + l(W(), 5000) * 0.25) * Math.min(1, t * 300) * Math.exp(-t * 7); }, 1.3); }
   const bell = (f, dur) => mk(dur, t => (Math.sin(TAU2 * f * t) + 0.45 * Math.sin(TAU2 * f * 2.01 * t) * Math.exp(-t * 3) + 0.2 * Math.sin(TAU2 * f * 3.02 * t) * Math.exp(-t * 6)) * Math.min(1, t * 400) * Math.exp(-t * 3.2), 1);
   SB.done = [bell(784, 1.2)]; SB.done2 = [bell(1175, 1.4)];
   SB.alert = mk(1.1, t => { const on = (t % 0.5) < 0.38 ? 1 : 0; const f = 420 + 40 * Math.sin(TAU2 * 6 * t); let s = 0; for (let k = 1; k <= 7; k += 2) s += Math.sin(TAU2 * f * k * t) / k; return s * on * 0.7; }, 1.4);
@@ -1588,11 +1634,11 @@ const lastS = {};
 function sfx(type, x, z) {
   const ctx = AU.ctx; if (!ctx || !AU.sfx || ctx.state !== 'running') return; if (!SB.click) buildSfx();
   const t = ctx.currentTime;
-  const thr = { mg: 0.07, shell: 0.05, rocket: 0.08, boom: 0.06, bigboom: 0.2, hit: 0.05, weld: 0.18, click: 0.03, ack: 0.25 }[type] || 0; if (lastS[type] && t - lastS[type] < thr) return; lastS[type] = t;
+  const thr = { laser: 0.06, mg: 0.07, shell: 0.05, rocket: 0.08, boom: 0.06, bigboom: 0.2, hit: 0.05, weld: 0.18, click: 0.03, ack: 0.25 }[type] || 0; if (lastS[type] && t - lastS[type] < thr) return; lastS[type] = t;
   let vol = 1, pan = 0;
   if (x !== undefined) { const dx = x - cam.x, dz = z - cam.z, d = Math.hypot(dx, dz); vol = clamp(1 - d / (60 + cam.dist), 0, 1) * clamp(70 / (cam.dist + 20), 0.4, 1); if (vol < 0.03) return; pan = clamp((dx * Math.cos(cam.yaw) - dz * Math.sin(cam.yaw)) / 40, -0.7, 0.7); }
   const key = type === 'shell' ? 'cannon' : type; let buf = SB[key]; if (!buf) return; if (Array.isArray(buf)) buf = pick(buf);
-  const VOL = { cannon: 0.75, mg: 0.32, rocket: 0.5, boom: 0.85, bigboom: 1, hit: 0.35, weld: 0.18, click: 0.25, ack: 0.22, done: 0.3, done2: 0.3, alert: 0.25 }[key] || 0.4;
+  const VOL = { laser: 0.35, cannon: 0.75, mg: 0.32, rocket: 0.5, boom: 0.85, bigboom: 1, hit: 0.35, weld: 0.18, click: 0.25, ack: 0.22, done: 0.3, done2: 0.3, alert: 0.25 }[key] || 0.4;
   const s = ctx.createBufferSource(); s.buffer = buf; s.playbackRate.value = ['click', 'ack', 'done', 'done2', 'alert'].includes(key) ? 1 : rand(0.9, 1.1);
   const g = ctx.createGain(); g.gain.value = VOL * vol; const p = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
   s.connect(g); if (p) { p.pan.value = pan; g.connect(p); p.connect(AU.sfxG); if (['cannon', 'boom', 'bigboom', 'rocket', 'hit'].includes(key)) p.connect(AU.srev); } else g.connect(AU.sfxG);

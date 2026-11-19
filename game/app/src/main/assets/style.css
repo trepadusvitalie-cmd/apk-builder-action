@@ -250,7 +250,13 @@ i.eu { font-style: normal; color: var(--amber); font-size: .9em; margin-left: 1p
 #designer .mbox { padding: 8px 12px; }
 #designer .mh { margin-bottom: 2px; font-size: 16px; }
 #designer .lbl { margin: 4px 0 3px; font-size: 10.5px; }
-@media (max-height: 420px) { .dcard .ric { width: 26px; height: 26px; } .dmods { grid-template-columns: repeat(6, 1fr); } .dprev { width: 220px; } #prev { width: 220px; height: 120px; } }
+@media (max-height: 420px) { .dcard .ric { width: 26px; height: 26px; } .dmods { grid-template-columns: repeat(7, 1fr); gap: 4px; } .dcard .rn { font-size: 10.5px; } .dcard .rm { font-size: 8.5px; } .dprev { width: 220px; } #prev { width: 220px; height: 120px; } }
 .rbr { font-size: 10px; color: #9fd0f0; text-transform: uppercase; letter-spacing: 1px; margin: 5px 0 3px; display: flex; align-items: center; gap: 6px; }
 .rbr::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--blue); box-shadow: 0 0 4px var(--blue); }
 .rbr::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, #3f9fe060, transparent); }
+.dgrid { flex-wrap: nowrap; }
+.dopts { min-width: 0; }
+.dcard { min-width: 0; overflow: hidden; }
+.dcard .rn, .dcard .rm { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.dprev { flex: none; }
+@media (max-height: 420px) { .dprev { width: 190px; } #prev { width: 190px; height: 110px; } #dStats { font-size: 11px; } .st { grid-template-columns: 46px 1fr 32px; } }

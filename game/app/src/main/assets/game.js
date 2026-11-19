@@ -374,6 +374,20 @@ const RS = [
   { id: 'prod', name: 'Producție automată +40%', cost: 200, time: 38, req: [] },
 ];
 
+// research icons: small original SVG drawings
+const SV = (inner) => `<svg class="ric" viewBox="0 0 48 48" fill="none" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
+const RICON = {
+  tracks: SV(`<rect x="5" y="22" width="38" height="16" rx="8" fill="#2a2823" stroke="#c9b48a" stroke-width="2"/><circle cx="13" cy="30" r="4" fill="#6b6658"/><circle cx="24" cy="30" r="4" fill="#6b6658"/><circle cx="35" cy="30" r="4" fill="#6b6658"/><path d="M9 22h30" stroke="#8a826e" stroke-width="2" stroke-dasharray="3 3"/><rect x="12" y="12" width="24" height="9" rx="4" fill="#71804e"/>`),
+  cannon: SV(`<path d="M10 34a14 10 0 0 1 28 0z" fill="#71804e" stroke="#c9b48a" stroke-width="2"/><rect x="22" y="20" width="22" height="5" rx="2" fill="#3a3a36" stroke="#c9b48a" stroke-width="1.5" transform="rotate(-18 22 22)"/><rect x="8" y="34" width="32" height="6" rx="3" fill="#3d432f"/><circle cx="44" cy="12" r="3" fill="#ffcf5a"/>`),
+  medium: SV(`<rect x="6" y="28" width="36" height="10" rx="5" fill="#2a2823"/><path d="M9 28l4-8h22l4 8z" fill="#71804e" stroke="#c9b48a" stroke-width="2"/><path d="M18 20a6 5 0 0 1 12 0z" fill="#5c6a3e"/><rect x="28" y="15" width="14" height="3" rx="1.5" fill="#3a3a36"/><text x="24" y="47" font-size="8" text-anchor="middle" fill="#f0b44a" font-family="sans-serif" font-weight="bold">II</text>`),
+  hover: SV(`<ellipse cx="24" cy="38" rx="17" ry="4" fill="#3f9fe0" opacity=".55"/><path d="M8 30a16 8 0 0 1 32 0z" fill="#71804e" stroke="#c9b48a" stroke-width="2"/><ellipse cx="24" cy="31" rx="17" ry="3.5" fill="#3d432f"/><path d="M12 43q4-3 8 0t8 0 8 0" stroke="#66ccff" stroke-width="2"/><path d="M19 22a5 4 0 0 1 10 0z" fill="#5c6a3e"/>`),
+  rockets: SV(`<g transform="rotate(-35 24 24)"><rect x="14" y="8" width="7" height="24" rx="3.5" fill="#e8e8e8" stroke="#c9b48a" stroke-width="1.5"/><path d="M14 12l3.5-6 3.5 6z" fill="#e0402a"/><path d="M15 32l2.5 9 2.5-9z" fill="#ff9a2a"/><rect x="27" y="12" width="7" height="24" rx="3.5" fill="#e8e8e8" stroke="#c9b48a" stroke-width="1.5"/><path d="M27 16l3.5-6 3.5 6z" fill="#e0402a"/><path d="M28 36l2.5 8 2.5-8z" fill="#ff9a2a"/></g>`),
+  heavy: SV(`<rect x="3" y="28" width="42" height="12" rx="6" fill="#2a2823"/><path d="M5 28l3-11h32l3 11z" fill="#71804e" stroke="#c9b48a" stroke-width="2"/><path d="M14 17a10 7 0 0 1 20 0z" fill="#5c6a3e" stroke="#c9b48a" stroke-width="1.5"/><rect x="30" y="10" width="15" height="4" rx="2" fill="#3a3a36"/><text x="24" y="38" font-size="8" text-anchor="middle" fill="#f0b44a" font-family="sans-serif" font-weight="bold">III</text>`),
+  tower2: SV(`<rect x="14" y="20" width="20" height="22" fill="#8c867a" stroke="#c9b48a" stroke-width="2"/><rect x="12" y="17" width="24" height="4" fill="#3f9fe0"/><path d="M16 17a8 6 0 0 1 16 0z" fill="#71804e"/><rect x="28" y="9" width="16" height="4" rx="2" fill="#3a3a36" transform="rotate(-12 28 11)"/><rect x="20" y="28" width="8" height="3" fill="#1c1c1c"/>`),
+  armor: SV(`<path d="M24 5l16 6v11c0 11-7 18-16 21C15 40 8 33 8 22V11z" fill="#5c6a3e" stroke="#c9b48a" stroke-width="2"/><path d="M24 11l10 4v7c0 7-4 12-10 14-6-2-10-7-10-14v-7z" fill="#71804e"/><path d="M19 24l4 4 7-8" stroke="#f0b44a" stroke-width="3"/>`),
+  engine: SV(`<circle cx="22" cy="26" r="11" fill="#5a564f" stroke="#c9b48a" stroke-width="2"/><circle cx="22" cy="26" r="4" fill="#f0b44a"/><path d="M22 15v-4M22 41v-4M11 26H7M37 26h-4M14 18l-3-3M30 34l3 3M14 34l-3 3M30 18l3-3" stroke="#c9b48a" stroke-width="3"/><path d="M38 12h8M36 18h10M40 24h6" stroke="#66ccff" stroke-width="2.5"/>`),
+  prod: SV(`<path d="M5 40V22l9 6v-6l9 6v-6l9 6V12h8v28z" fill="#71804e" stroke="#c9b48a" stroke-width="2"/><rect x="34" y="6" width="4" height="7" fill="#6f6a61"/><circle cx="18" cy="35" r="5" fill="#3d432f" stroke="#f0b44a" stroke-width="2"/><path d="M18 28v2M18 40v2M11 35h2M23 35h2" stroke="#f0b44a" stroke-width="2"/><rect x="28" y="32" width="6" height="8" fill="#24221f"/>`),
+};
 function mkTeam(i) { return { i, energy: 500, tech: new Set(['light', 'wheels', 'mg', 'truck']), researching: new Set(), hpMul: 1, spdMul: 1, prodMul: 1, units: 0, inc: 0 }; }
 const TEAMS = [mkTeam(0), mkTeam(1)];
 
@@ -1227,14 +1241,16 @@ function renderPanel() {
       h += `<button data-act="designer" class="ok"><span class="ic">🛠</span>Proiectant</button></div><div class="hint">Atinge harta pentru punctul de adunare.</div>`;
     } else if (b.type === 'lab') {
       h += `<div class="lbl">Cercetare</div>`;
-      if (b.res) h += `<div class="hint">🔬 ${b.res.name}</div><div class="bar b"><i id="pRes"></i></div>`;
+      if (b.res) h += `<div class="rnow">${RICON[b.res.id]}<div><b>${b.res.name}</b><div class="bar b"><i id="pRes"></i></div></div></div>`;
+      h += `<div class="rgrid">`;
       for (const r of RS) {
-        if (T.tech.has(r.id)) { h += `<div class="rs"><span class="done">✔ ${r.name}</span></div>`; continue; }
-        const locked = r.req.some(q => !T.tech.has(q)); const busy = T.researching.has(r.id);
-        if (locked) h += `<div class="rs"><span class="lock">🔒 ${r.name} — necesită ${r.req.map(q => RS.find(x => x.id === q).name).join(', ')}</span></div>`;
-        else if (busy) h += `<div class="rs"><span class="lock">⏳ ${r.name} (în curs)</span></div>`;
-        else h += `<div class="rs"><button data-act="research" data-v="${r.id}" ${b.res || T.energy < r.cost ? 'disabled' : ''}>${r.name} — ${r.cost}⚡ · ${r.time}s</button></div>`;
+        const done = T.tech.has(r.id), locked = !done && r.req.some(q => !T.tech.has(q)), busy = !done && T.researching.has(r.id);
+        const meta = done ? '✔ Cercetat' : locked ? '🔒 ' + r.req.map(q => RS.find(x => x.id === q).name).join(', ') : busy ? '⏳ În curs' : `${r.cost}⚡ · ${r.time}s`;
+        const cls = done ? 'done' : locked ? 'locked' : busy ? 'busy' : '';
+        const dis = done || locked || busy || b.res || T.energy < r.cost;
+        h += `<button class="rcard ${cls}" data-act="research" data-v="${r.id}" ${dis ? 'disabled' : ''}>${RICON[r.id]}<span class="rn">${r.name}</span><span class="rm">${meta}</span></button>`;
       }
+      h += `</div>`;
     } else if (b.type === 'generator') { h += `<div class="hint">Extrage petrol din sondă și produce +4 ⚡/s.</div>`; }
     else if (b.type === 'tower') h += `<div class="hint">Atacă automat inamicii din apropiere. ${TEAMS[0].tech.has('tower2') ? 'Armă: tun.' : 'Armă: mitralieră (cercetează „Turnuri cu tun”).'}</div>`;
     else if (b.type === 'hq') h += `<div class="hint">Centrul de comandă. Dă +1.5 ⚡/s. Nu-l pierde!</div>`;
@@ -1506,7 +1522,7 @@ window.onBack = () => {
   if (S.paused) return false;
   S.paused = true; $('pause').classList.remove('hidden'); return true;
 };
-window.__game = { S, TEAMS, ents, cam, setSel, sel: () => sel, createUnit };
+window.__game = { S, TEAMS, ents, cam, setSel, sel: () => sel, createUnit, createBuilding };
 
 resize(); updateCamera(0); requestAnimationFrame(loop);
 // background scene behind the intro

@@ -150,7 +150,13 @@ const G = {
   cone: new THREE.ConeGeometry(1, 1, 8).toNonIndexed(),
   dome: new THREE.SphereGeometry(1, 12, 6, 0, TAU, 0, Math.PI / 2).toNonIndexed(),
   ico: new THREE.IcosahedronGeometry(1, 0).toNonIndexed(),
+  hull: prismX([[-0.5, -0.5], [0.36, -0.5], [0.5, -0.12], [0.5, 0.0], [0.18, 0.5], [-0.44, 0.5], [-0.5, 0.3]]),
+  wedge: prismY([[-0.5, -0.5], [0.5, -0.5], [0.5, 0.18], [0.24, 0.5], [-0.24, 0.5], [-0.5, 0.18]]),
 };
+// side profile (z forward, y up) extruded across x, centred, size 1
+function prismX(pts) { const sh = new THREE.Shape(pts.map(p => new THREE.Vector2(p[0], p[1]))); const g = new THREE.ExtrudeGeometry(sh, { depth: 1, bevelEnabled: false }); g.translate(0, 0, -0.5); g.rotateY(-Math.PI / 2); const n = g.index ? g.toNonIndexed() : g; n.computeVertexNormals(); return n; }
+// top outline (x right, y = forward) extruded upward, height 0..1
+function prismY(pts) { const sh = new THREE.Shape(pts.map(p => new THREE.Vector2(p[0], p[1]))); const g = new THREE.ExtrudeGeometry(sh, { depth: 1, bevelEnabled: false }); g.rotateX(Math.PI / 2); g.translate(0, 1, 0); const n = g.index ? g.toNonIndexed() : g; n.computeVertexNormals(); return n; }
 class Builder {
   constructor() { this.parts = []; }
   add(geo, sx, sy, sz, x, y, z, color, rx = 0, ry = 0, rz = 0) { this.parts.push({ geo, sx, sy, sz, x, y, z, color, rx, ry, rz }); return this; }
@@ -432,7 +438,7 @@ const geoCache = {};
 function unitGeo(d, team) {
   const key = d.ch + d.pr + d.wp + team; if (geoCache[key]) return geoCache[key];
   const T = TEAMC[team], s = CH[d.ch].size, B = new Builder(), tb = new Builder(); B.uvScale = tb.uvScale = 1.1;
-  const L = 2.3 * s, W = 1.6 * s, H = 0.75 * s; const PI2 = Math.PI / 2;
+  const L = 2.4 * s, W = 1.65 * s, H = (d.pr === 'tracks' ? 0.6 : 0.72) * s; const PI2 = Math.PI / 2;
   let by;
   if (d.pr === 'wheels') {
     const r = 0.42 * s; by = r + H / 2 + 0.05; const xs = W / 2 + 0.05;
@@ -451,34 +457,48 @@ function unitGeo(d, team) {
   } else {
     by = 0.6 + H / 2; B.add(G.cyl16, W * 0.78, 0.4, L * 0.6, 0, 0.32, 0, T.dark); B.add(G.cyl16, W * 0.82, 0.12, L * 0.63, 0, 0.14, 0, 0x2a2622);
   }
-  // rounded hull: core + cylindrical sides + sloped rounded nose/tail + domed deck
-  B.box(W * 0.72, H, L * 0.8, 0, by, 0, T.body);
-  for (const sx of [-1, 1]) B.add(G.cyl16, H * 0.5, L * 0.8, H * 0.5, sx * W * 0.36, by, 0, T.body, PI2, 0, 0);
-  B.add(G.cyl16, H * 0.5, W * 0.72, H * 0.5, 0, by, L * 0.4, T.body, 0, 0, PI2);
-  B.add(G.cyl16, H * 0.5, W * 0.72, H * 0.5, 0, by, -L * 0.4, T.body, 0, 0, PI2);
-  for (const sx of [-1, 1]) for (const sz of [-1, 1]) B.add(G.sph, H * 0.5, H * 0.5, H * 0.5, sx * W * 0.36, by, sz * L * 0.4, T.body);
-  B.add(G.sph, W * 0.52, H * 0.32, L * 0.52, 0, by + H * 0.42, -L * 0.05, T.body);
-  B.add(G.cyl16, H * 0.25, W * 0.6, H * 0.18, 0, by + H * 0.35, -L * 0.42, T.dark, 0, 0, PI2); // engine grille
-  B.add(G.cyl16, W * 0.5, 0.06 * s, L * 0.3, 0, by + H * 0.66, 0.1 * s, T.acc);        // team stripe (oval)
-  if (d.wp !== 'truck') {
-    B.add(G.cyl6, 0.025, 1.6 * s, 0.025, -W * 0.32, by + H * 0.5 + 0.8 * s, -L * 0.32, 0x222222, -0.15, 0, 0); // antenna
-    B.add(G.sph, 0.05, 0.05, 0.05, -W * 0.32, by + H * 0.5 + 1.6 * s, -L * 0.36, 0xff3020);
-    for (const sx of [-1, 1]) B.box(0.22 * s, 0.32 * s, 0.14 * s, sx * W * 0.22, by + H * 0.62, -L * 0.42, 0x4a5a2a); // jerrycans
-    B.box(0.5 * s, 0.22 * s, 0.32 * s, W * 0.18, by + H * 0.6, -L * 0.24, 0x6a5a3a); // crate
+  // modern angular hull: sloped glacis, flat deck, angled rear
+  B.add(G.hull, W * 0.98, H, L, 0, by, 0, T.body);
+  B.add(G.hull, W * 0.7, H * 0.12, L * 0.5, 0, by + H * 0.5, -L * 0.18, T.dark); // engine deck
+  for (let k = 0; k < 4; k++) B.box(W * 0.6, 0.03, 0.06 * s, 0, by + H * 0.57, -L * 0.36 + k * L * 0.07, 0x22241c); // grille slats
+  B.box(W * 0.9, 0.05 * s, L * 0.02, 0, by + H * 0.1, L * 0.47, T.acc); // glacis team line
+  if (d.pr === 'tracks') for (const sx of [-1, 1]) { // armoured side skirts
+    const x = sx * (W / 2 + 0.36 * s);
+    B.box(0.07 * s, H * 0.62, L * 0.92, x, by - H * 0.18, 0.02 * s, T.body, 0, 0, sx * 0.06);
+    for (let k = 0; k < 5; k++) B.box(0.08 * s, H * 0.6, 0.03 * s, x, by - H * 0.18, -L * 0.37 + k * L * 0.185, T.dark);
+    B.box(0.09 * s, 0.06 * s, L * 0.9, x, by + H * 0.12, 0, T.acc);
   }
-  for (const sx of [-1, 1]) B.add(G.cyl16, 0.07 * s, 0.35 * s, 0.07 * s, sx * W * 0.3, by + H * 0.2, -L * 0.5 - 0.1 * s, 0x2a2a2a, Math.PI / 2, 0, 0); // exhausts
-  for (const sx of [-1, 1]) B.add(G.sph, 0.13 * s, 0.13 * s, 0.08 * s, sx * W * 0.3, by + H * 0.1, L * 0.4 + H * 0.45, 0xfff2c0); // round headlights
+  if (d.wp !== 'truck') {
+    for (const sx of [-1, 1]) B.box(0.22 * s, 0.26 * s, 0.14 * s, sx * W * 0.3, by + H * 0.55, -L * 0.47, 0x4a5a2a); // jerrycans
+  }
+  for (const sx of [-1, 1]) B.box(0.16 * s, 0.1 * s, 0.05 * s, sx * W * 0.36, by + H * 0.08, L * 0.5, 0xfff2c0); // LED headlights
+  for (const sx of [-1, 1]) B.box(0.1 * s, 0.06 * s, 0.03 * s, sx * W * 0.38, by + H * 0.1, -L * 0.5, 0xff3020); // tail lights
   const top = by + H / 2 + 0.05;
   if (d.wp === 'mg') {
     tb.add(G.dome, 0.5 * s, 0.45 * s, 0.55 * s, 0, 0.02, 0, T.body); tb.add(G.cyl16, 0.52 * s, 0.08, 0.57 * s, 0, 0.05, 0, T.acc);
     tb.add(G.sph, 0.18 * s, 0.18 * s, 0.18 * s, 0, 0.3 * s, 0.45 * s, T.dark);
     for (const sx of [-1, 1]) tb.add(G.cyl16, 0.06 * s, 1.1 * s, 0.06 * s, sx * 0.12 * s, 0.28 * s, 0.95 * s, 0x1a1a1a, PI2, 0, 0);
   } else if (d.wp === 'cannon') {
-    tb.add(G.dome, 0.72 * s, 0.55 * s, 0.78 * s, 0, 0.02, -0.08 * s, T.body); tb.add(G.cyl16, 0.74 * s, 0.1, 0.8 * s, 0, 0.06, -0.08 * s, T.acc);
-    tb.add(G.dome, 0.25 * s, 0.18 * s, 0.25 * s, 0.22 * s, 0.5 * s, -0.25 * s, T.dark); // commander cupola
-    tb.add(G.cyl16, 0.24 * s, 0.4 * s, 0.24 * s, 0, 0.28 * s, 0.7 * s, T.dark, PI2, 0, 0); // round mantlet
-    tb.add(G.cyl16, 0.12 * s, 1.8 * s, 0.12 * s, 0, 0.28 * s, 1.6 * s, 0x2a2a2a, PI2, 0, 0);
-    tb.add(G.cyl16, 0.18 * s, 0.35 * s, 0.18 * s, 0, 0.28 * s, 2.45 * s, 0x2a2a2a, PI2, 0, 0);
+    // modern MBT turret: arrow-shaped wedge armour, bustle, long smoothbore gun
+    tb.add(G.wedge, 1.38 * s, 0.4 * s, 1.8 * s, 0, 0.02, -0.05 * s, T.body);
+    tb.add(G.wedge, 1.0 * s, 0.06 * s, 1.3 * s, 0, 0.44 * s, -0.12 * s, T.dark); // roof plate
+    tb.box(1.0 * s, 0.32 * s, 0.55 * s, 0, 0.2 * s, -1.05 * s, T.body); // bustle
+    for (let k = 0; k < 3; k++) tb.box(1.08 * s, 0.03 * s, 0.03 * s, 0, 0.22 * s + k * 0.08 * s, -1.35 * s, 0x2a2a2a); // bustle rack
+    tb.box(1.27 * s, 0.05 * s, 0.9 * s, 0, 0.3 * s, -0.1 * s, T.acc); // team band
+    // gun: mantlet, barrel with thermal sleeve, fume extractor, muzzle reference
+    tb.box(0.42 * s, 0.3 * s, 0.25 * s, 0, 0.22 * s, 0.86 * s, T.dark);
+    tb.add(G.cyl16, 0.085 * s, 2.6 * s, 0.085 * s, 0, 0.24 * s, 2.25 * s, 0x2e3128, Math.PI / 2, 0, 0);
+    tb.add(G.cyl16, 0.11 * s, 0.7 * s, 0.11 * s, 0, 0.24 * s, 1.35 * s, T.dark, Math.PI / 2, 0, 0);
+    tb.add(G.cyl16, 0.14 * s, 0.32 * s, 0.14 * s, 0, 0.24 * s, 2.0 * s, T.dark, Math.PI / 2, 0, 0);
+    tb.add(G.cyl16, 0.1 * s, 0.6 * s, 0.1 * s, 0, 0.24 * s, 2.6 * s, T.dark, Math.PI / 2, 0, 0);
+    tb.add(G.cyl16, 0.1 * s, 0.12 * s, 0.1 * s, 0, 0.24 * s, 3.5 * s, 0x1a1a1a, Math.PI / 2, 0, 0);
+    tb.box(0.08 * s, 0.07 * s, 0.1 * s, 0, 0.35 * s, 3.45 * s, 0x1a1a1a);
+    // sights, cupola, smoke dischargers, antenna
+    tb.box(0.26 * s, 0.22 * s, 0.24 * s, 0.32 * s, 0.58 * s, -0.2 * s, T.dark); tb.box(0.2 * s, 0.12 * s, 0.03 * s, 0.32 * s, 0.6 * s, -0.07 * s, 0x3fb0ff);
+    tb.box(0.24 * s, 0.18 * s, 0.22 * s, -0.36 * s, 0.53 * s, 0.25 * s, T.dark); tb.box(0.18 * s, 0.1 * s, 0.03 * s, -0.36 * s, 0.55 * s, 0.37 * s, 0x3fb0ff);
+    tb.add(G.cyl16, 0.18 * s, 0.1 * s, 0.18 * s, -0.25 * s, 0.49 * s, -0.45 * s, T.dark);
+    for (const sx of [-1, 1]) for (let k = 0; k < 3; k++) tb.add(G.cyl10, 0.045 * s, 0.22 * s, 0.045 * s, sx * 0.6 * s, 0.32 * s + k * 0.07 * s, 0.1 * s, 0x2a2a2a, Math.PI / 2 - 0.5, sx * 0.5, 0);
+    tb.add(G.cyl6, 0.02, 1.3 * s, 0.02, -0.45 * s, 0.95 * s, -0.8 * s, 0x222222, -0.12, 0, 0);
   } else if (d.wp === 'rockets') {
     tb.add(G.dome, 0.42 * s, 0.35 * s, 0.42 * s, 0, 0.02, 0, T.dark);
     for (const sx of [-1, 1]) {
@@ -886,7 +906,7 @@ function updUnit(u, dt) {
     u.cd -= dt;
     if (inRange(u, t, 0.5) && Math.abs(angDiff(u.turYaw, local)) < 0.25 && u.cd <= 0) {
       const wy = u.heading + u.turYaw; const s = CH[u.d.ch].size;
-      fireWeapon(u, t, w, u.x + Math.sin(wy) * 1.6 * s, u.y + u.h - 0.3, u.z + Math.cos(wy) * 1.6 * s);
+      const ml = (w.kind === 'shell' ? 3.5 : 1.6) * s; fireWeapon(u, t, w, u.x + Math.sin(wy) * ml, u.y + u.h - 0.3, u.z + Math.cos(wy) * ml);
       u.cd = w.rof * rand(0.9, 1.1);
     }
   } else if (!u.isTruck || u.state !== 'build') { u.cd = Math.max(0, u.cd - dt); u.turYaw += clamp(angDiff(u.turYaw, 0), -2 * dt, 2 * dt); }

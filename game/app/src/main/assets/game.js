@@ -350,6 +350,7 @@ const PR = {
 const WP = {
   mg: { name: 'Mitralieră', dmg: 7, rof: 0.22, range: 12, cost: 20, kind: 'mg' },
   cannon: { name: 'Tun', dmg: 42, rof: 1.7, range: 14, cost: 45, kind: 'shell' },
+  flame: { name: 'Aruncător de flăcări', dmg: 10, rof: 0.16, range: 8, cost: 50, kind: 'flame' },
   laser: { name: 'Laser', dmg: 22, rof: 0.55, range: 17, cost: 80, kind: 'laser' },
   rockets: { name: 'Rachete', dmg: 30, rof: 2.4, range: 18, cost: 60, kind: 'rocket', splash: 2.8 },
   radar: { name: 'Radar', dmg: 0, range: 0, cost: 40, kind: 'radar', aura: 24 },
@@ -364,13 +365,18 @@ const BD = {
   pump: { name: 'Pompă petrol', icon: '🛢', hp: 450, cost: 50, size: 3.6, time: 12, h: 4 },
   generator: { name: 'Generator', icon: '⚡', hp: 900, cost: 100, size: 5.5, time: 22, h: 6 },
   tower: { name: 'Turn apărare', icon: '🗼', hp: 700, cost: 120, size: 3, time: 18, h: 4 },
+  ftower: { name: 'Bunker flăcări', icon: '', hp: 900, cost: 130, size: 3, time: 18, h: 4, tw: 'flame', req: 'flame' },
+  rtower: { name: 'Baterie rachete', icon: '', hp: 800, cost: 180, size: 3, time: 22, h: 4, tw: 'rockets', req: 'rockets' },
+  ltower: { name: 'Turn laser', icon: '', hp: 900, cost: 220, size: 3, time: 26, h: 4, tw: 'laser', req: 'laser' },
+  repairbay: { name: 'Atelier reparații', icon: '', hp: 800, cost: 160, size: 5.5, time: 24, h: 4, req: 'repair' },
+  radartower: { name: 'Turn radar', icon: '', hp: 600, cost: 140, size: 3.5, time: 20, h: 7, req: 'radar' },
   citadel: { name: 'CETATEA', icon: '🏰', hp: 6000, cost: 0, size: 10, time: 1, h: 9 },
   wall: { name: 'Zid', icon: '🧱', hp: 1400, cost: 0, size: 5, time: 1, h: 3, r: 2.7 },
 };
 // enemy technology tiers: 0 = outer ring (weak) … 3 = citadel (latest technology)
 const TIERS = [
   { name: 'Avanpost', ch: ['light'], pr: ['wheels'], wp: ['mg'], tower: 'mg', hp: 1, garrison: 3, towers: 2 },
-  { name: 'Fort', ch: ['light', 'medium'], pr: ['wheels', 'tracks'], wp: ['mg', 'cannon'], tower: 'mg', hp: 1.1, garrison: 5, towers: 3 },
+  { name: 'Fort', ch: ['light', 'medium'], pr: ['wheels', 'tracks'], wp: ['mg', 'cannon', 'flame'], tower: 'mg', hp: 1.1, garrison: 5, towers: 3 },
   { name: 'Bastion', ch: ['medium', 'assault', 'heavy'], pr: ['tracks', 'hover'], wp: ['cannon', 'rockets'], tower: 'cannon', hp: 1.25, garrison: 7, towers: 4 },
   { name: 'Cetate', ch: ['heavy', 'titan', 'nova'], pr: ['tracks', 'hover'], wp: ['rockets', 'cannon', 'laser'], tower: 'rockets', hp: 1.5, garrison: 10, towers: 8 },
 ];
@@ -390,6 +396,7 @@ const RS = [
   { id: 'scout', name: 'Șasiu Cercetaș', cost: 80, time: 18, req: [] },
   { id: 'assault', name: 'Șasiu de Asalt', cost: 170, time: 34, req: ['medium'] },
   { id: 'titan', name: 'Șasiu Titan', cost: 260, time: 48, req: ['heavy', 'armor'] },
+  { id: 'flame', name: 'Aruncător de flăcări', cost: 120, time: 26, req: [] },
   { id: 'laser', name: 'Laser de luptă', cost: 240, time: 45, req: ['rockets'] },
   { id: 'nova', name: 'Șasiu Nova (auriu)', cost: 300, time: 52, req: ['titan', 'laser'] },
   { id: 'radar2', name: 'Radar avansat', cost: 180, time: 34, req: ['radar'] },
@@ -401,7 +408,7 @@ const SV = (inner) => `<svg class="ric" viewBox="0 0 48 48" fill="none" stroke-l
 const BRANCHES = [
   { name: 'Mobilitate', ids: ['tracks', 'hover', 'engine'] },
   { name: 'Corp și blindaj', ids: ['scout', 'medium', 'assault', 'heavy', 'armor', 'titan', 'nova'] },
-  { name: 'Armament', ids: ['cannon', 'rockets', 'tower2', 'laser'] },
+  { name: 'Armament', ids: ['cannon', 'flame', 'rockets', 'tower2', 'laser'] },
   { name: 'Sprijin', ids: ['radar', 'radar2', 'repair', 'repair2'] },
   { name: 'Industrie', ids: ['prod'] },
 ];
@@ -421,6 +428,7 @@ const RICON = {
   assault: SV(`<rect x="5" y="29" width="38" height="10" rx="5" fill="#2a2823"/><path d="M6 29l5-9h26l6 9z" fill="#71804e" stroke="#c9b48a" stroke-width="2"/><path d="M4 30l6-12M44 30l-6-12" stroke="#3d432f" stroke-width="4"/><path d="M16 20a8 6 0 0 1 16 0z" fill="#5c6a3e"/><path d="M30 15l14-4" stroke="#3a3a36" stroke-width="3"/>`),
   titan: SV(`<rect x="2" y="30" width="44" height="12" rx="6" fill="#2a2823"/><path d="M3 30l3-12h36l3 12z" fill="#5c6a3e" stroke="#c9b48a" stroke-width="2"/><path d="M7 22h34" stroke="#3d432f" stroke-width="5"/><path d="M12 18a12 8 0 0 1 24 0z" fill="#71804e" stroke="#c9b48a" stroke-width="1.5"/><rect x="32" y="8" width="14" height="4" rx="2" fill="#3a3a36"/><rect x="32" y="13" width="14" height="4" rx="2" fill="#3a3a36"/>`),
   nova: SV(`<rect x="6" y="30" width="36" height="9" rx="4.5" fill="#2a2823"/><path d="M7 30q2-10 17-10t17 10z" fill="#d4a832" stroke="#fff0b0" stroke-width="2"/><ellipse cx="22" cy="23" rx="7" ry="3.5" fill="#2a3a44"/><path d="M9 29h30" stroke="#66e0ff" stroke-width="2"/><path d="M40 10l2 4 4 2-4 2-2 4-2-4-4-2 4-2z" fill="#ffe680"/>`),
+  flame: SV(`<rect x="6" y="20" width="9" height="18" rx="4.5" fill="#b8432c" stroke="#c9b48a" stroke-width="1.5"/><rect x="16" y="22" width="9" height="16" rx="4.5" fill="#b8432c" stroke="#c9b48a" stroke-width="1.5"/><path d="M24 28h8" stroke="#3a3a36" stroke-width="4"/><path d="M32 28c6-8 10-2 14-8-1 7-4 9-2 14-4-2-7 2-12-2z" fill="#ff8a2a"/><path d="M33 28c4-4 6-1 9-4-1 4-2 5-1 8-3-1-5 1-8-1z" fill="#ffe680"/>`),
   laser: SV(`<path d="M8 34a10 7 0 0 1 20 0z" fill="#71804e" stroke="#c9b48a" stroke-width="2"/><rect x="18" y="22" width="16" height="5" rx="2.5" fill="#3a3a40" transform="rotate(-15 18 24)"/><circle cx="34" cy="19" r="3" fill="#fff2a0"/><path d="M36 18l10-3" stroke="#ffd84a" stroke-width="3"/><path d="M36 18l10-3" stroke="#fff" stroke-width="1"/><rect x="6" y="34" width="26" height="6" rx="3" fill="#3d432f"/>`),
   radar2: SV(`<path d="M24 44V28" stroke="#c9b48a" stroke-width="3"/><path d="M14 44h20" stroke="#c9b48a" stroke-width="3"/><rect x="8" y="10" width="32" height="16" rx="2" fill="#3d4a52" stroke="#c9b48a" stroke-width="2"/><path d="M14 12v12M20 12v12M26 12v12M32 12v12" stroke="#6fa8c8" stroke-width="2.5"/><path d="M40 4l4 6h-3v6h-2v-6h-3z" fill="#7fb84a"/>`),
   repair2: SV(`<path d="M8 40l14-14" stroke="#8c867a" stroke-width="6"/><path d="M20 14a8 8 0 0 0 11 11l4 4 4-4-4-4a8 8 0 0 0-11-11l5 5-3 3-4 1z" fill="#c9c2b0" stroke="#5a564f" stroke-width="1.5"/><circle cx="13" cy="14" r="8" fill="#2e8a3e" stroke="#bff08a" stroke-width="2"/><path d="M13 9v10M8 14h10" stroke="#fff" stroke-width="3"/><path d="M36 36l6-6M36 42l6-6" stroke="#ffcf5a" stroke-width="3"/>`),
@@ -459,6 +467,7 @@ const UIC = {
   pump: SI(`<path d="M8 40h32M14 40l6-24h8l6 24" stroke="${K}" stroke-width="3"/><rect x="18" y="8" width="12" height="8" fill="${OD}"/>`),
 };
 const BIC = t => UIC[t] || '';
+for (const [k, r] of [['ftower', 'flame'], ['rtower', 'rockets'], ['ltower', 'laser'], ['repairbay', 'repair'], ['radartower', 'radar']]) UIC[k] = RICON[r].replace('class="ric"', 'class="ui"');
 function mkTeam(i) { return { i, energy: 500, tech: new Set(['light', 'wheels', 'mg', 'truck']), researching: new Set(), hpMul: 1, spdMul: 1, prodMul: 1, units: 0, inc: 0 }; }
 const TEAMS = [mkTeam(0), mkTeam(1)];
 
@@ -559,6 +568,12 @@ function unitGeo(d, team) {
       tb.add(G.cyl16, 0.35 * s, 0.1 * s, 0.35 * s, sx * 0.42 * s, 0.37 * s, 0.6 * s, T.acc, PI2 - 0.25, 0, 0);
       for (const ox of [-0.12, 0.12]) for (const oy of [-0.12, 0.12]) tb.add(G.cyl6, 0.08 * s, 0.1, 0.08 * s, sx * 0.42 * s + ox * s, 0.5 * s + oy * s + 0.15 * s, 0.67 * s, 0x111111, PI2 - 0.25, 0, 0);
     }
+  } else if (d.wp === 'flame') {
+    tb.add(G.dome, 0.5 * s, 0.38 * s, 0.55 * s, 0, 0.02, 0, T.body); tb.add(G.cyl16, 0.52 * s, 0.06 * s, 0.57 * s, 0, 0.05, 0, T.acc);
+    for (const sx of [-1, 1]) { tb.add(G.cyl16, 0.17 * s, 0.75 * s, 0.17 * s, sx * 0.22 * s, 0.35 * s, -0.55 * s, 0xa83a26, Math.PI / 2, 0, 0); tb.add(G.sph, 0.17 * s, 0.17 * s, 0.17 * s, sx * 0.22 * s, 0.35 * s, -0.18 * s, 0xa83a26); }
+    tb.add(G.cyl16, 0.09 * s, 1.0 * s, 0.09 * s, 0, 0.28 * s, 0.75 * s, 0x2e2e2a, Math.PI / 2, 0, 0);
+    tb.add(G.cyl16, 0.14 * s, 0.25 * s, 0.14 * s, 0, 0.28 * s, 1.3 * s, 0x3a3a36, Math.PI / 2, 0, 0);
+    tb.add(G.sph, 0.06 * s, 0.06 * s, 0.06 * s, 0, 0.2 * s, 1.45 * s, 0xff9a20);
   } else if (d.wp === 'laser') {
     tb.add(G.dome, 0.58 * s, 0.42 * s, 0.62 * s, 0, 0.02, -0.12 * s, T.body); tb.add(G.cyl16, 0.6 * s, 0.06 * s, 0.64 * s, 0, 0.05, -0.12 * s, T.acc);
     tb.add(G.cyl16, 0.1 * s, 2.0 * s, 0.1 * s, 0, 0.3 * s, 1.15 * s, 0x34343a, Math.PI / 2, 0, 0);
@@ -678,6 +693,24 @@ function bldGeo(type, team) {
       B.box(3.5, 0.06, 0.06, 0, 0.95, 1.75, 0xd9b23a); B.box(3.5, 0.06, 0.06, 0, 0.95, -1.75, 0xd9b23a); B.box(0.06, 0.06, 3.5, 1.75, 0.95, 0, 0xd9b23a); B.box(0.06, 0.06, 3.5, -1.75, 0.95, 0, 0xd9b23a);
       { const d = new Builder(); d.box(0.25, 0.3, 3.4, 0, 0, 0.3, 0x2f2f2f); d.box(0.45, 0.9, 0.35, 0, -0.25, 2.0, 0x4a4a4a); d.box(0.4, 0.5, 0.4, 0, -0.2, -1.4, T.dark); anim.beam = d.build(); }
       break;
+    case 'repairbay':
+      B.box(7.2, 1.2, 7.2, 0, -0.3, 0, conc); B.box(6.6, 0.1, 6.6, 0, 0.32, 0, 0x5a564f);
+      for (let k = 0; k < 8; k++) B.box(0.5, 0.12, 0.3, -2.8 + k * 0.8, 0.33, 3.1, k % 2 ? 0x1c1c1c : 0xe8c02a);
+      for (const sx of [-1, 1]) { B.box(0.35, 4.2, 0.35, sx * 2.9, 2.3, -1.2, 0xd9b23a); B.box(0.35, 4.2, 0.35, sx * 2.9, 2.3, 1.2, 0xd9b23a); }
+      B.box(6.2, 0.45, 0.45, 0, 4.4, -1.2, 0xd9b23a); B.box(6.2, 0.45, 0.45, 0, 4.4, 1.2, 0xd9b23a); B.box(0.6, 0.6, 2.8, 0.8, 4.0, 0, 0x4a4a46);
+      B.add(G.cyl6, 0.05, 1.4, 0.05, 0.8, 3.0, 0, 0x222222); B.box(0.5, 0.3, 0.5, 0.8, 2.2, 0, 0x5a564f);
+      B.box(2.2, 2.4, 1.8, -2.4, 1.4, -2.6, T.body); B.box(1.6, 1.6, 0.1, -2.4, 1.6, -1.65, 0xf2f2ea); B.box(1.1, 0.35, 0.12, -2.4, 1.6, -1.6, 0x2eaa4a); B.box(0.35, 1.1, 0.12, -2.4, 1.6, -1.6, 0x2eaa4a);
+      for (const sx of [-1, 1]) { B.add(G.cyl6, 0.08, 2.2, 0.08, sx * 3.3, 1.4, 3.3, 0x333333); B.add(G.sph, 0.22, 0.22, 0.22, sx * 3.3, 2.6, 3.3, 0x60ff90); }
+      B.box(6.6, 0.25, 0.25, 0, 0.6, -3.4, T.acc);
+      break;
+    case 'radartower':
+      B.box(3.6, 1.2, 3.6, 0, -0.3, 0, conc); B.box(2.4, 1.6, 2.4, 0, 0.9, 0, T.body); B.box(2.5, 0.25, 2.5, 0, 1.75, 0, T.acc);
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) B.box(0.18, 5.2, 0.18, sx * 0.8, 4.3, sz * 0.8, 0x6a6a64, sz * 0.08, 0, -sx * 0.08);
+      for (let k = 0; k < 5; k++) { const y = 2.2 + k * 1.0, w = 1.6 - k * 0.12; B.box(w, 0.08, 0.08, 0, y, 0.8 - k * 0.04, 0x6a6a64); B.box(w, 0.08, 0.08, 0, y, -0.8 + k * 0.04, 0x6a6a64); B.box(0.08, 0.08, w, 0.8 - k * 0.04, y, 0, 0x6a6a64); B.box(0.08, 0.08, w, -0.8 + k * 0.04, y, 0, 0x6a6a64); }
+      B.box(1.4, 0.3, 1.4, 0, 6.9, 0, T.dark);
+      { const d = new Builder(); d.box(2.6, 1.2, 0.15, 0, 0.6, 0, 0x3d4a52, -0.25, 0, 0); d.box(2.4, 1.0, 0.06, 0, 0.6, 0.08, 0x6fa8c8, -0.25, 0, 0); for (let k = -3; k <= 3; k++) d.box(0.04, 1.0, 0.08, k * 0.32, 0.6, 0.1, 0x2a3a44, -0.25, 0, 0); d.box(0.3, 0.4, 0.3, 0, 0.1, -0.2, 0x333333); d.add(G.sph, 0.1, 0.1, 0.1, 1.3, 1.3, 0, 0xff3020); anim.dish = d.build(); }
+      break;
+    case 'ftower': case 'rtower': case 'ltower':
     case 'tower':
       B.box(3.2, 1.6, 3.2, 0, -0.2, 0, conc); B.box(2.3, 2.8, 2.3, 0, 1.6, 0, conc2); B.box(2.4, 0.35, 2.4, 0, 2.6, 0, T.acc); B.box(2.6, 0.4, 2.6, 0, 3.1, 0, T.dark);
       B.box(2.35, 0.3, 0.6, 0, 1.6, 0, 0x1c1c1c); B.box(0.6, 0.3, 2.35, 0, 1.6, 0, 0x1c1c1c);
@@ -748,9 +781,10 @@ function makeBldMesh(type, team) {
   if (type === 'hq') { const d = new THREE.Mesh(g.anim.dish, matVC); d.position.set(-1.2, 5.4, -1.2); grp.add(d); parts.dish = d; }
   if (type === 'generator') { const f = new THREE.Mesh(g.anim.fan, matVC); f.position.set(-0.9, 3.15, 0.9); grp.add(f); parts.fan = f; const gl = new THREE.Mesh(g.anim.glow, matGlow); grp.add(gl); parts.glow = gl; }
   if (type === 'pump') { const b = new THREE.Mesh(g.anim.beam, matVC); b.position.set(0, 3.55, 0); grp.add(b); parts.beam = b; }
-  if (type === 'tower') {
+  if (type === 'radartower') { const d = new THREE.Mesh(g.anim.dish, matVC); d.position.set(0, 7.05, 0); grp.add(d); parts.dish = d; }
+  if (type === 'tower' || BD[type].tw) {
     const t = new THREE.Group(); t.position.y = 3.3; grp.add(t);
-    for (const w of ['mg', 'cannon', 'rockets']) { const m = new THREE.Mesh(unitGeo({ ch: 'heavy', pr: 'wheels', wp: w }, team).tur, matUnit); m.castShadow = true; m.visible = false; t.add(m); parts[w] = m; }
+    for (const w of ['mg', 'cannon', 'rockets', 'laser', 'flame']) { const m = new THREE.Mesh(unitGeo({ ch: 'heavy', pr: 'wheels', wp: w }, team).tur, matUnit); m.castShadow = true; m.visible = false; t.add(m); parts[w] = m; }
     parts.tur = t;
   }
   return { grp, parts };
@@ -906,6 +940,11 @@ function fireWeapon(src, t, w, mx, my, mz, mul) {
   fx('muzzle', mx, my, mz, w.kind === 'mg' ? 0.8 : 1.4);
   if (w.kind === 'mg') { const ty = t.y + (t.kind === 'bld' ? 1.5 : 0.7); tracer(mx, my, mz, t.x + rand(-0.4, 0.4), ty, t.z + rand(-0.4, 0.4)); if (Math.random() < 0.3) fx('spark', t.x, ty, t.z, 1); damage(t, dmg, src); sfx('mg', mx, mz); }
   else if (w.kind === 'shell') { spawnProj('shell', src, t, dmg, 0, mx, my, mz); fx('smoke', mx, my, mz, 0.6); sfx('shell', mx, mz); }
+  else if (w.kind === 'flame') { const ty = t.y + (t.kind === 'bld' ? 1.2 : 0.6);
+    for (let k = 1; k <= 5; k++) { const f = k / 5; fx('flame', lerp(mx, t.x, f) + rand(-0.3, 0.3), lerp(my, ty, f) + rand(-0.2, 0.3), lerp(mz, t.z, f) + rand(-0.3, 0.3), 0.6 + f * 1.1); }
+    if (Math.random() < 0.4) fx('smoke', t.x, ty + 1, t.z, 0.7); damage(t, dmg, src);
+    for (const e of ents) if (e.alive && e !== t && e.team !== src.team && e.kind === 'unit' && Math.hypot(e.x - t.x, e.z - t.z) < 2.4) damage(e, dmg * 0.5, src);
+    sfx('flame', mx, mz); }
   else if (w.kind === 'laser') { const ty = t.y + (t.kind === 'bld' ? 1.5 : 0.7); beam(mx, my, mz, t.x, ty, t.z); fx('spark', t.x, ty, t.z, 1.4); fx('flash', t.x, ty, t.z, 0.8); damage(t, dmg, src); sfx('laser', mx, mz); }
   else if (w.kind === 'rocket') { for (let i = 0; i < 2; i++) later(i * 0.15, () => { if (src.alive && t.alive) spawnProj('rocket', src, t, dmg, w.splash, mx, my, mz); }); sfx('rocket', mx, mz); }
 }
@@ -1015,7 +1054,7 @@ function updUnit(u, dt) {
     u.cd -= dt;
     if (inRange(u, t, 0.5) && Math.abs(angDiff(u.turYaw, local)) < 0.25 && u.cd <= 0) {
       const wy = u.heading + u.turYaw; const s = CH[u.d.ch].size;
-      const ml = (w.kind === 'shell' ? 3.5 : w.kind === 'laser' ? 2.3 : 1.6) * s; fireWeapon(u, t, w, u.x + Math.sin(wy) * ml, u.y + u.h - 0.3, u.z + Math.cos(wy) * ml, u.rb > 1.3 ? 1.25 : u.rb > 1 ? 1.15 : 1);
+      const ml = (w.kind === 'shell' ? 3.5 : w.kind === 'laser' ? 2.3 : w.kind === 'flame' ? 1.5 : 1.6) * s; fireWeapon(u, t, w, u.x + Math.sin(wy) * ml, u.y + u.h - 0.3, u.z + Math.cos(wy) * ml, u.rb > 1.3 ? 1.25 : u.rb > 1 ? 1.15 : 1);
       u.cd = w.rof * rand(0.9, 1.1);
     }
   } else if ((!u.isTruck || u.state !== 'build') && w.kind !== 'radar' && !(w.kind === 'repair' && u.heal)) { u.cd = Math.max(0, u.cd - dt); u.turYaw += clamp(angDiff(u.turYaw, 0), -2 * dt, 2 * dt); }
@@ -1060,9 +1099,17 @@ function updBld(b, dt) {
     }
   }
   if (b.type === 'lab' && b.res) { b.resProg += dt; if (Math.random() < dt * 2) fx('muzzle', b.x, b.y + 4.3, b.z, 1.5); if (b.resProg >= b.res.time) { const id = b.res.id; b.res = null; b.resProg = 0; finishResearch(b.team, id); if (b.team === 0) { toast(`🔬 Cercetare gata: ${RS.find(r => r.id === id).name}`); sfx('done'); } } }
-  if (b.type === 'tower') {
-    const wk = b.tier !== undefined ? TIERS[b.tier].tower : (T.tech.has('tower2') ? 'cannon' : 'mg');
-    for (const k of ['mg', 'cannon', 'rockets']) b.parts[k].visible = k === wk; const w = WP[wk]; const range = wk === 'rockets' ? 19 : wk === 'cannon' ? 16 : 14;
+  if (b.type === 'repairbay') {
+    b.acq -= dt; if (b.acq <= 0) { b.acq = 0.5; const fast = T.tech.has('repair2');
+      for (const e of ents) if (e.alive && e.kind === 'unit' && e.team === b.team && e.hp < e.maxHp && Math.hypot(e.x - b.x, e.z - b.z) < 11) { e.hp = Math.min(e.maxHp, e.hp + (fast ? 40 : 25) * 0.5); if (Math.random() < 0.6) { tracer(b.x + 0.8, b.y + 3.6, b.z, e.x, e.y + 0.8, e.z); fx('spark', e.x, e.y + 0.9, e.z, 0.8); } } }
+  }
+  if (b.type === 'radartower') {
+    b.acq -= dt; if (b.acq <= 0) { b.acq = 0.5; const adv = T.tech.has('radar2'), ar = adv ? 44 : 34;
+      for (const e of ents) if (e.alive && e.kind === 'unit' && e.team === b.team && e.st.w.dmg > 0 && Math.hypot(e.x - b.x, e.z - b.z) < ar) { e.rb = adv ? 1.35 : 1.25; e.rbT = 1.2; } }
+  }
+  if (b.type === 'tower' || b.def.tw) {
+    const wk = b.tier !== undefined ? TIERS[b.tier].tower : b.def.tw || (T.tech.has('tower2') ? 'cannon' : 'mg');
+    for (const k of ['mg', 'cannon', 'rockets', 'laser', 'flame']) b.parts[k].visible = k === wk; const w = WP[wk]; const range = w.range + 2;
     b.acq -= dt; if (b.acq <= 0) { b.acq = 0.4; if (!b.target || !b.target.alive || Math.hypot(b.target.x - b.x, b.target.z - b.z) - b.target.r > range) b.target = nearestEnemy(b.team, b.x, b.z, range); }
     b.cd -= dt;
     if (b.target && b.target.alive) {
@@ -1365,7 +1412,7 @@ function fmtTime(s) { s = Math.floor(s); return Math.floor(s / 60) + ':' + Strin
 function computeSig() {
   const T = TEAMS[0]; let s = (placing ? 'P' + placing.type + placing.valid : '') + '|' + sel.map(e => e.id).join(',') + '|' + T.tech.size + '|' + amoveNext;
   for (const e of sel) if (e.kind === 'bld') s += `|${e.complete}|${e.queue.length}|${e.res ? e.res.id : ''}|${[...T.researching].join()}`;
-  const costs = [35, 50, 65, 75, 100, 120, 150, 200, 250, 300]; s += '|' + costs.map(c => T.energy >= c ? 1 : 0).join('');
+  const costs = [35, 50, 65, 75, 100, 120, 130, 140, 150, 160, 180, 200, 220, 250, 300]; s += '|' + costs.map(c => T.energy >= c ? 1 : 0).join('');
   return s;
 }
 function bdBtn(type) { const d = BD[type]; return `<button data-act="build" data-v="${type}" ${TEAMS[0].energy < d.cost ? 'disabled' : ''}>${BIC(type)}<span class="bn">${d.name}</span><small>${d.cost}<i class="eu">⚡</i></small></button>`; }
@@ -1384,7 +1431,7 @@ function renderPanel() {
     const trucks = sel.filter(u => u.isTruck), army = sel.filter(u => !u.isTruck);
     h = `<div class="ph"><span>${army.length ? UIC.tank + army.length + ' unități ' : ''}${trucks.length ? UIC.truck + trucks.length + ' constructori' : ''}</span></div>`;
     if (sel.length === 1) h += `<div class="hint">${designName(sel[0].d)}</div><div class="bar"><i id="pHp"></i></div>`;
-    if (trucks.length) h += `<div class="lbl">Construiește</div><div class="grid">${bdBtn('generator')}${bdBtn('factory')}${bdBtn('lab')}${bdBtn('tower')}${ents.some(e => e.alive && e.team === 0 && e.type === 'hq') ? '' : bdBtn('hq')}</div>`;
+    if (trucks.length) h += `<div class="lbl">Construiește</div><div class="grid">${bdBtn('generator')}${bdBtn('factory')}${bdBtn('lab')}${bdBtn('tower')}${['ftower', 'rtower', 'ltower', 'repairbay', 'radartower'].filter(k => T.tech.has(BD[k].req)).map(bdBtn).join('')}${ents.some(e => e.alive && e.team === 0 && e.type === 'hq') ? '' : bdBtn('hq')}</div>`;
     if (army.length) h += `<div class="row"><button data-act="amove" class="${amoveNext ? 'on' : ''}">${UIC.amove}Atac-deplasare</button><button data-act="stop">${UIC.stop}Stop</button></div>`;
   } else {
     const b = sel[0];
@@ -1412,6 +1459,9 @@ function renderPanel() {
         h += `</div>`;
       }
     } else if (b.type === 'generator') { h += `<div class="hint">Extrage petrol din sondă și produce +4 ⚡/s.</div>`; }
+    else if (b.type === 'repairbay') h += `<div class="hint">Repară automat unitățile tale aflate la mai puțin de 11 m.</div>`;
+    else if (b.type === 'radartower') h += `<div class="hint">Unitățile tale din jur (${T.tech.has('radar2') ? 44 : 34} m) trag mai departe și mai tare.</div>`;
+    else if (b.def.tw) h += `<div class="hint">Turn de apărare cu ${WP[b.def.tw].name.toLowerCase()}. Atacă automat inamicii din apropiere.</div>`;
     else if (b.type === 'tower') h += `<div class="hint">Atacă automat inamicii din apropiere. ${TEAMS[0].tech.has('tower2') ? 'Armă: tun.' : 'Armă: mitralieră (cercetează „Turnuri cu tun”).'}</div>`;
     else if (b.type === 'hq') h += `<div class="hint">Centrul de comandă. Dă +1.5 ⚡/s. Nu-l pierde!</div>`;
   }
@@ -1458,7 +1508,7 @@ function renderDesigner() {
     return `<button data-f="${field}" data-k="${k}" class="dcard ${dsg[field] === k ? 'on' : ''}" ${ok ? '' : 'disabled'}>${DICON[k] || ''}<span class="rn">${o.name}</span><span class="rm">${ok ? sub(o) : '🔒 cercetează'}</span></button>`; };
   $('dPr').innerHTML = Object.keys(PR).map(k => card(PR, 'pr', k, o => `${o.cost}⚡ · viteză ×${o.spd}`)).join('');
   $('dCh').innerHTML = Object.keys(CH).map(k => card(CH, 'ch', k, o => `${o.cost}⚡ · ${o.hp} viață`)).join('');
-  $('dWp').innerHTML = ['mg', 'cannon', 'rockets', 'laser', 'radar', 'repair', 'truck'].map(k => card(WP, 'wp', k, o => o.kind === 'radar' ? `${o.cost}⚡ · +25% rază aliați` : o.kind === 'repair' ? `${o.cost}⚡ · repară ${o.heal}/s` : o.kind === 'truck' ? `${o.cost}⚡ · construiește` : `${o.cost}⚡ · rază ${o.range}`)).join('');
+  $('dWp').innerHTML = ['mg', 'cannon', 'flame', 'rockets', 'laser', 'radar', 'repair', 'truck'].map(k => card(WP, 'wp', k, o => o.kind === 'radar' ? `${o.cost}⚡ · +25% rază aliați` : o.kind === 'repair' ? `${o.cost}⚡ · repară ${o.heal}/s` : o.kind === 'truck' ? `${o.cost}⚡ · construiește` : `${o.cost}⚡ · rază ${o.range}`)).join('');
   const st = unitStats(dsg, 0); const bar = (n, v, mx, lbl) => `<div class="st"><span>${n}</span><div class="bar"><i style="width:${clamp(v / mx, 0, 1) * 100}%"></i></div><span>${lbl}</span></div>`;
   const w = st.w; const third = w.kind === 'radar' ? bar('Radar', w.aura, 30, w.aura + 'm') : w.kind === 'repair' ? bar('Reparare', w.heal, 20, w.heal + '/s') : w.kind === 'truck' ? '<div class="hint">Construiește și repară clădiri.</div>' : bar('Atac', w.dmg / w.rof, 35, Math.round(w.dmg / w.rof)) + bar('Rază', st.range, 20, st.range);
   $('dStats').innerHTML = `<b>${designName(dsg)}</b><br>${bar('Viață', st.hp, 800, st.hp)}${bar('Viteză', st.speed, 10, st.speed.toFixed(1))}${third}<div>Cost: <b style="color:#f0b44a">${st.cost}⚡</b> · Timp: ${Math.round(st.time)}s</div>`;
@@ -1613,6 +1663,7 @@ function buildSfx() {
   { const l = LP(); SB.click = mk(0.05, t => (Math.sin(TAU2 * 1800 * t) * 0.6 + l(W(), 4000) * 0.6) * Math.exp(-t * 140), 1); }
   { const l = LP(), l2 = LP(); SB.ack = mk(0.32, t => { const radio = (l(W(), 3200) - l2(W(), 900)) * (t < 0.06 || t > 0.24 ? 0.9 : 0.12); const beep = t > 0.07 && t < 0.2 ? Math.sin(TAU2 * 1250 * t) * 0.5 * Math.min(1, (t - 0.07) * 200) : 0; return radio + beep; }, 1); }
   { const l = LP(); let ph = 0; SB.laser = mk(0.45, t => { const f = 600 + 2600 * Math.exp(-t * 9); ph += TAU2 * (f + 180 * Math.sin(TAU2 * 55 * t)) / SR; return (Math.sin(ph) * 0.8 + Math.sin(ph * 1.5) * 0.3 + l(W(), 5000) * 0.25) * Math.min(1, t * 300) * Math.exp(-t * 7); }, 1.3); }
+  { const l = LP(), l2 = LP(), br = BR(); SB.flame = mk(0.4, t => (l(W(), 1400) * 1.4 + l2(br(), 200) * 0.8 + (Math.random() < 0.02 ? W() * 0.5 : 0)) * Math.min(1, t * 60) * Math.exp(-t * 5)); }
   const bell = (f, dur) => mk(dur, t => (Math.sin(TAU2 * f * t) + 0.45 * Math.sin(TAU2 * f * 2.01 * t) * Math.exp(-t * 3) + 0.2 * Math.sin(TAU2 * f * 3.02 * t) * Math.exp(-t * 6)) * Math.min(1, t * 400) * Math.exp(-t * 3.2), 1);
   SB.done = [bell(784, 1.2)]; SB.done2 = [bell(1175, 1.4)];
   SB.alert = mk(1.1, t => { const on = (t % 0.5) < 0.38 ? 1 : 0; const f = 420 + 40 * Math.sin(TAU2 * 6 * t); let s = 0; for (let k = 1; k <= 7; k += 2) s += Math.sin(TAU2 * f * k * t) / k; return s * on * 0.7; }, 1.4);
@@ -1634,11 +1685,11 @@ const lastS = {};
 function sfx(type, x, z) {
   const ctx = AU.ctx; if (!ctx || !AU.sfx || ctx.state !== 'running') return; if (!SB.click) buildSfx();
   const t = ctx.currentTime;
-  const thr = { laser: 0.06, mg: 0.07, shell: 0.05, rocket: 0.08, boom: 0.06, bigboom: 0.2, hit: 0.05, weld: 0.18, click: 0.03, ack: 0.25 }[type] || 0; if (lastS[type] && t - lastS[type] < thr) return; lastS[type] = t;
+  const thr = { flame: 0.12, laser: 0.06, mg: 0.07, shell: 0.05, rocket: 0.08, boom: 0.06, bigboom: 0.2, hit: 0.05, weld: 0.18, click: 0.03, ack: 0.25 }[type] || 0; if (lastS[type] && t - lastS[type] < thr) return; lastS[type] = t;
   let vol = 1, pan = 0;
   if (x !== undefined) { const dx = x - cam.x, dz = z - cam.z, d = Math.hypot(dx, dz); vol = clamp(1 - d / (60 + cam.dist), 0, 1) * clamp(70 / (cam.dist + 20), 0.4, 1); if (vol < 0.03) return; pan = clamp((dx * Math.cos(cam.yaw) - dz * Math.sin(cam.yaw)) / 40, -0.7, 0.7); }
   const key = type === 'shell' ? 'cannon' : type; let buf = SB[key]; if (!buf) return; if (Array.isArray(buf)) buf = pick(buf);
-  const VOL = { laser: 0.35, cannon: 0.75, mg: 0.32, rocket: 0.5, boom: 0.85, bigboom: 1, hit: 0.35, weld: 0.18, click: 0.25, ack: 0.22, done: 0.3, done2: 0.3, alert: 0.25 }[key] || 0.4;
+  const VOL = { flame: 0.3, laser: 0.35, cannon: 0.75, mg: 0.32, rocket: 0.5, boom: 0.85, bigboom: 1, hit: 0.35, weld: 0.18, click: 0.25, ack: 0.22, done: 0.3, done2: 0.3, alert: 0.25 }[key] || 0.4;
   const s = ctx.createBufferSource(); s.buffer = buf; s.playbackRate.value = ['click', 'ack', 'done', 'done2', 'alert'].includes(key) ? 1 : rand(0.9, 1.1);
   const g = ctx.createGain(); g.gain.value = VOL * vol; const p = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
   s.connect(g); if (p) { p.pan.value = pan; g.connect(p); p.connect(AU.sfxG); if (['cannon', 'boom', 'bigboom', 'rocket', 'hit'].includes(key)) p.connect(AU.srev); } else g.connect(AU.sfxG);

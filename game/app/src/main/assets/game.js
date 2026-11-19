@@ -1413,7 +1413,7 @@ window.onBack = () => {
   if (S.paused) return false;
   S.paused = true; $('pause').classList.remove('hidden'); return true;
 };
-window.__game = { S, TEAMS, ents, cam, setSel, sel: () => sel };
+window.__game = { S, TEAMS, ents, cam, setSel, sel: () => sel, createUnit };
 
 resize(); updateCamera(0); requestAnimationFrame(loop);
 // background scene behind the intro

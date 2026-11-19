@@ -1497,13 +1497,13 @@ function audioInit() {
   const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 4; comp.connect(ctx.destination);
   AU.master = ctx.createGain(); AU.master.gain.value = 0.9; AU.master.connect(comp);
   AU.mus = ctx.createGain(); AU.mus.gain.value = 0.55; AU.mus.connect(AU.master);
-  AU.sfxG = ctx.createGain(); AU.sfxG.gain.value = 0.55; AU.sfxG.connect(AU.master);
+  AU.sfxG = ctx.createGain(); AU.sfxG.gain.value = 0.7; AU.sfxG.connect(AU.master);
   const len = ctx.sampleRate * 3, ir = ctx.createBuffer(2, len, ctx.sampleRate); for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.6); }
   AU.rev = ctx.createConvolver(); AU.rev.buffer = ir; const rg = ctx.createGain(); rg.gain.value = 0.5; AU.rev.connect(rg); rg.connect(AU.mus);
   AU.dly = ctx.createDelay(1); AU.dly.delayTime.value = STEP * 3; const fb = ctx.createGain(); fb.gain.value = 0.38; AU.dly.connect(fb); fb.connect(AU.dly); const dl = ctx.createGain(); dl.gain.value = 0.5; AU.dly.connect(dl); dl.connect(AU.mus);
   AU.noise = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate); const nd = AU.noise.getChannelData(0); for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
   const n = ctx.createBufferSource(); n.buffer = AU.noise; n.loop = true; const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 380; bp.Q.value = 0.7; const wg = ctx.createGain(); wg.gain.value = 0.05; const lfo = ctx.createOscillator(); lfo.frequency.value = 0.07; const lg = ctx.createGain(); lg.gain.value = 200; lfo.connect(lg); lg.connect(bp.frequency); n.connect(bp); bp.connect(wg); wg.connect(AU.mus); n.start(); lfo.start();
-  AU.nextT = ctx.currentTime + 0.1; setInterval(schedule, 50);
+  AU.nextT = ctx.currentTime + 0.1; setInterval(schedule, 50); setTimeout(() => { if (!SB.click) buildSfx(); }, 30);
 }
 function schedule() { const ctx = AU.ctx; if (!ctx || ctx.state !== 'running') return; if (AU.nextT < ctx.currentTime) AU.nextT = ctx.currentTime + 0.05; while (AU.nextT < ctx.currentTime + 0.25) { if (AU.music && !S.paused) playStep(AU.step, AU.nextT); AU.nextT += STEP; AU.step++; } }
 function env(g, t, a, peak, dur, rel) { g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(peak, t + a); g.gain.setValueAtTime(peak, t + Math.max(a, dur)); g.gain.exponentialRampToValueAtTime(0.0001, t + Math.max(a, dur) + rel); }
@@ -1534,27 +1534,70 @@ function noiseSrc(t, dur) { const s = AU.ctx.createBufferSource(); s.buffer = AU
 function snare(t) { const ctx = AU.ctx; const s = noiseSrc(t, 0.25); const f = ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 1200; const g = ctx.createGain(); env(g, t, 0.002, 0.14, 0.01, 0.15); s.connect(f); f.connect(g); g.connect(AU.mus); g.connect(AU.rev); }
 function hat(t, v) { const ctx = AU.ctx; const s = noiseSrc(t, 0.06); const f = ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 7000; const g = ctx.createGain(); env(g, t, 0.001, v, 0.005, 0.04); s.connect(f); f.connect(g); g.connect(AU.mus); }
 function boom(t) { const ctx = AU.ctx; const o = osc('sine', 60, t, 2.5); o.frequency.exponentialRampToValueAtTime(30, t + 2); const g = ctx.createGain(); env(g, t, 0.01, 0.3, 0.05, 2); o.connect(g); g.connect(AU.mus); g.connect(AU.rev); }
+// ---- realistic procedural sound effects (pre-rendered once into buffers) ----
+const SB = {};
+function buildSfx() {
+  const ctx = AU.ctx, SR = ctx.sampleRate, TAU2 = Math.PI * 2;
+  const lpA = f => 1 - Math.exp(-TAU2 * f / SR);
+  const W = () => Math.random() * 2 - 1;
+  const mk = (dur, fn, drive = 1.2) => {
+    const n = Math.floor(dur * SR), b = ctx.createBuffer(1, n, SR), d = b.getChannelData(0); let pk = 1e-6;
+    for (let i = 0; i < n; i++) { const v = Math.tanh(fn(i / SR, i) * drive); d[i] = v; pk = Math.max(pk, Math.abs(v)); }
+    const fade = Math.min(n, SR * 0.02); for (let i = 0; i < n; i++) { d[i] /= pk; if (i > n - fade) d[i] *= (n - i) / fade; }
+    return b;
+  };
+  // filters as closures
+  const LP = () => { let y = 0; return (x, f) => (y += lpA(f) * (x - y)); };
+  const BR = () => { let y = 0; return () => (y = (y + 0.02 * W()) / 1.02) * 3.5; }; // brown noise
+  // gun crack + body + low thump
+  const gun = (dur, crackDecay, bodyF0, bodyF1, bodyDecay, thumpF0, thumpF1, thumpAmp, rumbleAmp) => { const l1 = LP(), l2 = LP(), br = BR(); let ph = 0;
+    return mk(dur, t => { const crack = W() * Math.exp(-t * crackDecay);
+      const bf = bodyF1 + (bodyF0 - bodyF1) * Math.exp(-t * 8); const body = l1(W(), bf) * Math.exp(-t * bodyDecay) * 2.2;
+      const tf = thumpF1 + (thumpF0 - thumpF1) * Math.exp(-t * 12); ph += TAU2 * tf / SR; const thump = Math.sin(ph) * Math.exp(-t * 7) * thumpAmp;
+      const rum = l2(br(), 180) * Math.exp(-t * 2.2) * rumbleAmp; return crack * 0.9 + body + thump + rum; }, 1.6); };
+  SB.cannon = [gun(1.8, 220, 3200, 160, 6, 75, 34, 1.1, 0.9), gun(1.8, 260, 2800, 140, 5.5, 68, 30, 1.2, 1.0)];
+  SB.mg = [0, 1, 2].map(k => { const l = LP(), l2 = LP(); return mk(0.22, t => { const crack = W() * Math.exp(-t * (380 + k * 40)); const body = l(W(), 2200 - k * 300) * Math.exp(-t * 38) * 1.6; const thump = Math.sin(TAU2 * (130 + k * 15) * t) * Math.exp(-t * 45) * 0.6; const tail = l2(W(), 700) * Math.exp(-t * 14) * 0.35; const bolt = t > 0.05 && t < 0.058 ? W() * 0.35 : 0; return crack + body + thump + tail + bolt; }, 1.8); });
+  { const l = LP(), l2 = LP(), br = BR(); SB.rocket = mk(1.4, t => { const pop = W() * Math.exp(-t * 120) * 0.8; const att = Math.min(1, t / 0.04); const f = 900 + 3200 * Math.exp(-t * 2.5); const hiss = (l2(W(), f) - l(W(), 300) * 0.5) * att * Math.exp(-t * 2.4) * 1.4; const roar = br() * att * Math.exp(-t * 2.8) * 0.6; return pop + hiss + roar; }); }
+  const boom = (dur, decay, f0, f1, low, debris) => { const l = LP(), l2 = LP(), br = BR(); let ph = 0;
+    return mk(dur, t => { const crack = W() * Math.exp(-t * 90) * 0.9; const f = f1 + (f0 - f1) * Math.exp(-t * 3); const rum = l(br() * 0.7 + W() * 0.3, f) * Math.exp(-t * decay) * 2.4; ph += TAU2 * (low * (0.6 + 0.4 * Math.exp(-t * 4))) / SR; const sub = Math.sin(ph) * Math.exp(-t * decay * 1.3) * 0.9;
+      const deb = t > 0.15 && Math.random() < debris * Math.exp(-t * 2) ? W() * 0.6 : 0; const dd = l2(deb, 2500) * 1.5; return crack + rum + sub + dd; }, 1.5); };
+  SB.boom = [boom(2.4, 2.2, 1600, 120, 55, 0.004), boom(2.4, 2.0, 1400, 100, 48, 0.005)];
+  SB.bigboom = [boom(4.2, 1.15, 1300, 70, 40, 0.007)];
+  { const l = LP(); const P = [[440, 6], [1187, 9], [1993, 13], [3121, 18], [4470, 24]]; SB.hit = mk(0.7, t => { let s = W() * Math.exp(-t * 90) * 0.7 + l(W(), 900) * Math.exp(-t * 18) * 0.8; for (const [f, d] of P) s += Math.sin(TAU2 * f * t + f) * Math.exp(-t * d) * 0.22; return s; }); }
+  { const l = LP(); let g = 0; SB.weld = mk(0.35, (t, i) => { if (i % 64 === 0) g = Math.random() < 0.35 ? 1 : 0.15; const hum = Math.sin(TAU2 * 100 * t) * 0.15; return ((W() - l(W(), 2500)) * g * 0.9 + hum) * Math.min(1, t / 0.01) * Math.exp(-t * 6); }); }
+  { const l = LP(); SB.click = mk(0.05, t => (Math.sin(TAU2 * 1800 * t) * 0.6 + l(W(), 4000) * 0.6) * Math.exp(-t * 140), 1); }
+  { const l = LP(), l2 = LP(); SB.ack = mk(0.32, t => { const radio = (l(W(), 3200) - l2(W(), 900)) * (t < 0.06 || t > 0.24 ? 0.9 : 0.12); const beep = t > 0.07 && t < 0.2 ? Math.sin(TAU2 * 1250 * t) * 0.5 * Math.min(1, (t - 0.07) * 200) : 0; return radio + beep; }, 1); }
+  const bell = (f, dur) => mk(dur, t => (Math.sin(TAU2 * f * t) + 0.45 * Math.sin(TAU2 * f * 2.01 * t) * Math.exp(-t * 3) + 0.2 * Math.sin(TAU2 * f * 3.02 * t) * Math.exp(-t * 6)) * Math.min(1, t * 400) * Math.exp(-t * 3.2), 1);
+  SB.done = [bell(784, 1.2)]; SB.done2 = [bell(1175, 1.4)];
+  SB.alert = mk(1.1, t => { const on = (t % 0.5) < 0.38 ? 1 : 0; const f = 420 + 40 * Math.sin(TAU2 * 6 * t); let s = 0; for (let k = 1; k <= 7; k += 2) s += Math.sin(TAU2 * f * k * t) / k; return s * on * 0.7; }, 1.4);
+  // short outdoor reverb for effects
+  const len = SR * 1.4, ir = ctx.createBuffer(2, len, SR); for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < len; i++) d[i] = W() * Math.pow(1 - i / len, 4) * (i < SR * 0.01 ? 0 : 1); }
+  AU.srev = ctx.createConvolver(); AU.srev.buffer = ir; const rg = ctx.createGain(); rg.gain.value = 0.35; AU.srev.connect(rg); rg.connect(AU.sfxG);
+  // engine rumble loop (louder when units move near the camera)
+  { const n = SR * 2, b = ctx.createBuffer(1, n, SR), d = b.getChannelData(0); const br = BR(); for (let i = 0; i < n; i++) { const t = i / SR; d[i] = br() * 0.5 * (0.75 + 0.25 * Math.sin(TAU2 * 21 * t)) + Math.sin(TAU2 * 42 * t) * 0.25 + Math.sin(TAU2 * 63 * t + 1) * 0.12; }
+    const s = ctx.createBufferSource(); s.buffer = b; s.loop = true; const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 260; AU.engG = ctx.createGain(); AU.engG.gain.value = 0; s.connect(f); f.connect(AU.engG); AU.engG.connect(AU.sfxG); s.start(); }
+}
+let engT = 0;
+function engineAudio(dt) {
+  if (!AU.engG) return; engT += dt; if (engT < 0.2) return; engT = 0; let n = 0;
+  for (const e of ents) if (e.alive && e.kind === 'unit' && Math.hypot(e.vx, e.vz) > 1 && Math.hypot(e.x - cam.x, e.z - cam.z) < 35 + cam.dist * 0.4) n++;
+  const lvl = AU.sfx && !S.paused ? clamp(n / 6, 0, 1) * 0.5 * clamp(60 / (cam.dist + 20), 0.3, 1) : 0;
+  AU.engG.gain.setTargetAtTime(lvl, AU.ctx.currentTime, 0.4);
+}
 const lastS = {};
 function sfx(type, x, z) {
-  const ctx = AU.ctx; if (!ctx || !AU.sfx || ctx.state !== 'running') return; const t = ctx.currentTime;
-  const thr = { mg: 0.07, shell: 0.06, rocket: 0.08, boom: 0.05, hit: 0.05, weld: 0.15, click: 0.03, ack: 0.1 }[type] || 0; if (lastS[type] && t - lastS[type] < thr) return; lastS[type] = t;
-  let vol = 1; if (x !== undefined) { const d = Math.hypot(x - cam.x, z - cam.z); vol = clamp(1 - d / (60 + cam.dist), 0, 1) * clamp(70 / (cam.dist + 20), 0.4, 1); if (vol < 0.03) return; }
-  const nz = (dur, type2, f1, f2, q, v) => { const s = noiseSrc(t, dur); const f = ctx.createBiquadFilter(); f.type = type2; f.frequency.setValueAtTime(f1, t); if (f2) f.frequency.exponentialRampToValueAtTime(f2, t + dur); f.Q.value = q; const g = ctx.createGain(); g.gain.setValueAtTime(v * vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); s.connect(f); f.connect(g); g.connect(AU.sfxG); };
-  const tn = (type2, f1, f2, dur, v) => { const o = osc(type2, f1, t, dur + 0.05); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + dur); const g = ctx.createGain(); g.gain.setValueAtTime(v * vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); o.connect(g); g.connect(AU.sfxG); };
-  switch (type) {
-    case 'mg': nz(0.06, 'bandpass', 1600, 0, 0.8, 0.35); break;
-    case 'shell': nz(0.3, 'lowpass', 900, 120, 1, 0.6); tn('sine', 110, 40, 0.25, 0.5); break;
-    case 'rocket': nz(0.6, 'bandpass', 2400, 500, 1.5, 0.35); break;
-    case 'hit': nz(0.25, 'lowpass', 1200, 200, 1, 0.35); break;
-    case 'boom': nz(0.8, 'lowpass', 900, 80, 1, 0.8); tn('sine', 70, 30, 0.6, 0.5); break;
-    case 'bigboom': nz(1.6, 'lowpass', 700, 50, 1, 1); tn('sine', 55, 25, 1.4, 0.7); break;
-    case 'weld': nz(0.08, 'highpass', 3000, 0, 1, 0.12); break;
-    case 'click': tn('square', 900, 0, 0.04, 0.06); break;
-    case 'ack': tn('triangle', 600, 900, 0.08, 0.1); break;
-    case 'done': tn('triangle', 660, 0, 0.12, 0.15); setTimeout(() => sfx('done2'), 120); break;
-    case 'done2': tn('triangle', 990, 0, 0.2, 0.15); break;
-    case 'alert': tn('square', 520, 380, 0.25, 0.1); setTimeout(() => tn('square', 520, 380, 0.25, 0.1), 300); break;
-  }
+  const ctx = AU.ctx; if (!ctx || !AU.sfx || ctx.state !== 'running') return; if (!SB.click) buildSfx();
+  const t = ctx.currentTime;
+  const thr = { mg: 0.07, shell: 0.05, rocket: 0.08, boom: 0.06, bigboom: 0.2, hit: 0.05, weld: 0.18, click: 0.03, ack: 0.25 }[type] || 0; if (lastS[type] && t - lastS[type] < thr) return; lastS[type] = t;
+  let vol = 1, pan = 0;
+  if (x !== undefined) { const dx = x - cam.x, dz = z - cam.z, d = Math.hypot(dx, dz); vol = clamp(1 - d / (60 + cam.dist), 0, 1) * clamp(70 / (cam.dist + 20), 0.4, 1); if (vol < 0.03) return; pan = clamp((dx * Math.cos(cam.yaw) - dz * Math.sin(cam.yaw)) / 40, -0.7, 0.7); }
+  const key = type === 'shell' ? 'cannon' : type; let buf = SB[key]; if (!buf) return; if (Array.isArray(buf)) buf = pick(buf);
+  const VOL = { cannon: 0.75, mg: 0.32, rocket: 0.5, boom: 0.85, bigboom: 1, hit: 0.35, weld: 0.18, click: 0.25, ack: 0.22, done: 0.3, done2: 0.3, alert: 0.25 }[key] || 0.4;
+  const s = ctx.createBufferSource(); s.buffer = buf; s.playbackRate.value = ['click', 'ack', 'done', 'done2', 'alert'].includes(key) ? 1 : rand(0.9, 1.1);
+  const g = ctx.createGain(); g.gain.value = VOL * vol; const p = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
+  s.connect(g); if (p) { p.pan.value = pan; g.connect(p); p.connect(AU.sfxG); if (['cannon', 'boom', 'bigboom', 'rocket', 'hit'].includes(key)) p.connect(AU.srev); } else g.connect(AU.sfxG);
+  s.start(t);
+  if (type === 'done') setTimeout(() => sfx('done2'), 140);
 }
 
 // ================= GAME FLOW =================
@@ -1581,7 +1624,7 @@ function update(dt) {
   for (let i = ents.length - 1; i >= 0; i--) if (!ents[i].alive) ents.splice(i, 1);
   updProjs(dt); updWrecks(dt); updWells(dt);
   for (let i = markers.length - 1; i >= 0; i--) { const m = markers[i]; m.t -= dt; m.m.scale.setScalar(0.4 + m.t); m.m.material.opacity = m.t; if (m.t <= 0) { scene.remove(m.m); markers.splice(i, 1); } }
-  heat = Math.max(0, heat - dt * 0.08); AU.heat = lerp(AU.heat, clamp(heat, 0, 1), dt * 0.5);
+  engineAudio(dt); heat = Math.max(0, heat - dt * 0.08); AU.heat = lerp(AU.heat, clamp(heat, 0, 1), dt * 0.5);
   winT += dt; if (winT > 1) { winT = 0; checkEnd(); }
 }
 function checkEnd() {
@@ -1647,7 +1690,7 @@ window.onBack = () => {
   if (S.paused) return false;
   S.paused = true; $('pause').classList.remove('hidden'); return true;
 };
-window.__game = { S, TEAMS, ents, cam, setSel, sel: () => sel, createUnit, createBuilding };
+window.__game = { S, TEAMS, ents, cam, setSel, sel: () => sel, createUnit, createBuilding, sfx, AU, SB, buildSfx };
 
 resize(); updateCamera(0); requestAnimationFrame(loop);
 // background scene behind the intro

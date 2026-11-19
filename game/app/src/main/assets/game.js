@@ -31,7 +31,7 @@ const OUTPOSTS = [];
 RINGS.forEach((R, ri) => {
   for (let i = 0; i < R.n; i++) {
     // keep the southern approach free near the player: spread over the remaining arc
-    const span = ri === 0 ? TAU - 1.3 : TAU; const a0 = ri === 0 ? 0.65 : (ri === 1 ? 0.4 : 0.0);
+    const gap = [1.3, 1.7, 1.2][ri]; const span = TAU - gap; const a0 = gap / 2;
     const a = a0 + span * (i + 0.5) / R.n;
     OUTPOSTS.push({ x: Math.sin(a) * R.r, z: Math.cos(a) * R.r, tier: R.tier, a, prodT: 0, nextWave: 0, citadel: false });
   }
@@ -609,6 +609,7 @@ function updUnit(u, dt) {
       else if (passive && u.target && !inRange(u, u.target, 4)) u.target = null;
     }
   }
+  if (u.defending && u.post && Math.hypot(u.x - u.post.x, u.z - u.post.z) > (u.post.citadel ? 60 : 42)) { u.defending = false; u.target = null; u.amove = false; u.state = 'move'; u.tx = u.post.x + rand(-8, 8); u.tz = u.post.z + rand(-8, 8); }
   let mx = null, mz = null, arrive = 0.6;
   switch (u.state) {
     case 'move': case 'amove': mx = u.tx; mz = u.tz; arrive = 0.8; if (Math.hypot(u.tx - u.x, u.tz - u.z) < 1.3) { u.state = 'idle'; u.amove = false; } break;
@@ -769,8 +770,8 @@ function aiTick() {
     // defence: player units near the outpost
     const threat = playerUnits.find(e => Math.hypot(e.x - o.x, e.z - o.z) < (o.citadel ? 48 : 34));
     if (threat) {
-      for (const u of garrison) if (u.state === 'idle' || u.state === 'move') { u.state = 'amove'; u.amove = true; u.tx = threat.x; u.tz = threat.z; }
-      if (o.citadel) for (const u of enemyUnits) if (u.post && u.post.tier === 2 && u.state === 'idle') { u.state = 'amove'; u.amove = true; u.tx = threat.x; u.tz = threat.z; }
+      for (const u of garrison) if (u.state === 'idle' || u.state === 'move') { u.state = 'amove'; u.amove = true; u.tx = threat.x; u.tz = threat.z; u.defending = true; }
+      if (o.citadel) for (const u of enemyUnits) if (u.post && u.post.tier === 2 && u.state === 'idle') { u.state = 'amove'; u.amove = true; u.tx = threat.x; u.tz = threat.z; u.defending = true; }
     }
     // attack waves (outer outposts attack first; the citadel only defends until late)
     if (t >= o.nextWave && home.length > TIERS[o.tier].garrison) {
@@ -778,7 +779,7 @@ function aiTick() {
       const targets = playerUnits.filter(e => e.kind === 'bld');
       if (targets.length && extra.length >= 2) {
         const tg = targets.reduce((a, b) => Math.hypot(a.x - o.x, a.z - o.z) < Math.hypot(b.x - o.x, b.z - o.z) ? a : b);
-        for (const u of extra) { u.state = 'amove'; u.amove = true; u.tx = tg.x + rand(-6, 6); u.tz = tg.z + rand(-6, 6); u.post = null; }
+        for (const u of extra) { u.state = 'amove'; u.amove = true; u.tx = tg.x + rand(-6, 6); u.tz = tg.z + rand(-6, 6); u.post = null; u.defending = false; }
         toast(`⚠ Val de atac din ${TIERS[o.tier].name}!`); pings.push({ x: o.x, z: o.z, t: 2 });
       }
       o.nextWave = t + rand(90, 140) * dm;

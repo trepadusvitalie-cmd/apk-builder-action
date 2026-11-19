@@ -265,3 +265,5 @@ i.eu { font-style: normal; color: var(--amber); font-size: .9em; margin-left: 1p
 .tabs button svg.ui { width: 16px; height: 16px; }
 .chips { display: flex; gap: 3px; flex-wrap: wrap; margin-bottom: 4px; }
 .chips button { min-height: 24px; padding: 1px 7px; font-size: 10.5px; border-radius: 12px; }
+.chips .cnt { background: var(--amber); color: #222; border-radius: 8px; padding: 0 4px; font-size: 9px; margin-left: 2px; }
+#panel .chips button { min-height: 22px; padding: 0 6px; font-size: 10px; } #panel .chips { gap: 2px; }

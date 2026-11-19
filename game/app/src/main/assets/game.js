@@ -367,6 +367,7 @@ const WP = {
   repair: { name: 'Reparator', dmg: 0, range: 0, cost: 50, kind: 'repair', heal: 16, reach: 7 },
   truck: { name: 'Constructor', dmg: 0, range: 0, cost: 40, kind: 'truck' },
 };
+const wfam = w => w.art ? 'art' : w.id;
 const BASE_SPEED = 5.4;
 const BD = {
   hq: { name: 'Cartier General', icon: '🏛', hp: 1600, cost: 300, size: 6.5, time: 40, h: 5.5 },
@@ -448,6 +449,25 @@ const BRANCHES = [
   { name: 'Apărare', ids: ['traps', 'tower2', 'bunker', 'hardpoint', 'fortress'] },
   { name: 'Industrie', ids: ['prod'] },
 ];
+// ---- upgrade lines Mk I-III (generated) ----
+const ROM = ['I', 'II', 'III'];
+const FAMS = { mg: ['Mitralieră', 'mg', null], cannon: ['Tun', 'cannon', 'cannon'], flame: ['Flăcări', 'flame', 'flame'], rockets: ['Rachete', 'rockets', 'rockets'], laser: ['Laser', 'laser', 'laser'], art: ['Artilerie', 'howitzer', 'mortar'] };
+const UPG = {};
+function addUpg(id, name, base, req, cost, time, kind, fx, branch) { RS.push({ id, name, cost, time, req: req.filter(Boolean) }); UPG[id] = { base, kind, fx }; (BRANCHES.find(b => b.name === branch) || BRANCHES[0]).ids.push(id); }
+BRANCHES.splice(4, 0, { name: 'Muniție', ids: [] }, { name: 'Cadență', ids: [] });
+for (const [f, [nm, , rq]] of Object.entries(FAMS)) for (let m = 1; m <= 3; m++) {
+  addUpg(`${f}_dmg${m}`, `Muniție ${nm} Mk ${ROM[m - 1]}`, f, [rq, m > 1 ? `${f}_dmg${m - 1}` : null], 70 + 60 * m, 16 + 10 * m, 'dmg', T => { T.dmg[f] = (T.dmg[f] || 1) + 0.2; }, 'Muniție');
+  addUpg(`${f}_rof${m}`, `Încărcare ${nm} Mk ${ROM[m - 1]}`, f, [rq, m > 1 ? `${f}_rof${m - 1}` : `${f}_dmg1`], 80 + 60 * m, 18 + 10 * m, 'rof', T => { T.rof[f] = (T.rof[f] || 1) * 0.88; }, 'Cadență');
+}
+for (let m = 1; m <= 3; m++) {
+  addUpg(`armor${m + 1}`, `Blindaj compozit Mk ${ROM[m]}`, 'armor', [m > 1 ? `armor${m}` : 'armor'], 160 + 70 * m, 30 + 8 * m, 'up', (T, team) => scaleHp(team, 1.15, 'unit'), 'Corp și blindaj');
+  addUpg(`engine${m + 1}`, `Motoare turbo Mk ${ROM[m]}`, 'engine', [m > 1 ? `engine${m}` : 'engine'], 130 + 60 * m, 26 + 8 * m, 'up', (T, team) => { T.spdMul *= 1.1; for (const e of ents) if (e.alive && e.team === team && e.kind === 'unit') e.st.speed *= 1.1; }, 'Mobilitate');
+  addUpg(`sarmor${m}`, `Beton armat Mk ${ROM[m - 1]}`, 'hardpoint', [m > 1 ? `sarmor${m - 1}` : 'traps'], 90 + 60 * m, 20 + 8 * m, 'up', (T, team) => { T.shpMul *= 1.2; scaleHp(team, 1.2, 'bld'); }, 'Apărare');
+  addUpg(`power${m}`, `Turbină generator Mk ${ROM[m - 1]}`, 'power', [m > 1 ? `power${m - 1}` : null], 120 + 80 * m, 24 + 10 * m, 'up', T => { T.powMul += 0.25; }, 'Industrie');
+  addUpg(`rspeed${m}`, `Analiză date Mk ${ROM[m - 1]}`, 'rspeed', [m > 1 ? `rspeed${m - 1}` : null], 100 + 70 * m, 20 + 10 * m, 'up', T => { T.rsMul += 0.25; }, 'Industrie');
+  if (m < 3) addUpg(`prod${m + 1}`, `Producție automată Mk ${ROM[m]}`, 'prod', [m > 1 ? `prod${m}` : 'prod'], 200 + 80 * m, 38 + 8 * m, 'up', T => { T.prodMul += 0.3; }, 'Industrie');
+}
+function scaleHp(team, k, kind) { for (const e of ents) if (e.alive && e.team === team && e.kind === kind) { const r = e.hp / e.maxHp; e.maxHp = Math.round(e.maxHp * k); e.hp = e.maxHp * r; } if (kind === 'unit') TEAMS[team].hpMul *= k; }
 const RICON = {
   tracks: SV(`<rect x="5" y="22" width="38" height="16" rx="8" fill="#2a2823" stroke="#c9b48a" stroke-width="2"/><circle cx="13" cy="30" r="4" fill="#6b6658"/><circle cx="24" cy="30" r="4" fill="#6b6658"/><circle cx="35" cy="30" r="4" fill="#6b6658"/><path d="M9 22h30" stroke="#8a826e" stroke-width="2" stroke-dasharray="3 3"/><rect x="12" y="12" width="24" height="9" rx="4" fill="#71804e"/>`),
   cannon: SV(`<path d="M10 34a14 10 0 0 1 28 0z" fill="#71804e" stroke="#c9b48a" stroke-width="2"/><rect x="22" y="20" width="22" height="5" rx="2" fill="#3a3a36" stroke="#c9b48a" stroke-width="1.5" transform="rotate(-18 22 22)"/><rect x="8" y="34" width="32" height="6" rx="3" fill="#3d432f"/><circle cx="44" cy="12" r="3" fill="#ffcf5a"/>`),
@@ -517,10 +537,15 @@ const UIC = {
   pump: SI(`<path d="M8 40h32M14 40l6-24h8l6 24" stroke="${K}" stroke-width="3"/><rect x="18" y="8" width="12" height="8" fill="${OD}"/>`),
 };
 const BIC = t => UIC[t] || '';
+{ const inner = svg => svg.replace(/^<svg[^>]*>/, '').replace(/<\/svg>$/, '');
+  const BASEI = { mg: RICON.mg, cannon: RICON.cannon, flame: RICON.flame, rockets: RICON.rockets, laser: RICON.laser, art: RICON.howitzer, armor: RICON.armor, engine: RICON.engine, hardpoint: RICON.hardpoint, power: UIC.generator, rspeed: UIC.lab, prod: RICON.prod };
+  for (const [id, u] of Object.entries(UPG)) { const mk = id.match(/(\d)$/)[1]; const lvl = u.kind === 'up' ? (+mk) : +mk; const badge = u.kind === 'dmg' ? '#e0402a' : u.kind === 'rof' ? '#3f9fe0' : '#7fb84a';
+    RICON[id] = SV(`<g transform="translate(2 4) scale(.82)">${inner(BASEI[u.base])}</g><circle cx="38" cy="10" r="9" fill="${badge}" stroke="#fff" stroke-width="1.5"/><text x="38" y="14" font-size="${u.kind === 'up' ? 9 : 10}" text-anchor="middle" fill="#fff" font-family="sans-serif" font-weight="bold">${u.kind === 'dmg' ? '+' : u.kind === 'rof' ? '»' : '▲'}</text><text x="38" y="45" font-size="9" text-anchor="middle" fill="#f0b44a" font-family="sans-serif" font-weight="bold">${['I', 'II', 'III', 'IV'][lvl - 1] || ''}</text>`); } }
 for (const [k, r] of [['repairbay', 'repair'], ['radartower', 'radar'], ['ptrap', 'traps'], ['pwall', 'hardpoint']]) UIC[k] = RICON[r].replace('class="ric"', 'class="ui"');
 for (const k in BD) if (BD[k].cls) UIC[k] = RICON[BD[k].tw] ? RICON[BD[k].tw].replace('class="ric"', 'class="ui"') : UIC.tower;
 for (const k in BD) if (BD[k].cls) BD[k].cost = DCLASS[BD[k].cls].cost + WP[BD[k].tw].cost * 2;
-function mkTeam(i) { return { i, energy: 500, tech: new Set(['light', 'wheels', 'mg', 'truck']), researching: new Set(), hpMul: 1, spdMul: 1, prodMul: 1, units: 0, inc: 0 }; }
+for (const k in WP) WP[k].id = k;
+function mkTeam(i) { return { i, energy: 500, tech: new Set(['light', 'wheels', 'mg', 'truck']), researching: new Set(), hpMul: 1, spdMul: 1, prodMul: 1, shpMul: 1, powMul: 1, rsMul: 1, dmg: {}, rof: {}, units: 0, inc: 0 }; }
 const TEAMS = [mkTeam(0), mkTeam(1)];
 
 function unitStats(d, team) {
@@ -896,7 +921,7 @@ function createBuilding(team, type, x, z, complete, rotOverride, tier) {
   const y = (type === 'pump' || type === 'generator') ? heightAt(x, z) : bldY(x, z, def.size); m.grp.position.set(x, y, z);
   const rot = rotOverride !== undefined && rotOverride !== null ? rotOverride : Math.round(Math.atan2(-x, -z) / (Math.PI / 2)) * (Math.PI / 2); m.grp.rotation.y = rot;
   scene.add(m.grp);
-  const maxHp = Math.round(def.hp * TEAMS[team].hpMul * (tier !== undefined ? TIERS[tier].hp : 1));
+  const maxHp = Math.round(def.hp * TEAMS[team].shpMul * (tier !== undefined ? TIERS[tier].hp : 1));
   const b = { kind: 'bld', type, team, x, z, y, rot, def, hp: complete ? maxHp : maxHp * 0.1, maxHp, r: def.r || def.size * 0.55, h: def.h, tier, mesh: m.grp, parts: m.parts, complete: !!complete, built: complete ? 1 : 0, queue: [], prod: 0, rally: null, res: null, resProg: 0, cd: 0, acq: 0, target: null, turYaw: 0, alive: true, id: uid++, smokeT: 0, lastHit: -99, anim: Math.random() * 6 };
   if (!complete) m.grp.scale.y = 0.12;
   if (type === 'pump' || type === 'generator') { const w = wellAt(x, z); b.well = w; if (w) w.pump = b; }
@@ -1047,7 +1072,7 @@ function nearestEnemy(team, x, z, range) {
 function inRange(u, t, extra) { return Math.hypot(t.x - u.x, t.z - u.z) - t.r <= u.st.range * (u.rb || 1) + (extra || 0); }
 
 function fireWeapon(src, t, w, mx, my, mz, mul) {
-  const dmg = w.dmg * (mul || 1);
+  const dmg = w.dmg * (mul || 1) * (TEAMS[src.team].dmg[wfam(w)] || 1);
   fx('muzzle', mx, my, mz, w.kind === 'mg' ? 0.8 : 1.4);
   if (w.kind === 'mg') { const ty = t.y + (t.kind === 'bld' ? 1.5 : 0.7); tracer(mx, my, mz, t.x + rand(-0.4, 0.4), ty, t.z + rand(-0.4, 0.4)); if (Math.random() < 0.3) fx('spark', t.x, ty, t.z, 1); damage(t, dmg, src); sfx('mg', mx, mz); }
   else if (w.kind === 'shell') { spawnProj('shell', src, t, dmg, 0, mx, my, mz); fx('smoke', mx, my, mz, 0.6); sfx('shell', mx, mz); }
@@ -1169,7 +1194,7 @@ function updUnit(u, dt) {
     if (inRange(u, t, 0.5) && Math.abs(angDiff(u.turYaw, local)) < 0.25 && u.cd <= 0) {
       const wy = u.heading + u.turYaw; const s = CH[u.d.ch].size;
       const ml = (w.kind === 'shell' ? 3.5 : w.kind === 'laser' ? 2.3 : w.kind === 'flame' ? 1.5 : w.kind === 'mortar' ? (w.art === 'how' ? 2.2 : 1.2) : 1.6) * s; fireWeapon(u, t, w, u.x + Math.sin(wy) * ml, u.y + u.h - 0.3, u.z + Math.cos(wy) * ml, u.rb > 1.3 ? 1.25 : u.rb > 1 ? 1.15 : 1);
-      u.cd = w.rof * rand(0.9, 1.1);
+      u.cd = w.rof * rand(0.9, 1.1) * (TEAMS[u.team].rof[wfam(w)] || 1);
     }
   } else if ((!u.isTruck || u.state !== 'build') && w.kind !== 'radar' && !(w.kind === 'repair' && u.heal)) { u.cd = Math.max(0, u.cd - dt); u.turYaw += clamp(angDiff(u.turYaw, 0), -2 * dt, 2 * dt); }
   u.tur.rotation.y = u.turYaw;
@@ -1212,7 +1237,7 @@ function updBld(b, dt) {
       if (b.prod >= st.time) { if (T.units < CAP) { b.queue.shift(); b.prod = 0; spawnFromFactory(b, d); } else b.prod = st.time; }
     }
   }
-  if (b.type === 'lab' && b.res) { b.resProg += dt; if (Math.random() < dt * 2) fx('muzzle', b.x, b.y + 4.3, b.z, 1.5); if (b.resProg >= b.res.time) { const id = b.res.id; b.res = null; b.resProg = 0; finishResearch(b.team, id); if (b.team === 0) { toast(`🔬 Cercetare gata: ${RS.find(r => r.id === id).name}`); sfx('done'); } } }
+  if (b.type === 'lab' && b.res) { b.resProg += dt * TEAMS[b.team].rsMul; if (Math.random() < dt * 2) fx('muzzle', b.x, b.y + 4.3, b.z, 1.5); if (b.resProg >= b.res.time) { const id = b.res.id; b.res = null; b.resProg = 0; finishResearch(b.team, id); if (b.team === 0) { toast(`🔬 Cercetare gata: ${RS.find(r => r.id === id).name}`); sfx('done'); } } }
   if (b.type === 'repairbay') {
     b.acq -= dt; if (b.acq <= 0) { b.acq = 0.5; const fast = T.tech.has('repair2');
       for (const e of ents) if (e.alive && e.kind === 'unit' && e.team === b.team && e.hp < e.maxHp && Math.hypot(e.x - b.x, e.z - b.z) < 11) { e.hp = Math.min(e.maxHp, e.hp + (fast ? 40 : 25) * 0.5); if (Math.random() < 0.6) { tracer(b.x + 0.8, b.y + 3.6, b.z, e.x, e.y + 0.8, e.z); fx('spark', e.x, e.y + 0.9, e.z, 0.8); } } }
@@ -1228,7 +1253,7 @@ function updBld(b, dt) {
     b.cd -= dt;
     if (b.target && b.target.alive) {
       const a = Math.atan2(b.target.x - b.x, b.target.z - b.z); const local = angDiff(b.rot, a); b.turYaw += clamp(angDiff(b.turYaw, local), -4 * dt, 4 * dt);
-      if (b.cd <= 0 && Math.abs(angDiff(b.turYaw, local)) < 0.2) { const wy = b.rot + b.turYaw; const ts = b.def.ts || 1; fireWeapon(b, b.target, w, b.x + Math.sin(wy) * 2 * ts, b.y + (b.def.ty || 3.3) + 0.3 * ts, b.z + Math.cos(wy) * 2 * ts, b.def.dm || 1.3); b.cd = w.rof; }
+      if (b.cd <= 0 && Math.abs(angDiff(b.turYaw, local)) < 0.2) { const wy = b.rot + b.turYaw; const ts = b.def.ts || 1; fireWeapon(b, b.target, w, b.x + Math.sin(wy) * 2 * ts, b.y + (b.def.ty || 3.3) + 0.3 * ts, b.z + Math.cos(wy) * 2 * ts, b.def.dm || 1.3); b.cd = w.rof * (TEAMS[b.team].rof[wfam(w)] || 1); }
     }
     b.parts.tur.rotation.y = b.turYaw;
   }
@@ -1244,8 +1269,9 @@ function spawnFromFactory(b, d) {
 }
 function finishResearch(team, id) {
   const T = TEAMS[team]; if (T.tech.has(id)) return; T.tech.add(id); T.researching.delete(id);
-  if (id === 'armor') { T.hpMul = 1.25; for (const e of ents) if (e.alive && e.team === team) { const r = e.hp / e.maxHp; e.maxHp = Math.round(e.maxHp * 1.25); e.hp = e.maxHp * r; } }
-  if (id === 'engine') { T.spdMul = 1.2; for (const e of ents) if (e.alive && e.team === team && e.kind === 'unit') e.st.speed *= 1.2; }
+  if (UPG[id]) UPG[id].fx(T, team);
+  if (id === 'armor') { T.hpMul *= 1.25; for (const e of ents) if (e.alive && e.team === team) { const r = e.hp / e.maxHp; e.maxHp = Math.round(e.maxHp * 1.25); e.hp = e.maxHp * r; } }
+  if (id === 'engine') { T.spdMul *= 1.2; for (const e of ents) if (e.alive && e.team === team && e.kind === 'unit') e.st.speed *= 1.2; }
   if (id === 'prod') T.prodMul = 1.4;
   panelSig = '';
 }
@@ -1531,7 +1557,7 @@ function computeSig() {
   const costs = [35, 50, 65, 75, 100, 120, 130, 140, 150, 160, 180, 200, 220, 250, 300]; s += '|' + costs.map(c => T.energy >= c ? 1 : 0).join('');
   return s;
 }
-let buildTab = 'base', defCls = 'tower';
+let buildTab = 'base', defCls = 'tower', labBr = 0;
 function buildMenu(T) {
   let h = `<div class="tabs"><button data-act="btab" data-v="base" class="${buildTab === 'base' ? 'on' : ''}">${UIC.factory}Bază</button><button data-act="btab" data-v="def" class="${buildTab === 'def' ? 'on' : ''}">${UIC.tower}Apărare</button></div>`;
   if (buildTab === 'base') {
@@ -1577,9 +1603,12 @@ function renderPanel() {
     } else if (b.type === 'lab') {
       h += `<div class="lbl">Cercetare</div>`;
       if (b.res) h += `<div class="rnow">${RICON[b.res.id]}<div><b>${b.res.name}</b><div class="bar b"><i id="pRes"></i></div></div></div>`;
-      for (const br of BRANCHES) {
-        h += `<div class="rbr">${br.name}</div><div class="rgrid">`;
-        for (const id of br.ids) { const r = RS.find(x => x.id === id);
+      const avail = br => br.ids.filter(id => { const r = RS.find(x => x.id === id); return !T.tech.has(id) && !r.req.some(q => !T.tech.has(q)); }).length;
+      h += `<div class="chips">${BRANCHES.map((br, i) => `<button data-act="rbr" data-v="${i}" class="${labBr === i ? 'on' : ''}">${br.name}${avail(br) ? ` <b class="cnt">${avail(br)}</b>` : ''}</button>`).join('')}</div>`;
+      for (const br of [BRANCHES[labBr]]) {
+        const st = id => { const r = RS.find(x => x.id === id); return T.tech.has(id) ? 3 : T.researching.has(id) ? 0 : r.req.some(q => !T.tech.has(q)) ? 2 : 1; };
+        h += `<div class="rgrid">`;
+        for (const id of [...br.ids].sort((a, c) => st(a) - st(c))) { const r = RS.find(x => x.id === id);
           const done = T.tech.has(r.id), locked = !done && r.req.some(q => !T.tech.has(q)), busy = !done && T.researching.has(r.id);
           const meta = done ? '✔ Cercetat' : locked ? '🔒 ' + r.req.map(q => RS.find(x => x.id === q).name).join(', ') : busy ? '⏳ În curs' : `${r.cost}⚡ · ${r.time}s`;
           const cls = done ? 'done' : locked ? 'locked' : busy ? 'busy' : '';
@@ -1588,7 +1617,7 @@ function renderPanel() {
         }
         h += `</div>`;
       }
-    } else if (b.type === 'generator') { h += `<div class="hint">Extrage petrol din sondă și produce +4 ⚡/s.</div>`; }
+    } else if (b.type === 'generator') { h += `<div class="hint">Extrage petrol din sondă și produce +${(4 * T.powMul).toFixed(1)} ⚡/s.</div>`; }
     else if (b.type === 'repairbay') h += `<div class="hint">Repară automat unitățile tale aflate la mai puțin de 11 m.</div>`;
     else if (b.type === 'radartower') h += `<div class="hint">Unitățile tale din jur (${T.tech.has('radar2') ? 44 : 34} m) trag mai departe și mai tare.</div>`;
     else if (b.def.tw) h += `<div class="hint">${b.def.name}: ${WP[b.def.tw].name.toLowerCase()}, rază ${WP[b.def.tw].range + (b.def.rb || 0)} m. Atacă automat inamicii din apropiere.</div>`;
@@ -1611,6 +1640,7 @@ panel.addEventListener('click', ev => {
   const b = ev.target.closest('[data-act]'); if (!b || b.disabled) return; const act = b.dataset.act, v = b.dataset.v; sfx('click');
   const T = TEAMS[0]; const e = sel[0];
   if (act === 'pmin') { panelMini = !panelMini; panelSig = ''; return; }
+  if (act === 'rbr') { labBr = +v; panelSig = ''; return; }
   if (act === 'btab') { buildTab = v; panelSig = ''; return; }
   if (act === 'dcls') { defCls = v; panelSig = ''; return; }
   if (act === 'build') startPlacing(v);
@@ -1846,7 +1876,7 @@ let ecoT = 0, aiT = 0, uiT = 0, winT = 0;
 function update(dt) {
   S.time += dt;
   for (let i = timers.length - 1; i >= 0; i--) if (S.time >= timers[i].t) { const f = timers[i].fn; timers.splice(i, 1); f(); }
-  ecoT += dt; if (ecoT >= 1) { ecoT -= 1; for (const T of TEAMS) { const gens = ents.filter(e => e.alive && e.team === T.i && e.type === 'generator' && e.complete).length; const hq = ents.some(e => e.alive && e.team === T.i && e.type === 'hq'); T.inc = (hq ? 1.5 : 0.5) + 4 * gens; T.energy += T.inc; } }
+  ecoT += dt; if (ecoT >= 1) { ecoT -= 1; for (const T of TEAMS) { const gens = ents.filter(e => e.alive && e.team === T.i && e.type === 'generator' && e.complete).length; const hq = ents.some(e => e.alive && e.team === T.i && e.type === 'hq'); T.inc = (hq ? 1.5 : 0.5) + 4 * gens * T.powMul; T.energy += T.inc; } }
   aiT += dt; if (aiT >= 1) { aiT = 0; aiTick(); }
   for (const e of ents) if (e.alive) (e.kind === 'unit' ? updUnit : updBld)(e, dt);
   separate();

@@ -347,6 +347,8 @@ const WP = {
   mg: { name: 'Mitralieră', dmg: 7, rof: 0.22, range: 12, cost: 20, kind: 'mg' },
   cannon: { name: 'Tun', dmg: 42, rof: 1.7, range: 14, cost: 45, kind: 'shell' },
   rockets: { name: 'Rachete', dmg: 30, rof: 2.4, range: 18, cost: 60, kind: 'rocket', splash: 2.8 },
+  radar: { name: 'Radar', dmg: 0, range: 0, cost: 40, kind: 'radar', aura: 24 },
+  repair: { name: 'Reparator', dmg: 0, range: 0, cost: 50, kind: 'repair', heal: 16, reach: 7 },
   truck: { name: 'Constructor', dmg: 0, range: 0, cost: 40, kind: 'truck' },
 };
 const BASE_SPEED = 5.4;
@@ -378,6 +380,8 @@ const RS = [
   { id: 'armor', name: 'Blindaj compozit +25%', cost: 220, time: 42, req: ['medium'] },
   { id: 'engine', name: 'Motoare turbo +20%', cost: 160, time: 32, req: ['tracks'] },
   { id: 'prod', name: 'Producție automată +40%', cost: 200, time: 38, req: [] },
+  { id: 'radar', name: 'Radar de luptă', cost: 110, time: 24, req: [] },
+  { id: 'repair', name: 'Modul reparator', cost: 130, time: 28, req: [] },
 ];
 
 // research icons: small original SVG drawings
@@ -392,6 +396,12 @@ const RICON = {
   tower2: SV(`<rect x="14" y="20" width="20" height="22" fill="#8c867a" stroke="#c9b48a" stroke-width="2"/><rect x="12" y="17" width="24" height="4" fill="#3f9fe0"/><path d="M16 17a8 6 0 0 1 16 0z" fill="#71804e"/><rect x="28" y="9" width="16" height="4" rx="2" fill="#3a3a36" transform="rotate(-12 28 11)"/><rect x="20" y="28" width="8" height="3" fill="#1c1c1c"/>`),
   armor: SV(`<path d="M24 5l16 6v11c0 11-7 18-16 21C15 40 8 33 8 22V11z" fill="#5c6a3e" stroke="#c9b48a" stroke-width="2"/><path d="M24 11l10 4v7c0 7-4 12-10 14-6-2-10-7-10-14v-7z" fill="#71804e"/><path d="M19 24l4 4 7-8" stroke="#f0b44a" stroke-width="3"/>`),
   engine: SV(`<circle cx="22" cy="26" r="11" fill="#5a564f" stroke="#c9b48a" stroke-width="2"/><circle cx="22" cy="26" r="4" fill="#f0b44a"/><path d="M22 15v-4M22 41v-4M11 26H7M37 26h-4M14 18l-3-3M30 34l3 3M14 34l-3 3M30 18l3-3" stroke="#c9b48a" stroke-width="3"/><path d="M38 12h8M36 18h10M40 24h6" stroke="#66ccff" stroke-width="2.5"/>`),
+  radar: SV(`<path d="M24 44V26" stroke="#c9b48a" stroke-width="3"/><path d="M14 44h20" stroke="#c9b48a" stroke-width="3"/><path d="M8 10a20 20 0 0 0 26 22z" fill="#9ab0b8" stroke="#c9b48a" stroke-width="2"/><path d="M21 21l9-9" stroke="#3a3a36" stroke-width="2"/><circle cx="31" cy="11" r="2.5" fill="#e0402a"/><path d="M34 6a10 10 0 0 1 8 8M36 2a15 15 0 0 1 10 10" stroke="#66ccff" stroke-width="2"/>`),
+  repair: SV(`<path d="M10 38l16-16" stroke="#c9b48a" stroke-width="7"/><path d="M10 38l16-16" stroke="#8c867a" stroke-width="4"/><path d="M24 12a9 9 0 0 0 12 12l4 4 4-4-4-4a9 9 0 0 0-12-12l5 5-3 4-4 1z" fill="#c9c2b0" stroke="#5a564f" stroke-width="1.5"/><circle cx="14" cy="14" r="8" fill="#2e8a3e" stroke="#bff08a" stroke-width="2"/><path d="M14 9v10M9 14h10" stroke="#fff" stroke-width="3"/>`),
+  wheels: SV(`<rect x="8" y="16" width="32" height="10" rx="4" fill="#71804e" stroke="#c9b48a" stroke-width="2"/><circle cx="14" cy="32" r="7" fill="#2a2823" stroke="#c9b48a" stroke-width="2"/><circle cx="34" cy="32" r="7" fill="#2a2823" stroke="#c9b48a" stroke-width="2"/><circle cx="14" cy="32" r="2.5" fill="#8a826e"/><circle cx="34" cy="32" r="2.5" fill="#8a826e"/>`),
+  light: SV(`<rect x="8" y="28" width="32" height="8" rx="4" fill="#2a2823"/><path d="M11 28l3-6h20l3 6z" fill="#71804e" stroke="#c9b48a" stroke-width="2"/><text x="24" y="46" font-size="8" text-anchor="middle" fill="#f0b44a" font-family="sans-serif" font-weight="bold">I</text>`),
+  mg: SV(`<path d="M14 32a10 7 0 0 1 20 0z" fill="#71804e" stroke="#c9b48a" stroke-width="2"/><rect x="26" y="22" width="18" height="3" rx="1.5" fill="#3a3a36"/><rect x="26" y="27" width="18" height="3" rx="1.5" fill="#3a3a36"/><rect x="10" y="32" width="28" height="6" rx="3" fill="#3d432f"/><path d="M45 20l2-2M45 31l2 2" stroke="#ffcf5a" stroke-width="2"/>`),
+  truck: SV(`<rect x="4" y="18" width="24" height="16" rx="3" fill="#f0b44a" stroke="#7a5a1a" stroke-width="2"/><path d="M28 22h8l6 7v5H28z" fill="#d89a30" stroke="#7a5a1a" stroke-width="2"/><circle cx="12" cy="37" r="5" fill="#2a2823" stroke="#c9b48a" stroke-width="2"/><circle cx="34" cy="37" r="5" fill="#2a2823" stroke="#c9b48a" stroke-width="2"/><path d="M8 18l6-10h6" stroke="#555" stroke-width="3"/>`),
   prod: SV(`<path d="M5 40V22l9 6v-6l9 6v-6l9 6V12h8v28z" fill="#71804e" stroke="#c9b48a" stroke-width="2"/><rect x="34" y="6" width="4" height="7" fill="#6f6a61"/><circle cx="18" cy="35" r="5" fill="#3d432f" stroke="#f0b44a" stroke-width="2"/><path d="M18 28v2M18 40v2M11 35h2M23 35h2" stroke="#f0b44a" stroke-width="2"/><rect x="28" y="32" width="6" height="8" fill="#24221f"/>`),
 };
 // UI icons: original SVG drawings, same style as research icons
@@ -431,7 +441,7 @@ function unitStats(d, team) {
   const cost = c.cost + p.cost + w.cost;
   return { hp: Math.round(c.hp * p.hp * T.hpMul * (d.wp === 'truck' ? 0.8 : 1)), speed: BASE_SPEED * c.spd * p.spd * T.spdMul, cost, w, range: w.range || 0, time: 3 + cost / 16 };
 }
-function designName(d) { return d.wp === 'truck' ? 'Constructor' : `${CH[d.ch].name}·${PR[d.pr].name}·${WP[d.wp].name}`; }
+function designName(d) { return d.wp === 'truck' && d.ch === 'light' && d.pr === 'wheels' ? 'Constructor' : `${PR[d.pr].name}·${CH[d.ch].name}·${WP[d.wp].name}`; }
 
 // ================= GEOMETRY CACHES =================
 const geoCache = {};
@@ -506,6 +516,23 @@ function unitGeo(d, team) {
       tb.add(G.cyl16, 0.35 * s, 0.1 * s, 0.35 * s, sx * 0.42 * s, 0.37 * s, 0.6 * s, T.acc, PI2 - 0.25, 0, 0);
       for (const ox of [-0.12, 0.12]) for (const oy of [-0.12, 0.12]) tb.add(G.cyl6, 0.08 * s, 0.1, 0.08 * s, sx * 0.42 * s + ox * s, 0.5 * s + oy * s + 0.15 * s, 0.67 * s, 0x111111, PI2 - 0.25, 0, 0);
     }
+  } else if (d.wp === 'radar') {
+    tb.add(G.cyl16, 0.42 * s, 0.22 * s, 0.42 * s, 0, 0.11 * s, 0, T.dark); tb.add(G.cyl16, 0.44 * s, 0.05 * s, 0.44 * s, 0, 0.22 * s, 0, T.acc);
+    tb.add(G.cyl10, 0.07 * s, 0.9 * s, 0.07 * s, 0, 0.65 * s, 0, 0x3a3a36);
+    tb.box(1.3 * s, 0.6 * s, 0.1 * s, 0, 1.2 * s, 0.05 * s, 0x3d4a52, -0.3, 0, 0); // phased-array panel
+    tb.box(1.18 * s, 0.5 * s, 0.04 * s, 0, 1.2 * s, 0.11 * s, 0x6fa8c8, -0.3, 0, 0);
+    for (let k = -2; k <= 2; k++) tb.box(0.02 * s, 0.5 * s, 0.05 * s, k * 0.22 * s, 1.2 * s, 0.12 * s, 0x2a3a44, -0.3, 0, 0);
+    tb.box(0.2 * s, 0.2 * s, 0.25 * s, 0, 1.15 * s, -0.12 * s, T.dark);
+    tb.add(G.sph, 0.07 * s, 0.07 * s, 0.07 * s, 0.6 * s, 1.5 * s, 0.0, 0xff3020);
+    for (const sx of [-1, 1]) tb.box(0.18 * s, 0.25 * s, 0.3 * s, sx * 0.4 * s, 0.25 * s, -0.25 * s, T.body);
+  } else if (d.wp === 'repair') {
+    tb.add(G.dome, 0.5 * s, 0.35 * s, 0.55 * s, 0, 0.02, -0.15 * s, T.body); tb.add(G.cyl16, 0.52 * s, 0.06 * s, 0.57 * s, 0, 0.05, -0.15 * s, T.acc);
+    tb.box(0.5 * s, 0.32 * s, 0.05 * s, 0, 0.35 * s, -0.55 * s, 0xf2f2ea); tb.box(0.3 * s, 0.08 * s, 0.06 * s, 0, 0.35 * s, -0.56 * s, 0x2eaa4a); tb.box(0.08 * s, 0.24 * s, 0.06 * s, 0, 0.35 * s, -0.56 * s, 0x2eaa4a);
+    tb.box(0.14 * s, 0.14 * s, 1.1 * s, 0, 0.5 * s, 0.4 * s, 0xd9b23a, -0.45, 0, 0); // arm
+    tb.box(0.12 * s, 0.12 * s, 0.8 * s, 0, 0.62 * s, 1.05 * s, 0xd9b23a, 0.5, 0, 0); // forearm
+    tb.add(G.cyl16, 0.14 * s, 0.25 * s, 0.14 * s, 0, 0.35 * s, 1.35 * s, 0x5a564f, Math.PI / 2, 0, 0); // tool head
+    for (const sx of [-1, 1]) tb.box(0.05 * s, 0.05 * s, 0.22 * s, sx * 0.08 * s, 0.35 * s, 1.55 * s, 0x8c867a);
+    tb.add(G.sph, 0.1 * s, 0.1 * s, 0.1 * s, 0.25 * s, 0.45 * s, -0.2 * s, 0x40ff80);
   } else {
     tb.add(G.sph, 0.48 * s, 0.38 * s, 0.4 * s, 0, 0.3 * s, 0.55 * s, 0xc9a23a); tb.add(G.cyl16, 0.49 * s, 0.1 * s, 0.41 * s, 0, 0.42 * s, 0.55 * s, T.acc);
     tb.add(G.sph, 0.3 * s, 0.16 * s, 0.12 * s, 0, 0.42 * s, 0.88 * s, 0x223344);
@@ -817,7 +844,7 @@ function nearestEnemy(team, x, z, range) {
   for (const e of ents) { if (!e.alive || e.team === team) continue; const d = Math.hypot(e.x - x, e.z - z) - e.r; if (d > range) continue; const s = d + (e.kind === 'bld' ? 5 : 0); if (s < bd) { bd = s; best = e; } }
   return best;
 }
-function inRange(u, t, extra) { return Math.hypot(t.x - u.x, t.z - u.z) - t.r <= u.st.range + (extra || 0); }
+function inRange(u, t, extra) { return Math.hypot(t.x - u.x, t.z - u.z) - t.r <= u.st.range * (u.rb || 1) + (extra || 0); }
 
 function fireWeapon(src, t, w, mx, my, mz, mul) {
   const dmg = w.dmg * (mul || 1);
@@ -856,8 +883,33 @@ function separate() {
 }
 
 // ================= UNIT / BUILDING UPDATE =================
+function supportTick(u, dt) {
+  const w = u.st.w;
+  if (w.kind === 'radar') {
+    u.turYaw += dt * 1.8; u.tur.rotation.y = u.turYaw; u.sT = (u.sT || 0) - dt;
+    if (u.sT <= 0) { u.sT = 0.5; for (const e of ents) if (e.alive && e.kind === 'unit' && e.team === u.team && e !== u && e.st.w.dmg > 0 && Math.hypot(e.x - u.x, e.z - u.z) < w.aura) { e.rb = 1.25; e.rbT = 1.2; } }
+    return;
+  }
+  if (w.kind === 'repair') {
+    u.sT = (u.sT || 0) - dt;
+    if (u.sT <= 0) { u.sT = 0.6; let best = null, bd = 18;
+      for (const e of ents) if (e.alive && e.team === u.team && e !== u && e.hp < e.maxHp && (e.kind === 'unit' || e.complete)) { const d = Math.hypot(e.x - u.x, e.z - u.z) - e.r; if (d < bd) { bd = d; best = e; } }
+      u.heal = best;
+      if (best && bd > w.reach && (u.state === 'idle' || u.state === 'heal')) { u.state = 'heal'; u.tx = best.x; u.tz = best.z; }
+      else if (u.state === 'heal' && (!best || bd <= w.reach)) { u.state = 'idle'; } }
+    const t = u.heal;
+    if (t && t.alive && t.hp < t.maxHp && Math.hypot(t.x - u.x, t.z - u.z) - t.r <= w.reach) {
+      t.hp = Math.min(t.maxHp, t.hp + w.heal * dt * (t.kind === 'bld' ? 1.5 : 1));
+      const a = Math.atan2(t.x - u.x, t.z - u.z); u.turYaw += clamp(angDiff(u.turYaw, angDiff(u.heading, a)), -4 * dt, 4 * dt);
+      if (Math.random() < dt * 8) { const ty = t.y + (t.kind === 'bld' ? 1.5 : 0.8); tracer(u.x, u.y + u.h - 0.2, u.z, t.x + rand(-0.4, 0.4), ty, t.z + rand(-0.4, 0.4)); fx('spark', t.x + rand(-0.5, 0.5), ty, t.z + rand(-0.5, 0.5), 0.8); }
+      if (u.team === 0 && Math.random() < dt * 2) sfx('weld', u.x, u.z);
+    }
+  }
+}
 function updUnit(u, dt) {
   const w = u.st.w;
+  if (u.rbT > 0) { u.rbT -= dt; if (u.rbT <= 0) u.rb = 1; }
+  if (w.kind === 'radar' || w.kind === 'repair') supportTick(u, dt);
   if (u.target && !u.target.alive) { u.target = null; if (u.state === 'engage' || u.state === 'attack') u.state = u.amove ? 'amove' : 'idle'; }
   u.acq -= dt;
   if (w.dmg > 0 && u.acq <= 0 && u.state !== 'attack') {
@@ -872,6 +924,7 @@ function updUnit(u, dt) {
   if (u.defending && u.post && Math.hypot(u.x - u.post.x, u.z - u.post.z) > (u.post.citadel ? 60 : 42)) { u.defending = false; u.target = null; u.amove = false; u.state = 'move'; u.tx = u.post.x + rand(-8, 8); u.tz = u.post.z + rand(-8, 8); }
   let mx = null, mz = null, arrive = 0.6;
   switch (u.state) {
+    case 'heal': if (u.heal && u.heal.alive) { u.tx = u.heal.x; u.tz = u.heal.z; } // fallthrough
     case 'move': case 'amove': mx = u.tx; mz = u.tz; arrive = 0.8; if (Math.hypot(u.tx - u.x, u.tz - u.z) < 1.3) { u.state = 'idle'; u.amove = false; } break;
     case 'engage': case 'attack': {
       const t = u.target; if (!t || !t.alive) { u.state = u.amove ? 'amove' : 'idle'; u.target = null; break; }
@@ -906,10 +959,10 @@ function updUnit(u, dt) {
     u.cd -= dt;
     if (inRange(u, t, 0.5) && Math.abs(angDiff(u.turYaw, local)) < 0.25 && u.cd <= 0) {
       const wy = u.heading + u.turYaw; const s = CH[u.d.ch].size;
-      const ml = (w.kind === 'shell' ? 3.5 : 1.6) * s; fireWeapon(u, t, w, u.x + Math.sin(wy) * ml, u.y + u.h - 0.3, u.z + Math.cos(wy) * ml);
+      const ml = (w.kind === 'shell' ? 3.5 : 1.6) * s; fireWeapon(u, t, w, u.x + Math.sin(wy) * ml, u.y + u.h - 0.3, u.z + Math.cos(wy) * ml, u.rb > 1 ? 1.15 : 1);
       u.cd = w.rof * rand(0.9, 1.1);
     }
-  } else if (!u.isTruck || u.state !== 'build') { u.cd = Math.max(0, u.cd - dt); u.turYaw += clamp(angDiff(u.turYaw, 0), -2 * dt, 2 * dt); }
+  } else if ((!u.isTruck || u.state !== 'build') && w.kind !== 'radar' && !(w.kind === 'repair' && u.heal)) { u.cd = Math.max(0, u.cd - dt); u.turYaw += clamp(angDiff(u.turYaw, 0), -2 * dt, 2 * dt); }
   u.tur.rotation.y = u.turYaw;
 
   // visuals
@@ -1286,7 +1339,7 @@ function renderPanel() {
       const truck = { ch: 'light', pr: 'wheels', wp: 'truck' };
       h += `<div class="grid"><button data-act="produce" data-v='${JSON.stringify(truck)}' ${T.energy < unitStats(truck, 0).cost || b.queue.length >= 8 ? 'disabled' : ''}>${UIC.truck}<span class="bn">Constructor</span><small>${unitStats(truck, 0).cost}<i class="eu">⚡</i></small></button>`;
       const quick = lastDesigns.length ? lastDesigns : [{ ch: 'light', pr: 'wheels', wp: 'mg' }];
-      for (const d of quick) { const c = unitStats(d, 0).cost; h += `<button data-act="produce" data-v='${JSON.stringify(d)}' ${T.energy < c || b.queue.length >= 8 ? 'disabled' : ''}>${UIC.tank}<span class="bn">${designName(d)}</span><small>${c}<i class="eu">⚡</i></small></button>`; }
+      for (const d of quick) { const c = unitStats(d, 0).cost; h += `<button data-act="produce" data-v='${JSON.stringify(d)}' ${T.energy < c || b.queue.length >= 8 ? 'disabled' : ''}>${d.wp === 'radar' || d.wp === 'repair' || d.wp === 'truck' ? RICON[d.wp].replace('class="ric"', 'class="ui"') : UIC.tank}<span class="bn">${designName(d)}</span><small>${c}<i class="eu">⚡</i></small></button>`; }
       h += `<button data-act="designer" class="ok">${UIC.design}<span class="bn">Proiectant</span></button></div><div class="hint">Atinge harta pentru punctul de adunare.</div>`;
     } else if (b.type === 'lab') {
       h += `<div class="lbl">Cercetare</div>`;
@@ -1334,18 +1387,23 @@ function queueUnit(f, d, n) {
   const T = TEAMS[0]; let k = 0;
   for (let i = 0; i < n; i++) { const c = unitStats(d, 0).cost; if (T.energy < c || f.queue.length >= 8) break; T.energy -= c; f.queue.push(d); k++; }
   if (!k) toast('Energie insuficientă sau coadă plină'); panelSig = '';
-  if (d.wp !== 'truck') { lastDesigns = [d, ...lastDesigns.filter(x => designName(x) !== designName(d))].slice(0, 3); }
+  if (!(d.wp === 'truck' && d.ch === 'light' && d.pr === 'wheels')) { lastDesigns = [d, ...lastDesigns.filter(x => designName(x) !== designName(d))].slice(0, 3); }
 }
 
 // designer
 let dsg = { ch: 'light', pr: 'wheels', wp: 'mg' }, dsgFactory = null;
 function openDesigner(f) { dsgFactory = f; $('designer').classList.remove('hidden'); renderDesigner(); }
+const DICON = { ...RICON };
 function renderDesigner() {
   const T = TEAMS[0];
-  const opt = (obj, key, field) => Object.keys(obj).filter(k => k !== 'truck').map(k => `<button data-f="${field}" data-k="${k}" class="${dsg[field] === k ? 'on' : ''}" ${T.tech.has(k) ? '' : 'disabled'}>${T.tech.has(k) ? '' : '🔒 '}${obj[k].name}</button>`).join('');
-  $('dCh').innerHTML = opt(CH, 'ch', 'ch'); $('dPr').innerHTML = opt(PR, 'pr', 'pr'); $('dWp').innerHTML = opt(WP, 'wp', 'wp');
+  const card = (obj, field, k, sub) => { const ok = T.tech.has(k); const o = obj[k];
+    return `<button data-f="${field}" data-k="${k}" class="dcard ${dsg[field] === k ? 'on' : ''}" ${ok ? '' : 'disabled'}>${DICON[k] || ''}<span class="rn">${o.name}</span><span class="rm">${ok ? sub(o) : '🔒 cercetează'}</span></button>`; };
+  $('dPr').innerHTML = Object.keys(PR).map(k => card(PR, 'pr', k, o => `${o.cost}⚡ · viteză ×${o.spd}`)).join('');
+  $('dCh').innerHTML = Object.keys(CH).map(k => card(CH, 'ch', k, o => `${o.cost}⚡ · ${o.hp} viață`)).join('');
+  $('dWp').innerHTML = ['mg', 'cannon', 'rockets', 'radar', 'repair', 'truck'].map(k => card(WP, 'wp', k, o => o.kind === 'radar' ? `${o.cost}⚡ · +25% rază aliați` : o.kind === 'repair' ? `${o.cost}⚡ · repară ${o.heal}/s` : o.kind === 'truck' ? `${o.cost}⚡ · construiește` : `${o.cost}⚡ · rază ${o.range}`)).join('');
   const st = unitStats(dsg, 0); const bar = (n, v, mx, lbl) => `<div class="st"><span>${n}</span><div class="bar"><i style="width:${clamp(v / mx, 0, 1) * 100}%"></i></div><span>${lbl}</span></div>`;
-  $('dStats').innerHTML = `<b>${designName(dsg)}</b><br>${bar('Viață', st.hp, 500, st.hp)}${bar('Viteză', st.speed, 10, st.speed.toFixed(1))}${bar('Atac', st.w.dmg / st.w.rof, 35, Math.round(st.w.dmg / st.w.rof))}${bar('Rază', st.range, 20, st.range)}<div>Cost: <b style="color:#f0b44a">${st.cost}⚡</b> · Timp: ${Math.round(st.time)}s</div>`;
+  const w = st.w; const third = w.kind === 'radar' ? bar('Radar', w.aura, 30, w.aura + 'm') : w.kind === 'repair' ? bar('Reparare', w.heal, 20, w.heal + '/s') : w.kind === 'truck' ? '<div class="hint">Construiește și repară clădiri.</div>' : bar('Atac', w.dmg / w.rof, 35, Math.round(w.dmg / w.rof)) + bar('Rază', st.range, 20, st.range);
+  $('dStats').innerHTML = `<b>${designName(dsg)}</b><br>${bar('Viață', st.hp, 500, st.hp)}${bar('Viteză', st.speed, 10, st.speed.toFixed(1))}${third}<div>Cost: <b style="color:#f0b44a">${st.cost}⚡</b> · Timp: ${Math.round(st.time)}s</div>`;
   updatePreview();
 }
 $('designer').addEventListener('click', ev => {

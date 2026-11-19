@@ -236,3 +236,18 @@ i.eu { font-style: normal; color: var(--amber); font-size: .9em; margin-left: 1p
 
 .mbox { background: linear-gradient(180deg, rgba(46,50,40,.97), rgba(22,24,19,.97)); border-color: var(--rim); }
 .grid button .bn { overflow-wrap: anywhere; max-width: 100%; } .grid button { overflow: hidden; }
+
+/* designer module cards */
+.mbox.wide { width: min(760px, 96vw); }
+.dmods { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 5px; }
+.dcard { display: flex; flex-direction: column; align-items: center; gap: 0; padding: 4px 2px 5px; min-height: 0; min-width: 0; border-radius: 9px;
+  background: linear-gradient(180deg, #454a39, #2b2f23); box-shadow: inset 0 1px 0 #ffffff1c, 0 2px 3px #0007; border-color: #c9b48a40; }
+.dcard .ric { width: 34px; height: 34px; }
+.dcard .rn { font-size: 11.5px; font-weight: bold; line-height: 1.15; }
+.dcard .rm { font-size: 9.5px; color: var(--amber); line-height: 1.15; }
+.dcard.on { background: linear-gradient(180deg, #6a5a2a, #45391a); border-color: var(--amber); box-shadow: 0 0 8px #f0b44a70, inset 0 1px 0 #ffffff22; }
+.dcard:disabled { opacity: .45; filter: grayscale(1); }
+#designer .mbox { padding: 8px 12px; }
+#designer .mh { margin-bottom: 2px; font-size: 16px; }
+#designer .lbl { margin: 4px 0 3px; font-size: 10.5px; }
+@media (max-height: 420px) { .dcard .ric { width: 26px; height: 26px; } .dmods { grid-template-columns: repeat(6, 1fr); } .dprev { width: 220px; } #prev { width: 220px; height: 120px; } }

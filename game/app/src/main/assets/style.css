@@ -169,3 +169,70 @@ button.bad { background: linear-gradient(#8e3a26, #5f2316); }
 
 .grid, .rgrid { grid-template-columns: repeat(4, 1fr); }
 .grid button .ic { font-size: 15px; }
+
+/* ---- polished military UI ---- */
+:root { --steel1: rgba(46, 50, 40, .93); --steel2: rgba(22, 24, 19, .93); --rim: rgba(240, 180, 74, .55); }
+svg.ui { width: 18px; height: 18px; flex: none; vertical-align: -4px; filter: drop-shadow(0 1px 1px #000a); }
+i.eu { font-style: normal; color: var(--amber); font-size: .9em; margin-left: 1px; }
+
+#top {
+  background: linear-gradient(180deg, var(--steel1), var(--steel2)); border: 1px solid var(--rim);
+  box-shadow: 0 3px 12px #0009, inset 0 1px 0 #ffffff18; gap: 12px; padding: 2px 4px 2px 10px; font-size: 14px;
+  clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 10px 100%, 0 50%); border-radius: 0;
+}
+#top .res { display: inline-flex; align-items: center; gap: 4px; }
+#top .ri svg.ui { width: 17px; height: 17px; }
+#top b { text-shadow: 0 0 8px #f0b44a55; }
+.ib { min-height: 28px; height: 28px; width: 34px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+
+#toast { background: linear-gradient(180deg, var(--steel1), var(--steel2)); border-color: var(--rim); font-size: 13px; padding: 4px 12px; box-shadow: 0 3px 10px #0008; top: 44px; }
+
+#side { gap: 5px; bottom: 120px; }
+#side button {
+  width: 50px; height: 46px; min-height: 0; padding: 3px 0 2px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  font-size: 9px; letter-spacing: .3px; text-align: center; border-radius: 10px;
+  background: linear-gradient(180deg, var(--steel1), var(--steel2)); border: 1px solid var(--line);
+  box-shadow: 0 2px 6px #0008, inset 0 1px 0 #ffffff14;
+}
+#side button svg.ui { width: 22px; height: 22px; }
+#side button.on { background: linear-gradient(#8a6a2a, #5f4818); border-color: var(--amber); }
+#mini { width: 104px; height: 104px; border: 2px solid var(--rim); box-shadow: 0 0 0 3px #16181399, 0 3px 12px #000c; }
+@media (max-height: 420px) { #side { bottom: 118px; } #mini { width: 104px; height: 104px; } }
+
+#panel {
+  background: linear-gradient(180deg, var(--steel1), var(--steel2)); border: 1px solid var(--rim);
+  box-shadow: 0 4px 16px #000a, inset 0 1px 0 #ffffff18; border-radius: 4px 14px 4px 14px;
+}
+#panel::-webkit-scrollbar { width: 3px; } #panel::-webkit-scrollbar-thumb { background: var(--rim); border-radius: 2px; }
+.ph { margin: -5px -7px 4px; padding: 3px 7px; background: linear-gradient(90deg, #f0b44a26, transparent 80%); border-bottom: 1px solid #f0b44a40; border-radius: 4px 14px 0 0; letter-spacing: .3px; }
+.ph > span { display: inline-flex; align-items: center; gap: 5px; }
+.ph svg.ui { width: 18px; height: 18px; }
+.ph .pmin { background: #0005; border-color: #f0b44a50; }
+.lbl { color: #cbb98f; display: flex; align-items: center; gap: 6px; }
+.lbl::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, #f0b44a50, transparent); }
+
+#panel button { background: linear-gradient(180deg, #454a39, #2b2f23); box-shadow: inset 0 1px 0 #ffffff1c, 0 2px 3px #0007; border-color: #c9b48a40; }
+#panel button.ok { background: linear-gradient(#5e8a37, #3f6324); border-color: #9ccc66; }
+#panel button.bad { background: linear-gradient(#8e3a26, #5f2316); }
+#panel button.on { background: linear-gradient(#8a6a2a, #5f4818); border-color: var(--amber); }
+.grid button { display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 4px 2px 3px; border-radius: 8px; }
+.grid button svg.ui { width: 26px; height: 26px; }
+.grid button .bn { line-height: 1.1; }
+.grid button small { font-size: 10px; background: #0006; border-radius: 6px; padding: 0 5px; margin-top: 1px; }
+.grid button:disabled { filter: grayscale(.8); opacity: .5; }
+.row button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
+.row button svg.ui { width: 16px; height: 16px; }
+.queue button { display: inline-flex; align-items: center; gap: 3px; }
+.queue button svg.ui { width: 16px; height: 16px; }
+.pc { color: var(--amber); }
+.bar { background: #000a; box-shadow: inset 0 1px 2px #000; }
+.bar i { background: linear-gradient(180deg, #a6e070, #5f9a30); border-radius: 3px; }
+.bar.b i { background: linear-gradient(180deg, #7cc8ff, #2d7fc0); }
+.bar.o i { background: linear-gradient(180deg, #ffd27a, #c88a20); }
+.rcard { border-radius: 8px; }
+.rcard.busy { box-shadow: 0 0 8px #3f9fe080; }
+.rcard.done { box-shadow: inset 0 0 8px #7fb84a40; }
+.rnow { background: linear-gradient(90deg, #3f9fe022, #0004); }
+
+.mbox { background: linear-gradient(180deg, rgba(46,50,40,.97), rgba(22,24,19,.97)); border-color: var(--rim); }
+.grid button .bn { overflow-wrap: anywhere; max-width: 100%; } .grid button { overflow: hidden; }

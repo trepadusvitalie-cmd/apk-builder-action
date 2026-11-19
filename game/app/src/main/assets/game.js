@@ -388,6 +388,35 @@ const RICON = {
   engine: SV(`<circle cx="22" cy="26" r="11" fill="#5a564f" stroke="#c9b48a" stroke-width="2"/><circle cx="22" cy="26" r="4" fill="#f0b44a"/><path d="M22 15v-4M22 41v-4M11 26H7M37 26h-4M14 18l-3-3M30 34l3 3M14 34l-3 3M30 18l3-3" stroke="#c9b48a" stroke-width="3"/><path d="M38 12h8M36 18h10M40 24h6" stroke="#66ccff" stroke-width="2.5"/>`),
   prod: SV(`<path d="M5 40V22l9 6v-6l9 6v-6l9 6V12h8v28z" fill="#71804e" stroke="#c9b48a" stroke-width="2"/><rect x="34" y="6" width="4" height="7" fill="#6f6a61"/><circle cx="18" cy="35" r="5" fill="#3d432f" stroke="#f0b44a" stroke-width="2"/><path d="M18 28v2M18 40v2M11 35h2M23 35h2" stroke="#f0b44a" stroke-width="2"/><rect x="28" y="32" width="6" height="8" fill="#24221f"/>`),
 };
+// UI icons: original SVG drawings, same style as research icons
+const SI = (inner, cls = 'ui') => `<svg class="${cls}" viewBox="0 0 48 48" fill="none" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
+const K = '#c9b48a', OL = '#71804e', OD = '#3d432f', AM = '#f0b44a', BL = '#3f9fe0';
+const UIC = {
+  generator: SI(`<path d="M7 42c3-9 3-18 0-27h14c-3 9-3 18 0 27z" fill="#8c867a" stroke="${K}" stroke-width="2"/><path d="M24 42c3-9 3-18 0-27h14c-3 9-3 18 0 27z" fill="#a39d90" stroke="${K}" stroke-width="2"/><path d="M12 12q2-5 6-4M29 12q2-5 6-4" stroke="#ddd" stroke-width="2.5" opacity=".8"/><path d="M42 18l-6 10h5l-4 10" stroke="${AM}" stroke-width="3"/>`),
+  factory: SI(`<path d="M4 42V24l10 6v-6l10 6v-6l10 6V10h8v32z" fill="${OL}" stroke="${K}" stroke-width="2"/><rect x="8" y="34" width="5" height="4" fill="${AM}"/><rect x="17" y="34" width="5" height="4" fill="${AM}"/><rect x="26" y="34" width="5" height="4" fill="${AM}"/><path d="M36 6q3-3 6-1" stroke="#ccc" stroke-width="2"/>`),
+  lab: SI(`<path d="M8 40a16 16 0 0 1 32 0z" fill="#9ab0b8" stroke="${K}" stroke-width="2"/><path d="M14 30a10 10 0 0 1 10-8" stroke="#e8f4ff" stroke-width="2.5"/><rect x="6" y="40" width="36" height="4" rx="1" fill="${OD}"/><path d="M24 24V8" stroke="${K}" stroke-width="2"/><circle cx="24" cy="8" r="3" fill="${BL}"/><path d="M17 12a10 10 0 0 1 14 0" stroke="${BL}" stroke-width="2"/>`),
+  tower: SI(`<rect x="15" y="20" width="18" height="22" fill="#8c867a" stroke="${K}" stroke-width="2"/><rect x="12" y="16" width="24" height="5" fill="${OD}" stroke="${K}" stroke-width="1.5"/><path d="M17 16a7 6 0 0 1 14 0z" fill="${OL}"/><path d="M29 12l14-4" stroke="#3a3a36" stroke-width="4"/><rect x="21" y="27" width="6" height="3" fill="#1c1c1c"/>`),
+  hq: SI(`<path d="M6 42V22h36v20z" fill="${OL}" stroke="${K}" stroke-width="2"/><path d="M4 22l20-12 20 12z" fill="#5c6a3e" stroke="${K}" stroke-width="2"/><rect x="20" y="30" width="8" height="12" fill="${OD}"/><rect x="10" y="27" width="6" height="5" fill="${AM}"/><rect x="32" y="27" width="6" height="5" fill="${AM}"/><path d="M24 10V3" stroke="${K}" stroke-width="2"/><path d="M24 3h8l-2 3 2 3h-8" fill="#c0392b"/>`),
+  truck: SI(`<rect x="4" y="18" width="24" height="16" rx="3" fill="${AM}" stroke="#7a5a1a" stroke-width="2"/><path d="M28 22h8l6 7v5H28z" fill="#d89a30" stroke="#7a5a1a" stroke-width="2"/><rect x="31" y="24" width="6" height="5" fill="#9ad4ff"/><circle cx="12" cy="37" r="5" fill="#2a2823" stroke="${K}" stroke-width="2"/><circle cx="34" cy="37" r="5" fill="#2a2823" stroke="${K}" stroke-width="2"/><path d="M8 18l6-10h6" stroke="#555" stroke-width="3"/>`),
+  tank: SI(`<rect x="4" y="29" width="40" height="11" rx="5.5" fill="#2a2823" stroke="${K}" stroke-width="1.5"/><circle cx="12" cy="34.5" r="2.5" fill="#6b6658"/><circle cx="24" cy="34.5" r="2.5" fill="#6b6658"/><circle cx="36" cy="34.5" r="2.5" fill="#6b6658"/><path d="M7 29q2-8 8-8h18q6 0 8 8z" fill="${OL}" stroke="${K}" stroke-width="2"/><path d="M15 21a9 7 0 0 1 18 0z" fill="#5c6a3e" stroke="${K}" stroke-width="1.5"/><path d="M30 17l15-4" stroke="#3a3a36" stroke-width="3.5"/>`),
+  design: SI(`<circle cx="24" cy="24" r="9" fill="${OD}" stroke="${K}" stroke-width="2"/><path d="M24 6v6M24 36v6M6 24h6M36 24h6M11 11l4 4M33 33l4 4M11 37l4-4M33 15l4-4" stroke="${K}" stroke-width="4"/><circle cx="24" cy="24" r="3.5" fill="${AM}"/>`),
+  army: SI(`<path d="M10 38L34 8M38 38L14 8" stroke="#d8d8d8" stroke-width="4"/><path d="M6 34l8 8M42 34l-8 8" stroke="${AM}" stroke-width="5"/><path d="M30 8h6v6M18 8h-6v6" stroke="#d8d8d8" stroke-width="2.5"/>`),
+  box: SI(`<rect x="7" y="9" width="34" height="28" rx="3" stroke="${BL}" stroke-width="3" stroke-dasharray="6 4"/><path d="M26 24l14 6-6 2 5 7-3 2-5-7-4 5z" fill="#fff" stroke="#333" stroke-width="1.5"/>`),
+  base: SI(`<circle cx="24" cy="24" r="16" stroke="${K}" stroke-width="2.5"/><circle cx="24" cy="24" r="8" stroke="${AM}" stroke-width="2.5"/><path d="M24 2v10M24 36v10M2 24h10M36 24h10" stroke="${K}" stroke-width="3"/><circle cx="24" cy="24" r="2.5" fill="${AM}"/>`),
+  energy: SI(`<path d="M28 3L10 27h12l-4 18 20-26H26z" fill="${AM}" stroke="#7a5a1a" stroke-width="2"/>`),
+  units: SI(`<path d="M6 30q0-20 18-20t18 20z" fill="${OL}" stroke="${K}" stroke-width="2"/><path d="M3 30h42" stroke="${K}" stroke-width="3"/><path d="M14 22q10-6 20 0" stroke="#90a060" stroke-width="2"/>`),
+  clock: SI(`<circle cx="24" cy="26" r="16" fill="#2a2823" stroke="${K}" stroke-width="3"/><path d="M24 26V16M24 26l7 5" stroke="${AM}" stroke-width="3"/><path d="M19 5h10M24 5v5" stroke="${K}" stroke-width="3"/>`),
+  pause: SI(`<rect x="13" y="10" width="7" height="28" rx="2" fill="${K}"/><rect x="28" y="10" width="7" height="28" rx="2" fill="${K}"/>`),
+  amove: SI(`<path d="M6 40L30 16" stroke="#d8d8d8" stroke-width="4"/><path d="M26 10h14v14" stroke="${AM}" stroke-width="4"/><path d="M4 34l10 10" stroke="${AM}" stroke-width="4"/>`),
+  stop: SI(`<rect x="11" y="11" width="26" height="26" rx="4" fill="#c0392b" stroke="#f5c0b0" stroke-width="2"/>`),
+  ok: SI(`<path d="M9 25l10 10 20-22" stroke="#bff08a" stroke-width="5"/>`),
+  no: SI(`<path d="M12 12l24 24M36 12L12 36" stroke="#ffc0b0" stroke-width="5"/>`),
+  enemy: SI(`<path d="M24 5c-10 0-16 7-16 16 0 6 3 9 6 11v6h20v-6c3-2 6-5 6-11 0-9-6-16-16-16z" fill="#c9c2b0" stroke="#7a2a1a" stroke-width="2"/><circle cx="17" cy="22" r="4.5" fill="#7a1a10"/><circle cx="31" cy="22" r="4.5" fill="#7a1a10"/><path d="M20 38v5M24 38v5M28 38v5" stroke="#7a2a1a" stroke-width="2"/>`),
+  wall: SI(`<path d="M4 42V18h6v-6h6v6h6v-6h6v6h6v-6h6v6h4v24z" fill="#8c867a" stroke="${K}" stroke-width="2"/><path d="M4 30h40M16 18v12M28 30v12" stroke="#5a564f" stroke-width="2"/>`),
+  citadel: SI(`<path d="M6 42V16h8v6h6V10h8v12h6v-6h8v26z" fill="#8c867a" stroke="${K}" stroke-width="2"/><rect x="20" y="32" width="8" height="10" rx="4" fill="#2a2823"/><path d="M24 10V3h7l-2 2 2 2h-7" fill="#c0392b"/>`),
+  pump: SI(`<path d="M8 40h32M14 40l6-24h8l6 24" stroke="${K}" stroke-width="3"/><rect x="18" y="8" width="12" height="8" fill="${OD}"/>`),
+};
+const BIC = t => UIC[t] || '';
 function mkTeam(i) { return { i, energy: 500, tech: new Set(['light', 'wheels', 'mg', 'truck']), researching: new Set(), hpMul: 1, spdMul: 1, prodMul: 1, units: 0, inc: 0 }; }
 const TEAMS = [mkTeam(0), mkTeam(1)];
 
@@ -1210,35 +1239,35 @@ function computeSig() {
   const costs = [35, 50, 65, 75, 100, 120, 150, 200, 250, 300]; s += '|' + costs.map(c => T.energy >= c ? 1 : 0).join('');
   return s;
 }
-function bdBtn(type) { const d = BD[type]; return `<button data-act="build" data-v="${type}" ${TEAMS[0].energy < d.cost ? 'disabled' : ''}><span class="ic">${d.icon}</span>${d.name}<br><small>${d.cost}⚡</small></button>`; }
+function bdBtn(type) { const d = BD[type]; return `<button data-act="build" data-v="${type}" ${TEAMS[0].energy < d.cost ? 'disabled' : ''}>${BIC(type)}<span class="bn">${d.name}</span><small>${d.cost}<i class="eu">⚡</i></small></button>`; }
 let lastDesigns = [];
 function renderPanel() {
   const T = TEAMS[0]; let h = '';
   if (placing) {
     const d = BD[placing.type];
-    h = `<div class="ph"><span>${d.icon} Plasează: ${d.name}</span><span>${d.cost}⚡</span></div><div class="hint">${placing.type === 'pump' || placing.type === 'generator' ? 'Atinge o sondă de petrol liberă (pată neagră).' : 'Atinge harta pentru a muta clădirea. Verde = loc bun.'}</div>
-    <div class="row"><button data-act="place-ok" class="ok" ${placing.valid && T.energy >= d.cost ? '' : 'disabled'}>✔ Construiește</button><button data-act="place-cancel" class="bad">✖ Anulează</button></div>`;
+    h = `<div class="ph"><span>${BIC(placing.type)}Plasează: ${d.name}</span><span class="pc">${d.cost}<i class="eu">⚡</i></span></div><div class="hint">${placing.type === 'pump' || placing.type === 'generator' ? 'Atinge o sondă de petrol liberă (pată neagră).' : 'Atinge harta pentru a muta clădirea. Verde = loc bun.'}</div>
+    <div class="row"><button data-act="place-ok" class="ok" ${placing.valid && T.energy >= d.cost ? '' : 'disabled'}>${UIC.ok}Construiește</button><button data-act="place-cancel" class="bad">${UIC.no}Anulează</button></div>`;
   } else if (!sel.length) {
     h = '';
   } else if (sel[0].team === 1) {
-    const e = sel[0]; h = `<div class="ph"><span>☠ Inamic: ${e.kind === 'bld' ? e.def.name : designName(e.d)}</span></div><div class="bar"><i id="pHp"></i></div><div class="hint">Selectează unitățile tale și atinge inamicul pentru atac.</div>`;
+    const e = sel[0]; h = `<div class="ph"><span>${UIC.enemy}Inamic: ${e.kind === 'bld' ? e.def.name : designName(e.d)}</span></div><div class="bar"><i id="pHp"></i></div><div class="hint">Selectează unitățile tale și atinge inamicul pentru atac.</div>`;
   } else if (sel[0].kind === 'unit') {
     const trucks = sel.filter(u => u.isTruck), army = sel.filter(u => !u.isTruck);
-    h = `<div class="ph"><span>${army.length ? '🪖 ' + army.length + ' unități ' : ''}${trucks.length ? '🚜 ' + trucks.length + ' constructori' : ''}</span></div>`;
+    h = `<div class="ph"><span>${army.length ? UIC.tank + army.length + ' unități ' : ''}${trucks.length ? UIC.truck + trucks.length + ' constructori' : ''}</span></div>`;
     if (sel.length === 1) h += `<div class="hint">${designName(sel[0].d)}</div><div class="bar"><i id="pHp"></i></div>`;
     if (trucks.length) h += `<div class="lbl">Construiește</div><div class="grid">${bdBtn('generator')}${bdBtn('factory')}${bdBtn('lab')}${bdBtn('tower')}${ents.some(e => e.alive && e.team === 0 && e.type === 'hq') ? '' : bdBtn('hq')}</div>`;
-    if (army.length) h += `<div class="row"><button data-act="amove" class="${amoveNext ? 'on' : ''}">⚔ Atac-deplasare</button><button data-act="stop">■ Stop</button></div>`;
+    if (army.length) h += `<div class="row"><button data-act="amove" class="${amoveNext ? 'on' : ''}">${UIC.amove}Atac-deplasare</button><button data-act="stop">${UIC.stop}Stop</button></div>`;
   } else {
     const b = sel[0];
-    h = `<div class="ph"><span>${b.def.icon} ${b.def.name}</span><span id="pHpT"></span></div><div class="bar"><i id="pHp"></i></div>`;
+    h = `<div class="ph"><span>${BIC(b.type)}${b.def.name}</span><span id="pHpT"></span></div><div class="bar"><i id="pHp"></i></div>`;
     if (!b.complete) h += `<div class="hint">În construcție…</div><div class="bar b"><i id="pBuild"></i></div><div class="hint">Selectează constructori și atinge clădirea ca să ajute.</div>`;
     else if (b.type === 'factory') {
-      h += `<div class="lbl">Producție</div><div class="queue">${b.queue.map((d, i) => `<button data-act="unq" data-v="${i}">${d.wp === 'truck' ? '🚜' : '🪖'} ${i === 0 ? '<span id="pProdT"></span>' : ''} ✖</button>`).join('') || '<span class="hint">Coada e goală</span>'}</div><div class="bar o"><i id="pProd"></i></div>`;
+      h += `<div class="lbl">Producție</div><div class="queue">${b.queue.map((d, i) => `<button data-act="unq" data-v="${i}">${d.wp === 'truck' ? UIC.truck : UIC.tank}${i === 0 ? '<span id="pProdT"></span>' : ''} ✖</button>`).join('') || '<span class="hint">Coada e goală</span>'}</div><div class="bar o"><i id="pProd"></i></div>`;
       const truck = { ch: 'light', pr: 'wheels', wp: 'truck' };
-      h += `<div class="grid"><button data-act="produce" data-v='${JSON.stringify(truck)}' ${T.energy < unitStats(truck, 0).cost || b.queue.length >= 8 ? 'disabled' : ''}><span class="ic">🚜</span>Constructor<br><small>${unitStats(truck, 0).cost}⚡</small></button>`;
+      h += `<div class="grid"><button data-act="produce" data-v='${JSON.stringify(truck)}' ${T.energy < unitStats(truck, 0).cost || b.queue.length >= 8 ? 'disabled' : ''}>${UIC.truck}<span class="bn">Constructor</span><small>${unitStats(truck, 0).cost}<i class="eu">⚡</i></small></button>`;
       const quick = lastDesigns.length ? lastDesigns : [{ ch: 'light', pr: 'wheels', wp: 'mg' }];
-      for (const d of quick) { const c = unitStats(d, 0).cost; h += `<button data-act="produce" data-v='${JSON.stringify(d)}' ${T.energy < c || b.queue.length >= 8 ? 'disabled' : ''}><span class="ic">🪖</span>${designName(d)}<br><small>${c}⚡</small></button>`; }
-      h += `<button data-act="designer" class="ok"><span class="ic">🛠</span>Proiectant</button></div><div class="hint">Atinge harta pentru punctul de adunare.</div>`;
+      for (const d of quick) { const c = unitStats(d, 0).cost; h += `<button data-act="produce" data-v='${JSON.stringify(d)}' ${T.energy < c || b.queue.length >= 8 ? 'disabled' : ''}>${UIC.tank}<span class="bn">${designName(d)}</span><small>${c}<i class="eu">⚡</i></small></button>`; }
+      h += `<button data-act="designer" class="ok">${UIC.design}<span class="bn">Proiectant</span></button></div><div class="hint">Atinge harta pentru punctul de adunare.</div>`;
     } else if (b.type === 'lab') {
       h += `<div class="lbl">Cercetare</div>`;
       if (b.res) h += `<div class="rnow">${RICON[b.res.id]}<div><b>${b.res.name}</b><div class="bar b"><i id="pRes"></i></div></div></div>`;
@@ -1509,6 +1538,9 @@ $('pMusic').addEventListener('click', e => { AU.music = !AU.music; e.target.text
 $('pSfx').addEventListener('click', e => { AU.sfx = !AU.sfx; e.target.textContent = '🔊 Sunete: ' + (AU.sfx ? 'DA' : 'NU'); });
 $('pRestart').addEventListener('click', () => location.reload());
 $('bAgain').addEventListener('click', () => location.reload());
+$('bAll').innerHTML = UIC.army + '<span>Armata</span>'; $('bTrucks').innerHTML = UIC.truck + '<span>Constr.</span>';
+$('bBox').innerHTML = UIC.box + '<span>Selecție</span>'; $('bBase').innerHTML = UIC.base + '<span>Baza</span>'; $('bPause').innerHTML = UIC.pause;
+document.querySelectorAll('#top .ri').forEach(el => el.innerHTML = UIC[el.dataset.i]);
 $('bAll').addEventListener('click', () => { setSel(ents.filter(e => e.alive && e.team === 0 && e.kind === 'unit' && !e.isTruck)); sfx('click'); });
 $('bTrucks').addEventListener('click', () => { setSel(ents.filter(e => e.alive && e.team === 0 && e.isTruck)); sfx('click'); });
 $('bBox').addEventListener('click', () => { boxMode = !boxMode; $('bBox').classList.toggle('on', boxMode); sfx('click'); });

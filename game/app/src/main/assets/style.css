@@ -293,3 +293,16 @@ i.eu { font-style: normal; color: var(--amber); font-size: .9em; margin-left: 1p
 #netSt { position: fixed; top: 82px; left: 50%; transform: translateX(-50%); background: #3a1a12ee; border: 1px solid #ff7050; border-radius: 8px; padding: 5px 14px; font-size: 13px; z-index: 9; pointer-events: none; }
 #intro .row button.big { padding: 10px 18px; }
 #mp .logo { font-size: 30px; white-space: nowrap; }
+/* designer: name, comparison bars, spider chart */
+#dName { font-weight: bold; color: var(--amber); font-size: 14px; line-height: 1.15; margin-bottom: 2px; }
+#dName small { display: block; font-weight: normal; color: #b8b2a4; font-size: 10.5px; }
+.dpv { position: relative; }
+#dRadar { position: absolute; right: 3px; top: 3px; width: 92px; height: 80px; pointer-events: none; background: #0007; border-radius: 8px; }
+.bar.cmp { position: relative; overflow: visible; height: 7px; }
+.bar.cmp b { position: absolute; top: -3px; width: 2px; height: 13px; margin-left: -1px; background: #e8e4da; box-shadow: 0 0 3px #000; border-radius: 1px; }
+.st em { font-style: normal; font-size: 10px; margin-left: 3px; font-weight: bold; }
+.st em.up { color: #8be05a; } .st em.dn { color: #ff6a4a; }
+.st { grid-template-columns: 52px 1fr 64px !important; }
+.st > span:last-child { text-align: right; white-space: nowrap; }
+.cmpnote { font-size: 10px; color: #b8b2a4; margin-top: 2px; } .cmpnote i { display: inline-block; width: 2px; height: 10px; background: #e8e4da; vertical-align: middle; margin-right: 3px; }
+@media (max-height: 420px) { #dRadar { width: 80px; height: 70px; } #dName { font-size: 12.5px; } #dName small { font-size: 9.5px; } .st { grid-template-columns: 40px 1fr 56px !important; } }

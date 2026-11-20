@@ -283,3 +283,13 @@ i.eu { font-style: normal; color: var(--amber); font-size: .9em; margin-left: 1p
 #mapSel .mapc small { font-size: 10px; color: var(--dim); } #mapSel .mapc.on small { color: #f3e3bf; }
 #mapSel.loading { opacity: .4; pointer-events: none; }
 #mapSel.loading::after { content: "Se generează harta…"; color: var(--amber); font-size: 12px; align-self: center; }
+/* multiplayer lobby */
+#mp { z-index: 12; }
+#mp .mbox { width: 460px; text-align: center; }
+.mph { margin: 8px 0; font-size: 14px; line-height: 1.4; color: #d8d2c4; }
+.mpb { display: flex; gap: 8px; justify-content: center; margin: 8px 0; flex-wrap: wrap; }
+#mpCode { width: 120px; font-size: 22px; text-align: center; letter-spacing: 4px; text-transform: uppercase; background: #111; color: var(--amber); border: 1px solid var(--amber); border-radius: 8px; padding: 6px; font-weight: bold; }
+.mpcode { font-size: 46px; font-weight: bold; letter-spacing: 10px; color: var(--amber); margin: 6px 0; text-shadow: 0 0 14px #f0b44a66; user-select: all; }
+#netSt { position: fixed; top: 82px; left: 50%; transform: translateX(-50%); background: #3a1a12ee; border: 1px solid #ff7050; border-radius: 8px; padding: 5px 14px; font-size: 13px; z-index: 9; pointer-events: none; }
+#intro .row button.big { padding: 10px 18px; }
+#mp .logo { font-size: 30px; white-space: nowrap; }

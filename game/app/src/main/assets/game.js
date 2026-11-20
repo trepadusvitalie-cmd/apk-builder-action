@@ -10,11 +10,13 @@ const pick = a => a[(Math.random() * a.length) | 0];
 const TAU = Math.PI * 2;
 function angDiff(a, b) { let d = (b - a) % TAU; if (d > Math.PI) d -= TAU; if (d < -Math.PI) d += TAU; return d; }
 
+// multiplayer: settings handed over from the lobby through a reload (same seed + map as the host)
+const NETCFG = (() => { try { const v = JSON.parse(sessionStorage.getItem('ironfall.net') || 'null'); sessionStorage.removeItem('ironfall.net'); return v; } catch (e) { return null; } })();
 const S = { running: false, paused: false, time: 0, diff: 1, over: false, stats: { built: 0, lost: 0, killed: 0 } };
 const CAP = 40;
 
 // ================= NOISE / TERRAIN =================
-const SEED = (Math.random() * 100000) | 0;
+const SEED = NETCFG ? NETCFG.seed | 0 : (Math.random() * 100000) | 0;
 function hash2(x, y) { let h = (Math.imul(x | 0, 374761393) + Math.imul(y | 0, 668265263) + Math.imul(SEED, 982451653)) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); h ^= h >>> 16; return (h >>> 0) / 4294967296; }
 function vnoise(x, y) { const xi = Math.floor(x), yi = Math.floor(y); const xf = x - xi, yf = y - yi; const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf); const a = hash2(xi, yi), b = hash2(xi + 1, yi), c = hash2(xi, yi + 1), d = hash2(xi + 1, yi + 1); return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v; }
 function fbm(x, y) { let s = 0, a = 1, f = 1, n = 0; for (let i = 0; i < 4; i++) { s += vnoise(x * f + i * 17.3, y * f - i * 9.1) * a; n += a; a *= 0.5; f *= 2.03; } return s / n; }
@@ -28,9 +30,11 @@ const MAPS = [
   { name: 'Uriașă', size: 560, rings: [[228, 9, 0, 1.1], [185, 8, 0, 1.2], [140, 7, 1, 1.3], [98, 5, 2, 1.3], [56, 4, 2, 1.2]], gar: 0.7 },
 ];
 let MAPI = 0; try { MAPI = clamp(+(localStorage.getItem('ironfall.map') || 0) | 0, 0, MAPS.length - 1); } catch (e) {}
+if (NETCFG) MAPI = clamp(NETCFG.map | 0, 0, MAPS.length - 1);
 const MC = MAPS[MAPI];
 const MAP = MC.size, HALF = MAP / 2, EDGE = HALF - 9, SC = MAP / 300;
 const PLAYER = { x: 0, z: HALF - 26 };
+const PLAYER2 = { x: Math.round(52 * Math.min(SC, 1.3)), z: HALF - 34 }; // second commander's base (co-op)
 const CENTER = { x: 0, z: 0 };
 const BASES = [PLAYER, CENTER];
 const RINGS = MC.rings.map(([r, n, tier, gap]) => ({ r, n, tier, gap }));
@@ -44,10 +48,10 @@ RINGS.forEach((R, ri) => {
   }
 });
 OUTPOSTS.push({ x: 0, z: 0, tier: 3, a: 0, prodT: 0, nextWave: 0, citadel: true });
-const FLAT = [{ x: PLAYER.x, z: PLAYER.z, r: 26 }, { x: 0, z: 0, r: 34 }, ...OUTPOSTS.filter(o => !o.citadel).map(o => ({ x: o.x, z: o.z, r: 16 }))];
-const WELL_POS = [[-14, PLAYER.z + 12], [16, PLAYER.z + 10], [0, PLAYER.z - 16], ...[[-40, 118], [42, 116], [-70, 95], [72, 92], [0, 70], [-95, 40], [96, 30], [-20, -96], [30, -120], [-110, -40], [110, -70], [-60, -130], [70, 60], [-60, 60]].map(([x, z]) => [x * SC, z * SC])];
+const FLAT = [{ x: PLAYER.x, z: PLAYER.z, r: 26 }, { x: PLAYER2.x, z: PLAYER2.z, r: 20 }, { x: 0, z: 0, r: 34 }, ...OUTPOSTS.filter(o => !o.citadel).map(o => ({ x: o.x, z: o.z, r: 16 }))];
+const WELL_POS = [[-14, PLAYER.z + 12], [16, PLAYER.z + 10], [0, PLAYER.z - 16], [PLAYER2.x + 12, PLAYER2.z + 9], ...[[-40, 118], [42, 116], [-70, 95], [72, 92], [0, 70], [-95, 40], [96, 30], [-20, -96], [30, -120], [-110, -40], [110, -70], [-60, -130], [70, 60], [-60, 60]].map(([x, z]) => [x * SC, z * SC])];
 { let k = 0; const extra = Math.round(16 * (SC * SC - 1)); for (let t = 0; k < extra && t < 4000; t++) { const x = (hash2(t, 7) - 0.5) * (MAP - 40), z = (hash2(t, 13) - 0.5) * (MAP - 40);
-  if (Math.hypot(x, z) < 40 || Math.hypot(x - PLAYER.x, z - PLAYER.z) < 35 || OUTPOSTS.some(o => Math.hypot(o.x - x, o.z - z) < 24) || WELL_POS.some(w => Math.hypot(w[0] - x, w[1] - z) < 30)) continue; WELL_POS.push([x, z]); k++; } }
+  if (Math.hypot(x, z) < 40 || Math.hypot(x - PLAYER.x, z - PLAYER.z) < 35 || Math.hypot(x - PLAYER2.x, z - PLAYER2.z) < 30 || OUTPOSTS.some(o => Math.hypot(o.x - x, o.z - z) < 24) || WELL_POS.some(w => Math.hypot(w[0] - x, w[1] - z) < 30)) continue; WELL_POS.push([x, z]); k++; } }
 for (const o of OUTPOSTS) if (!o.citadel) { const a = o.a + 0.18; const r = Math.hypot(o.x, o.z) + 9; WELL_POS.push([Math.sin(a) * r, Math.cos(a) * r]); }
 WELL_POS.push([14, 8], [-14, -8]);
 
@@ -895,7 +899,7 @@ function bldGeo(type, team) {
 }
 
 // ================= ENTITIES =================
-const ents = []; let uid = 1;
+const ents = []; let uid = 1; const EID = new Map(); const byId = id => EID.get(id);
 const glowDisc = new THREE.CircleGeometry(1, 16).rotateX(-Math.PI / 2);
 const glowMat = [new THREE.MeshBasicMaterial({ color: 0x66ccff, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false }), new THREE.MeshBasicMaterial({ color: 0xff7040, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false })];
 
@@ -907,7 +911,7 @@ function createUnit(team, d, x, z, tier) {
   if (d.pr === 'hover') { const gl = new THREE.Mesh(glowDisc, glowMat[team]); gl.scale.set(CH[d.ch].size * 1.3, 1, CH[d.ch].size * 1.7); gl.position.y = 0.05; grp.add(gl); }
   scene.add(grp);
   const u = { kind: 'unit', team, d, st, x, z, y: heightAt(x, z), hp: st.hp, maxHp: st.hp, r: 1.0 * CH[d.ch].size, h: g.turY + 0.6, heading: team === 0 ? Math.PI * 0.75 : -Math.PI * 0.25, vx: 0, vz: 0, mesh: grp, tur, turYaw: 0, state: 'idle', tx: x, tz: z, target: null, cd: rand(0, 0.5), acq: rand(0, 0.3), isTruck: d.wp === 'truck', bob: Math.random() * 6, smokeT: 0, alive: true, id: uid++, lastHit: -99, amove: false, lx: x, lz: z, tier, post: null };
-  ents.push(u); T.units++; return u;
+  ents.push(u); EID.set(u.id, u); T.units++; return u;
 }
 
 function bldY(x, z, size) { const r = size * 0.4; let s = 0; const pts = [[0, 0], [r, r], [-r, r], [r, -r], [-r, -r]]; for (const p of pts) s += heightAt(x + p[0], z + p[1]); return s / pts.length; }
@@ -936,11 +940,11 @@ function createBuilding(team, type, x, z, complete, rotOverride, tier) {
   const b = { kind: 'bld', type, team, x, z, y, rot, def, hp: complete ? maxHp : maxHp * 0.1, maxHp, r: def.r || def.size * 0.55, h: def.h, tier, mesh: m.grp, parts: m.parts, complete: !!complete, built: complete ? 1 : 0, queue: [], prod: 0, rally: null, res: null, resProg: 0, cd: 0, acq: 0, target: null, turYaw: 0, alive: true, id: uid++, smokeT: 0, lastHit: -99, anim: Math.random() * 6 };
   if (!complete) m.grp.scale.y = 0.12;
   if (type === 'pump' || type === 'generator') { const w = wellAt(x, z); b.well = w; if (w) w.pump = b; }
-  ents.push(b); return b;
+  ents.push(b); EID.set(b.id, b); return b;
 }
 function completeBld(b) {
   b.complete = true; b.built = 1; b.mesh.scale.y = 1;
-  if (b.team === 0) { toast(`${b.def.icon} ${b.def.name} — gata!`); sfx('done'); }
+  if (b.team === 0 && !NET.cl) teamToast(`${b.def.icon} ${b.def.name} — gata!`, 'done');
 }
 
 // ================= FX =================
@@ -1058,14 +1062,15 @@ function updWrecks(dt) {
 let heat = 0, lastAlert = -99;
 const pings = [];
 function damage(e, amt, src) {
-  if (!e.alive || S.over) return;
+  if (NET.cl || !e.alive || S.over) return;
   e.hp -= amt; e.lastHit = S.time;
   heat = Math.min(1.5, heat + amt * (e.team === 0 ? 0.01 : 0.005));
-  if (e.team === 0 && S.time - lastAlert > 25) { lastAlert = S.time; toast('⚠ Ești atacat!'); sfx('alert'); pings.push({ x: e.x, z: e.z, t: 2 }); }
+  if (e.team === 0 && S.time - lastAlert > 25) { lastAlert = S.time; teamToast('⚠ Ești atacat!', 'alert', e.x, e.z); }
   if (e.kind === 'unit' && src && src.alive && e.st.range > 0 && e.state === 'idle') { e.target = src; e.state = 'engage'; e.lx = e.x; e.lz = e.z; }
   if (e.hp <= 0) kill(e);
 }
 function kill(e) {
+  if (NET.host) NET.ev.push(['k', e.id]);
   e.alive = false; e.hp = 0; scene.remove(e.mesh);
   if (e.kind === 'unit') { TEAMS[e.team].units--; explosion(e.x, e.y + 0.8, e.z, 1); addWreck(e); if (e.team === 0) S.stats.lost++; else S.stats.killed++; }
   else {
@@ -1085,6 +1090,8 @@ function nearestEnemy(team, x, z, range) {
 function inRange(u, t, extra) { return Math.hypot(t.x - u.x, t.z - u.z) - t.r <= u.st.range * (u.rb || 1) + (extra || 0); }
 
 function fireWeapon(src, t, w, mx, my, mz, mul) {
+  if (NET.host && (Math.abs(src.x - NET.ccx) < 90 && Math.abs(src.z - NET.ccz) < 90)) NET.ev.push(['f', src.id, t.id, w.id, r1(mx), r1(my), r1(mz), mul || 1]);
+  if (NET.cl) heat = Math.min(1.5, heat + 0.01);
   const dmg = w.dmg * (mul || 1) * (TEAMS[src.team].dmg[wfam(w)] || 1);
   fx('muzzle', mx, my, mz, w.kind === 'mg' ? 0.8 : 1.4);
   if (w.kind === 'mg') { const ty = t.y + (t.kind === 'bld' ? 1.5 : 0.7); tracer(mx, my, mz, t.x + rand(-0.4, 0.4), ty, t.z + rand(-0.4, 0.4)); if (Math.random() < 0.3) { fx('spark', t.x, ty, t.z, 1); if (Math.random() < 0.5) sfx('ric', t.x, t.z); } damage(t, dmg, src); sfx('mg', mx, mz); }
@@ -1211,12 +1218,14 @@ function updUnit(u, dt) {
     }
   } else if ((!u.isTruck || u.state !== 'build') && w.kind !== 'radar' && !(w.kind === 'repair' && u.heal)) { u.cd = Math.max(0, u.cd - dt); u.turYaw += clamp(angDiff(u.turYaw, 0), -2 * dt, 2 * dt); }
   u.tur.rotation.y = u.turYaw;
-
-  // visuals
+  const sp = Math.hypot(u.vx, u.vz);
+  if (sp > 0.4) { const th = Math.atan2(u.vx, u.vz); u.heading += clamp(angDiff(u.heading, th), -5 * dt, 5 * dt); }
+  unitVisual(u, dt);
+}
+function unitVisual(u, dt) {
   u.y = heightAt(u.x, u.z); let yy = u.y;
   if (u.d.pr === 'hover') { u.bob += dt * 3; yy += 0.2 + Math.sin(u.bob) * 0.08; }
   const sp = Math.hypot(u.vx, u.vz);
-  if (sp > 0.4) { const th = Math.atan2(u.vx, u.vz); u.heading += clamp(angDiff(u.heading, th), -5 * dt, 5 * dt); }
   const sh = Math.sin(u.heading), ch = Math.cos(u.heading);
   const hf = heightAt(u.x + sh, u.z + ch), hb = heightAt(u.x - sh, u.z - ch), hr = heightAt(u.x + ch, u.z - sh), hl = heightAt(u.x - ch, u.z + sh);
   const pitch = u.d.pr === 'hover' ? 0 : -Math.atan2(hf - hb, 2), roll = u.d.pr === 'hover' ? 0 : Math.atan2(hr - hl, 2);
@@ -1247,28 +1256,29 @@ function updBld(b, dt) {
     if (b.queue.length) {
       if (Math.random() < dt * 4) { const [wx, wz] = localToWorld(b, -2.6, -1.9); fx('smoke', wx, b.y + 7, wz, 0.9); }
       const d = b.queue[0]; const st = unitStats(d, b.team); b.prod += dt * T.prodMul;
-      if (b.prod >= st.time) { if (T.units < CAP) { b.queue.shift(); b.prod = 0; spawnFromFactory(b, d); } else b.prod = st.time; }
+      if (NET.cl) b.prod = Math.min(b.prod, st.time); else if (b.prod >= st.time) { if (T.units < CAP) { b.queue.shift(); b.prod = 0; spawnFromFactory(b, d); } else b.prod = st.time; }
     }
   }
-  if (b.type === 'lab' && b.res) { b.resProg += dt * TEAMS[b.team].rsMul; if (Math.random() < dt * 2) fx('muzzle', b.x, b.y + 4.3, b.z, 1.5); if (b.resProg >= b.res.time) { const id = b.res.id; b.res = null; b.resProg = 0; finishResearch(b.team, id); if (b.team === 0) { toast(`🔬 Cercetare gata: ${RS.find(r => r.id === id).name}`); sfx('done'); } } }
-  if (b.type === 'repairbay') {
+  if (b.type === 'lab' && b.res) { b.resProg += dt * TEAMS[b.team].rsMul; if (Math.random() < dt * 2) fx('muzzle', b.x, b.y + 4.3, b.z, 1.5); if (!NET.cl && b.resProg >= b.res.time) { const id = b.res.id; b.res = null; b.resProg = 0; finishResearch(b.team, id); if (b.team === 0) teamToast(`🔬 Cercetare gata: ${RS.find(r => r.id === id).name}`, 'done'); } }
+  if (b.type === 'repairbay' && !NET.cl) {
     b.acq -= dt; if (b.acq <= 0) { b.acq = 0.5; const fast = T.tech.has('repair2');
       for (const e of ents) if (e.alive && e.kind === 'unit' && e.team === b.team && e.hp < e.maxHp && Math.hypot(e.x - b.x, e.z - b.z) < 11) { e.hp = Math.min(e.maxHp, e.hp + (fast ? 40 : 25) * 0.5); if (Math.random() < 0.6) { tracer(b.x + 0.8, b.y + 3.6, b.z, e.x, e.y + 0.8, e.z); fx('spark', e.x, e.y + 0.9, e.z, 0.8); } } }
   }
-  if (b.type === 'radartower') {
+  if (b.type === 'radartower' && !NET.cl) {
     b.acq -= dt; if (b.acq <= 0) { b.acq = 0.5; const adv = T.tech.has('radar2'), ar = adv ? 44 : 34;
       for (const e of ents) if (e.alive && e.kind === 'unit' && e.team === b.team && e.st.w.dmg > 0 && Math.hypot(e.x - b.x, e.z - b.z) < ar) { e.rb = adv ? 1.35 : 1.25; e.rbT = 1.2; } }
   }
   if (b.type === 'tower' || b.def.tw) {
     const wk = b.def.tw || (b.tier !== undefined ? TIERS[b.tier].tower : (T.tech.has('tower2') ? 'cannon' : 'mg'));
     for (const k of b.parts.wl) b.parts[k].visible = k === wk; const w = WP[wk]; const range = w.range + (b.def.rb !== undefined ? b.def.rb : 2);
+    if (NET.cl) { b.parts.tur.rotation.y = b.turYaw = b.turYaw + angDiff(b.turYaw, b.nYaw || 0) * Math.min(1, dt * 8); } else {
     b.acq -= dt; if (b.acq <= 0) { b.acq = 0.4; if (!b.target || !b.target.alive || Math.hypot(b.target.x - b.x, b.target.z - b.z) - b.target.r > range) b.target = nearestEnemy(b.team, b.x, b.z, range); }
     b.cd -= dt;
     if (b.target && b.target.alive) {
       const a = Math.atan2(b.target.x - b.x, b.target.z - b.z); const local = angDiff(b.rot, a); b.turYaw += clamp(angDiff(b.turYaw, local), -4 * dt, 4 * dt);
       if (b.cd <= 0 && Math.abs(angDiff(b.turYaw, local)) < 0.2) { const wy = b.rot + b.turYaw; const ts = b.def.ts || 1; fireWeapon(b, b.target, w, b.x + Math.sin(wy) * 2 * ts, b.y + (b.def.ty || 3.3) + 0.3 * ts, b.z + Math.cos(wy) * 2 * ts, b.def.dm || 1.3); b.cd = w.rof * (TEAMS[b.team].rof[wfam(w)] || 1); }
     }
-    b.parts.tur.rotation.y = b.turYaw;
+    b.parts.tur.rotation.y = b.turYaw; }
   }
   if (b.hp < b.maxHp * 0.5) { b.smokeT -= dt; if (b.smokeT <= 0) { b.smokeT = 0.2; fx('smoke', b.x + rand(-1, 1), b.y + b.h, b.z + rand(-1, 1), 1); if (b.hp < b.maxHp * 0.3) fx('fire', b.x + rand(-1, 1), b.y + b.h * 0.8, b.z + rand(-1, 1), 0.9); } }
 }
@@ -1294,17 +1304,50 @@ const markerGeo = new THREE.RingGeometry(0.8, 1.1, 24).rotateX(-Math.PI / 2);
 const markers = [];
 function marker(x, z, color) { const m = new THREE.Mesh(markerGeo, new THREE.MeshBasicMaterial({ color, transparent: true, depthWrite: false })); m.position.set(x, heightAt(x, z) + 0.15, z); scene.add(m); markers.push({ m, t: 0.8 }); }
 function orderMove(units, x, z, amove, silent) {
-  const n = units.length; const cols = Math.ceil(Math.sqrt(n)); const rows = Math.ceil(n / cols); const sp = 2.8;
-  const rx = Math.cos(cam.yaw), rz = -Math.sin(cam.yaw), fwx = -Math.sin(cam.yaw), fwz = -Math.cos(cam.yaw);
-  units.forEach((u, i) => {
-    const c = i % cols, r = Math.floor(i / cols); const ox = (c - (cols - 1) / 2) * sp, oz = (r - (rows - 1) / 2) * sp;
-    u.tx = clamp(x + rx * ox + fwx * oz, -EDGE, EDGE); u.tz = clamp(z + rz * ox + fwz * oz, -EDGE, EDGE);
-    u.state = amove ? 'amove' : 'move'; u.amove = !!amove; if (!amove) u.target = null; u.buildTarget = null;
-  });
+  const list = formation(units, x, z);
+  if (silent) applyMove(list, amove); else doCmd(['mv', list, amove ? 1 : 0]);
   if (!silent) { marker(x, z, amove ? 0xff6040 : 0x80ff80); sfx('ack'); }
 }
-function orderAttack(units, t) { let any = false; for (const u of units) if (u.st.w.dmg > 0) { u.state = 'attack'; u.target = t; u.amove = false; any = true; } if (any) { marker(t.x, t.z, 0xff3020); sfx('ack'); } }
-function orderBuild(trucks, b) { for (const u of trucks) { u.state = 'build'; u.buildTarget = b; u.target = null; } if (trucks.length) sfx('ack'); }
+function applyMove(list, amove) {
+  for (const [id, tx, tz] of list) { const u = byId(id); if (!u || !u.alive || u.kind !== 'unit') continue;
+    u.tx = tx; u.tz = tz; u.state = amove ? 'amove' : 'move'; u.amove = !!amove; if (!amove) u.target = null; u.buildTarget = null; }
+}
+function formation(units, x, z) {
+  const n = units.length; const cols = Math.ceil(Math.sqrt(n)); const rows = Math.ceil(n / cols); const sp = 2.8;
+  const rx = Math.cos(cam.yaw), rz = -Math.sin(cam.yaw), fwx = -Math.sin(cam.yaw), fwz = -Math.cos(cam.yaw);
+  return units.map((u, i) => {
+    const c = i % cols, r = Math.floor(i / cols); const ox = (c - (cols - 1) / 2) * sp, oz = (r - (rows - 1) / 2) * sp;
+    return [u.id, r1(clamp(x + rx * ox + fwx * oz, -EDGE, EDGE)), r1(clamp(z + rz * ox + fwz * oz, -EDGE, EDGE))];
+  });
+}
+function orderAttack(units, t) { const us = units.filter(u => u.st.w.dmg > 0); if (us.length) { doCmd(['at', us.map(u => u.id), t.id]); marker(t.x, t.z, 0xff3020); sfx('ack'); } }
+function orderBuild(trucks, b) { if (!trucks.length) return; doCmd(['bd', trucks.map(u => u.id), b.id]); sfx('ack'); }
+const r1 = v => Math.round(v * 10) / 10;
+// ---- commands: every change to the game goes through here so the host can run it for both players
+function doCmd(c) { if (NET.cl) netSend({ t: 'c', c }); else execCmd(c, false); }
+function execCmd(c, remote) {
+  const T = TEAMS[0]; const U = ids => (ids || []).map(byId).filter(e => e && e.alive && e.team === 0);
+  const say = m => { if (remote) NET.ev.push(['t', m]); else toast(m); };
+  switch (c[0]) {
+    case 'mv': applyMove(c[1].filter(x => { const u = byId(x[0]); return u && u.team === 0; }), c[2]); break;
+    case 'at': { const t = byId(c[2]); if (!t || !t.alive) break; for (const u of U(c[1])) if (u.kind === 'unit' && u.st.w.dmg > 0) { u.state = 'attack'; u.target = t; u.amove = false; } break; }
+    case 'bd': { const b = byId(c[2]); if (!b || !b.alive || b.kind !== 'bld') break; for (const u of U(c[1])) if (u.isTruck) { u.state = 'build'; u.buildTarget = b; u.target = null; } break; }
+    case 'st': for (const u of U(c[1])) if (u.kind === 'unit') { u.state = 'idle'; u.target = null; u.amove = false; u.vx = u.vz = 0; } break;
+    case 'pl': { const [, type, x, z, ids] = c; const def = BD[type]; if (!def) break;
+      if (!canPlace(type, x, z, 0)) { say('Nu se poate construi aici'); break; }
+      if (T.energy < def.cost) { say('Energie insuficientă'); break; }
+      T.energy -= def.cost; const b = createBuilding(0, type, x, z, false); for (const u of U(ids)) if (u.isTruck) { u.state = 'build'; u.buildTarget = b; u.target = null; } break; }
+    case 'ra': { const f = byId(c[1]); if (f && f.team === 0) f.rally = { x: c[2], z: c[3] }; break; }
+    case 'q': { const f = byId(c[1]); if (!f || !f.alive || f.team !== 0 || f.type !== 'factory') break; const d = c[2]; if (!CH[d.ch] || !PR[d.pr] || !WP[d.wp]) break;
+      let k = 0; for (let i = 0; i < Math.min(5, c[3] | 0); i++) { const cost = unitStats(d, 0).cost; if (T.energy < cost || f.queue.length >= 8) break; T.energy -= cost; f.queue.push({ ch: d.ch, pr: d.pr, wp: d.wp }); k++; }
+      if (!k) say('Energie insuficientă sau coadă plină'); panelSig = ''; break; }
+    case 'uq': { const f = byId(c[1]); if (!f || f.team !== 0 || !f.queue) break; const i = c[2] | 0; const d = f.queue[i]; if (d) { T.energy += unitStats(d, 0).cost; f.queue.splice(i, 1); if (i === 0) f.prod = 0; panelSig = ''; } break; }
+    case 'rs': { const l = byId(c[1]); const r = RS.find(x => x.id === c[2]); if (!l || !l.alive || l.team !== 0 || l.type !== 'lab' || !l.complete || !r || l.res) break;
+      if (T.tech.has(r.id) || T.researching.has(r.id) || (r.req && !r.req.every(q => T.tech.has(q)))) break;
+      if (T.energy >= r.cost) { T.energy -= r.cost; l.res = r; l.resProg = 0; T.researching.add(r.id); panelSig = ''; } else say('Energie insuficientă'); break; }
+  }
+}
+function teamToast(msg, snd, x, z) { toast(msg); if (snd) sfx(snd); if (x !== undefined) pings.push({ x, z, t: 2 }); if (NET.host) NET.ev.push(['t', msg, snd || '', x, z]); }
 
 function canPlace(type, x, z, team) {
   const def = BD[type]; const r = def.size * 0.55;
@@ -1332,7 +1375,7 @@ function aiTick() {
   for (const o of OUTPOSTS) {
     if (!o.alive) continue;
     const f = o.factories.find(x => x.alive);
-    if (!f && !o.citadel && !o.towers.some(x => x.alive)) { o.alive = false; if (!S.over) { toast(`🏴 ${TIERS[o.tier].name} cucerit!`); sfx('done'); } continue; }
+    if (!f && !o.citadel && !o.towers.some(x => x.alive)) { o.alive = false; if (!S.over) teamToast(`🏴 ${TIERS[o.tier].name} cucerit!`, 'done'); continue; }
     const garrison = enemyUnits.filter(u => u.post === o);
     const home = garrison.filter(u => u.state === 'idle' && Math.hypot(u.x - o.x, u.z - o.z) < 30);
     // production
@@ -1528,10 +1571,10 @@ function handleTap(sx, sy) {
     lastTap = { t: now, e: hit }; sfx('click'); return;
   }
   if (!g) return;
-  if (trucks.length) { const w = WELLS.find(w => !w.pump && Math.hypot(w.x - g.x, w.z - g.z) < 4); if (w && TEAMS[0].energy >= BD.generator.cost) { TEAMS[0].energy -= BD.generator.cost; const b = createBuilding(0, 'generator', w.x, w.z, false); orderBuild(trucks, b); marker(w.x, w.z, 0xffd040); return; } }
+  if (trucks.length) { const w = WELLS.find(w => !w.pump && Math.hypot(w.x - g.x, w.z - g.z) < 4); if (w && TEAMS[0].energy >= BD.generator.cost) { doCmd(['pl', 'generator', w.x, w.z, trucks.map(u => u.id)]); sfx('ack'); marker(w.x, w.z, 0xffd040); return; } }
   if (units.length) { orderMove(units, g.x, g.z, amoveNext); amoveNext = false; panelSig = ''; return; }
   const f = sel.length === 1 && sel[0].kind === 'bld' && sel[0].team === 0 && sel[0].type === 'factory' ? sel[0] : null;
-  if (f) { f.rally = { x: g.x, z: g.z }; marker(g.x, g.z, 0x60c0ff); toast('📍 Punct de adunare setat'); return; }
+  if (f) { doCmd(['ra', f.id, r1(g.x), r1(g.z)]); f.rally = { x: g.x, z: g.z }; marker(g.x, g.z, 0x60c0ff); toast('📍 Punct de adunare setat'); return; }
   if (sel.length) setSel([]);
 }
 
@@ -1554,7 +1597,7 @@ function movePlacing(x, z) {
 function confirmPlacing() {
   const p = placing; if (!p || !p.valid) return; const def = BD[p.type];
   if (TEAMS[0].energy < def.cost) { toast('Energie insuficientă'); return; }
-  TEAMS[0].energy -= def.cost; const b = createBuilding(0, p.type, p.x, p.z, false); orderBuild(p.trucks.filter(t => t.alive), b);
+  doCmd(['pl', p.type, p.x, p.z, p.trucks.filter(t => t.alive).map(u => u.id)]); sfx('ack');
   cancelPlacing();
 }
 function cancelPlacing() { if (!placing) return; scene.remove(placing.ghost); placing = null; panelSig = ''; }
@@ -1669,16 +1712,16 @@ panel.addEventListener('click', ev => {
   else if (act === 'place-ok') confirmPlacing();
   else if (act === 'place-cancel') cancelPlacing();
   else if (act === 'amove') { amoveNext = !amoveNext; panelSig = ''; if (amoveNext) toast('Atinge harta: unitățile atacă pe drum'); }
-  else if (act === 'stop') { for (const u of sel) if (u.kind === 'unit') { u.state = 'idle'; u.target = null; u.amove = false; u.vx = u.vz = 0; } }
+  else if (act === 'stop') doCmd(['st', sel.filter(u => u.kind === 'unit').map(u => u.id)]);
   else if (act === 'produce') queueUnit(e, JSON.parse(v), 1);
-  else if (act === 'unq') { const i = +v; const d = e.queue[i]; if (d) { T.energy += unitStats(d, 0).cost; e.queue.splice(i, 1); if (i === 0) e.prod = 0; panelSig = ''; } }
+  else if (act === 'unq') doCmd(['uq', e.id, +v]);
   else if (act === 'designer') openDesigner(e);
-  else if (act === 'research') { const r = RS.find(x => x.id === v); if (T.energy >= r.cost && !e.res) { T.energy -= r.cost; e.res = r; e.resProg = 0; T.researching.add(r.id); panelSig = ''; } }
+  else if (act === 'research') { const r = RS.find(x => x.id === v); if (T.energy >= r.cost && !e.res) doCmd(['rs', e.id, r.id]); }
 });
 function queueUnit(f, d, n) {
-  const T = TEAMS[0]; let k = 0;
-  for (let i = 0; i < n; i++) { const c = unitStats(d, 0).cost; if (T.energy < c || f.queue.length >= 8) break; T.energy -= c; f.queue.push(d); k++; }
-  if (!k) toast('Energie insuficientă sau coadă plină'); panelSig = '';
+  const T = TEAMS[0];
+  if (T.energy < unitStats(d, 0).cost || f.queue.length >= 8) toast('Energie insuficientă sau coadă plină'); else doCmd(['q', f.id, { ch: d.ch, pr: d.pr, wp: d.wp }, n]);
+  panelSig = '';
   if (!(d.wp === 'truck' && d.ch === 'light' && d.pr === 'wheels')) { lastDesigns = [d, ...lastDesigns.filter(x => designName(x) !== designName(d))].slice(0, 3); }
 }
 
@@ -1918,6 +1961,174 @@ function sfx(type, x, z) {
   if (type === 'done') setTimeout(() => sfx('done2'), 140);
 }
 
+// ================= MULTIPLAYER (co-op: two commanders share one army against the citadel) =================
+// The host phone runs the whole battle. The guest sends its orders and receives the state ~10x/s.
+// Phones meet through the room server (room code); then talk directly (WebRTC) or, if a network blocks
+// that, through the server.
+const NET_URL = (() => { try { return localStorage.getItem('ironfall.server') || 'https://easofty.com/ironfall/api.php'; } catch (e) { return 'https://easofty.com/ironfall/api.php'; } })();
+const NET = { on: false, host: false, cl: false, room: '', after: 0, pc: null, dc: null, ev: [], out: [], ccx: 0, ccz: 0, known: new Set(), dead: new Set(), lastRx: 0, sendT: 0, techT: 0, labT: 0, started: false, peerOk: false, flushT: null, pollT: null, lastBld: new Map() };
+async function api(a, params, body) {
+  const q = new URLSearchParams(Object.assign({ a, room: NET.room, me: NET.host ? 'h' : 'c' }, params || {}));
+  const r = await fetch(NET_URL + '?' + q.toString(), body ? { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'text/plain' } } : { cache: 'no-store' });
+  return r.json();
+}
+function netSend(m) {
+  if (NET.dc && NET.dc.readyState === 'open') { try { NET.dc.send(JSON.stringify(m)); return; } catch (e) {} }
+  NET.out.push(m); if (!NET.flushT) NET.flushT = setTimeout(netFlush, 120);
+}
+async function netFlush() { NET.flushT = null; if (!NET.out.length) return; const b = NET.out.splice(0, 40); try { await api('send', null, b); } catch (e) { NET.out.unshift(...b); } if (NET.out.length && !NET.flushT) NET.flushT = setTimeout(netFlush, 150); }
+function netPollLoop() {
+  clearTimeout(NET.pollT);
+  const go = async () => {
+    try { const r = await api('poll', { after: NET.after }); if (r && r.msgs) for (const [seq, m] of r.msgs) { NET.after = Math.max(NET.after, seq); netRecv(m); } if (r && r.joined && NET.host && !NET.peerOk) onPeerJoined(); }
+    catch (e) { netStatus('Conexiune slabă cu serverul…'); }
+    const direct = NET.dc && NET.dc.readyState === 'open';
+    NET.pollT = setTimeout(go, direct ? 2000 : 180);
+  };
+  go();
+}
+function netRecv(m) {
+  if (!m || typeof m !== 'object') return;
+  NET.lastRx = performance.now();
+  if (m.t === 'sdp' || m.t === 'ice') return rtcSignal(m);
+  if (NET.host) {
+    if (m.t === 'hi') netSend({ t: 'cfg', seed: SEED, map: MAPI, diff: S.diff });
+    else if (m.t === 'ready') hostStart();
+    else if (m.t === 'c' && Array.isArray(m.c)) execCmd(m.c, true);
+    else if (m.t === 'cam') { NET.ccx = +m.x || 0; NET.ccz = +m.z || 0; }
+  } else {
+    if (m.t === 'cfg') { if (NETCFG) return; try { sessionStorage.setItem('ironfall.net', JSON.stringify({ room: NET.room, seed: m.seed, map: m.map, diff: m.diff, after: NET.after })); } catch (e) {} location.reload(); }
+    else if (m.t === 's') clientApply(m);
+  }
+}
+function onPeerJoined() { NET.peerOk = true; netStatus('Prietenul a intrat! Se încarcă harta la el…'); }
+// --- WebRTC direct link (falls back to the server relay if it cannot connect)
+function rtcMake() {
+  if (!window.RTCPeerConnection) return null;
+  const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] });
+  pc.onicecandidate = e => { if (e.candidate) netSend({ t: 'ice', c: e.candidate.toJSON ? e.candidate.toJSON() : e.candidate }); };
+  pc.ondatachannel = e => rtcChannel(e.channel);
+  NET.pc = pc; return pc;
+}
+function rtcChannel(dc) { NET.dc = dc; dc.onmessage = e => { try { netRecv(JSON.parse(e.data)); } catch (x) {} }; dc.onopen = () => { toast('🔗 Legătură directă între telefoane'); }; }
+async function rtcOffer() { try { const pc = rtcMake(); if (!pc) return; rtcChannel(pc.createDataChannel('g', { ordered: true })); const o = await pc.createOffer(); await pc.setLocalDescription(o); netSend({ t: 'sdp', d: { type: pc.localDescription.type, sdp: pc.localDescription.sdp } }); } catch (e) {} }
+async function rtcSignal(m) {
+  try {
+    if (m.t === 'sdp') {
+      if (m.d.type === 'offer') { const pc = rtcMake(); if (!pc) return; await pc.setRemoteDescription(m.d); const a = await pc.createAnswer(); await pc.setLocalDescription(a); netSend({ t: 'sdp', d: { type: pc.localDescription.type, sdp: pc.localDescription.sdp } }); }
+      else if (NET.pc) await NET.pc.setRemoteDescription(m.d);
+    } else if (m.t === 'ice' && NET.pc) await NET.pc.addIceCandidate(m.c);
+  } catch (e) {}
+}
+// --- host: build and send the world state
+function hostStart() {
+  if (NET.started) return; NET.started = true;
+  $('mp').classList.add('hidden'); $('intro').classList.add('hidden'); startGame();
+  toast('👥 Prietenul tău comandă din baza de la est'); rtcOffer();
+}
+function hostTick(dt) {
+  NET.sendT -= dt; if (NET.sendT > 0) return;
+  const direct = NET.dc && NET.dc.readyState === 'open'; NET.sendT = direct ? 0.1 : 0.33;
+  const T = TEAMS[0]; const m = { t: 's', time: r1(S.time), T: [Math.floor(T.energy), r1(T.inc), T.units], nu: [], nb: [], u: [], b: [], ev: NET.ev.splice(0) };
+  NET.techT -= NET.sendT; if (NET.techT <= 0) { NET.techT = 1; m.tech = [...T.tech]; m.rsg = [...T.researching]; m.mul = [T.hpMul, T.spdMul, T.prodMul, T.shpMul, T.powMul, T.rsMul, T.dmg, T.rof]; }
+  NET.labT -= NET.sendT; const labs = NET.labT <= 0; if (labs) { NET.labT = 0.5; m.L = []; }
+  for (const e of ents) {
+    if (!e.alive) continue;
+    if (!NET.known.has(e.id)) { NET.known.add(e.id);
+      if (e.kind === 'unit') m.nu.push([e.id, e.team, e.d.ch, e.d.pr, e.d.wp, e.tier === undefined ? -1 : e.tier, r1(e.x), r1(e.z), Math.round(e.maxHp)]);
+      else m.nb.push([e.id, e.team, e.type, r1(e.x), r1(e.z), r1(e.rot * 10) / 10, e.tier === undefined ? -1 : e.tier, e.complete ? 1 : 0, Math.round(e.maxHp)]); }
+    if (e.kind === 'unit') m.u.push(e.id, Math.round(e.x * 10), Math.round(e.z * 10), Math.round(e.heading * 100), Math.round(e.turYaw * 100), Math.ceil(e.hp), (e.state === 'build' && e.buildTarget && Math.hypot(e.buildTarget.x - e.x, e.buildTarget.z - e.z) < e.buildTarget.r + 3 ? 1 : 0) | (e.stun > 0 ? 2 : 0), Math.round(e.maxHp));
+    else { const key = Math.ceil(e.hp) + ':' + Math.round(e.built * 100) + ':' + Math.round(e.turYaw * 20) + ':' + Math.round(e.maxHp);
+      if (NET.lastBld.get(e.id) !== key) { NET.lastBld.set(e.id, key); m.b.push([e.id, Math.ceil(e.hp), Math.round(e.built * 1000), Math.round(e.turYaw * 100), Math.round(e.maxHp)]); }
+      if (labs && e.team === 0 && (e.type === 'lab' || e.type === 'factory')) m.L.push([e.id, e.res ? e.res.id : '', r1(e.resProg), e.queue.map(d => [d.ch, d.pr, d.wp]), r1(e.prod)]); }
+  }
+  for (const id of NET.lastBld.keys()) { const e = byId(id); if (!e || !e.alive) NET.lastBld.delete(id); }
+  if (!m.nu.length) delete m.nu; if (!m.nb.length) delete m.nb; if (!m.b.length) delete m.b; if (!m.ev.length) delete m.ev;
+  netSend(m);
+}
+// --- guest: mirror the host's world
+function clientApply(m) {
+  if (!NET.started) { NET.started = true; $('mp').classList.add('hidden'); netStatus(''); }
+  NET.snapAt = performance.now();
+  const T = TEAMS[0]; if (m.T) { T.energy = m.T[0]; T.inc = m.T[1]; T.units = m.T[2]; }
+  if (m.tech) { T.tech = new Set(m.tech); T.researching = new Set(m.rsg || []); const k = m.mul; if (k) { T.hpMul = k[0]; T.spdMul = k[1]; T.prodMul = k[2]; T.shpMul = k[3]; T.powMul = k[4]; T.rsMul = k[5]; T.dmg = k[6] || {}; T.rof = k[7] || {}; } }
+  const adopt = (e, id) => { EID.delete(e.id); e.id = id; EID.set(id, e); };
+  if (m.nb) for (const [id, team, type, x, z, rot, tier, comp, mhp] of m.nb) { if (byId(id) || NET.dead.has(id) || !BD[type]) continue;
+    const b = createBuilding(team, type, x, z, !!comp, rot, tier < 0 ? undefined : tier); adopt(b, id); b.maxHp = mhp; if (!comp) b.mesh.scale.y = 0.12; }
+  if (m.nu) for (const [id, team, ch, pr, wp, tier, x, z, mhp] of m.nu) { if (byId(id) || NET.dead.has(id) || !CH[ch] || !PR[pr] || !WP[wp]) continue;
+    const u = createUnit(team, { ch, pr, wp }, x, z, tier < 0 ? undefined : tier); adopt(u, id); u.maxHp = mhp; u.nx = x; u.nz = z; }
+  if (m.u) for (let i = 0; i < m.u.length; i += 8) { const u = byId(m.u[i]); if (!u || u.kind !== 'unit') continue;
+    u.nx = m.u[i + 1] / 10; u.nz = m.u[i + 2] / 10; u.nh = m.u[i + 3] / 100; u.nt = m.u[i + 4] / 100; u.hp = m.u[i + 5]; u.weld = m.u[i + 6] & 1; u.stunV = m.u[i + 6] & 2; u.maxHp = m.u[i + 7]; }
+  if (m.b) for (const [id, hp, built, ty, mhp] of m.b) { const b = byId(id); if (!b || b.kind !== 'bld') continue; b.hp = hp; b.maxHp = mhp; b.built = built / 1000; b.nYaw = ty / 100; if (!b.complete && built >= 1000) completeBld(b); }
+  if (m.L) NET.lastL = m.L;
+  if (m.L) for (const [id, rid, prog, q, prod] of m.L) { const b = byId(id); if (!b) continue; const r = rid ? RS.find(x => x.id === rid) : null; if ((b.res && b.res.id) !== (r && r.id)) panelSig = ''; b.res = r; b.resProg = prog; if (b.queue.length !== q.length) panelSig = ''; b.queue = q.map(([ch, pr, wp]) => ({ ch, pr, wp })); b.prod = prod; }
+  if (m.ev) for (const ev of m.ev) {
+    if (ev[0] === 'f') { const src = byId(ev[1]), t = byId(ev[2]), w = WP[ev[3]]; if (src && t && w && src.alive && t.alive) fireWeapon(src, t, w, ev[4], ev[5], ev[6], ev[7]); }
+    else if (ev[0] === 'k') { NET.dead.add(ev[1]); const e = byId(ev[1]); if (e && e.alive) kill(e); }
+    else if (ev[0] === 't') { toast(ev[1]); if (ev[2]) sfx(ev[2]); if (ev[3] !== undefined && ev[3] !== null) pings.push({ x: ev[3], z: ev[4], t: 2 }); }
+    else if (ev[0] === 'end') { S.stats = ev[2] || S.stats; S.time = m.time; endGame(ev[1]); }
+  }
+  S.time = m.time;
+}
+function clientUpdate(dt) {
+  for (let i = timers.length - 1; i >= 0; i--) if (S.time >= timers[i].t) { const f = timers[i].fn; timers.splice(i, 1); f(); }
+  S.time += dt; const k = Math.min(1, dt * 9);
+  for (const e of ents) { if (!e.alive) continue;
+    if (e.kind === 'unit') { const ox = e.x, oz = e.z;
+      if (e.nx !== undefined) { if (Math.hypot(e.nx - e.x, e.nz - e.z) > 12) { e.x = e.nx; e.z = e.nz; } else { e.x += (e.nx - e.x) * k; e.z += (e.nz - e.z) * k; } }
+      e.vx = dt > 0 ? (e.x - ox) / dt : 0; e.vz = dt > 0 ? (e.z - oz) / dt : 0;
+      if (e.nh !== undefined) { e.heading += angDiff(e.heading, e.nh) * k; e.turYaw += angDiff(e.turYaw, e.nt) * k; e.tur.rotation.y = e.turYaw; }
+      if (e.weld && e.isTruck) { const b = ents.find(x => x.alive && x.kind === 'bld' && Math.hypot(x.x - e.x, x.z - e.z) < x.r + 3.5); if (b && Math.random() < dt * 8) fx('spark', b.x + rand(-b.r, b.r) * 0.6, b.y + rand(0.5, 3), b.z + rand(-b.r, b.r) * 0.6, 1); if (Math.random() < dt * 2) sfx('weld', e.x, e.z); }
+      if (e.stunV && Math.random() < dt * 6) fx('spark', e.x + rand(-0.6, 0.6), e.y + e.h * 0.7, e.z + rand(-0.6, 0.6), 0.8);
+      unitVisual(e, dt);
+    } else updBld(e, dt);
+  }
+  for (let i = ents.length - 1; i >= 0; i--) if (!ents[i].alive) { EID.delete(ents[i].id); ents.splice(i, 1); }
+  updProjs(dt); updWrecks(dt); updWells(dt); updFireZones(dt);
+  for (let i = markers.length - 1; i >= 0; i--) { const m = markers[i]; m.t -= dt; m.m.scale.setScalar(0.4 + m.t); m.m.material.opacity = m.t; if (m.t <= 0) { scene.remove(m.m); markers.splice(i, 1); } }
+  engineAudio(dt); heat = Math.max(0, heat - dt * 0.08); AU.heat = lerp(AU.heat, clamp(heat, 0, 1), dt * 0.5);
+  NET.camT = (NET.camT || 0) - dt; if (NET.camT <= 0) { NET.camT = 1; netSend({ t: 'cam', x: Math.round(cam.x), z: Math.round(cam.z) }); }
+}
+function netWatch() {   // connection banner for both sides
+  if (!NET.on || !NET.started || S.over) return;
+  const idle = (performance.now() - (NET.cl ? (NET.snapAt || 0) : NET.lastRx)) / 1000;
+  if (NET.host) { NET.pingT = (NET.pingT || 0) + 1; }
+  if (NET.cl) { NET.pingT = (NET.pingT || 0) + 1; if (NET.pingT % 2 === 0) netSend({ t: 'p' }); }
+  netStatus(idle > 6 ? (NET.cl ? '⏳ Se așteaptă gazda… (verifică internetul)' : '⏳ Prietenul nu răspunde…') : '');
+}
+setInterval(netWatch, 1000);
+function netStatus(t) { const el = $('netSt'); if (!el) return; el.textContent = t; el.classList.toggle('hidden', !t); }
+// --- lobby
+function mpOpen() { $('mp').classList.remove('hidden'); mpView('menu'); }
+function mpView(v, txt) {
+  const box = $('mpBody');
+  if (v === 'menu') box.innerHTML = `<p class="mph">Joacă împreună cu un prieten, de oriunde. Amândoi comandați aceeași armată (energie și cercetare comune), fiecare cu baza lui, împotriva citadelei. Harta și dificultatea se aleg de cel care creează partida.</p>
+    <div class="mpb"><button class="ok big" data-mp="create">➕ Creează partidă</button></div>
+    <div class="mpb"><input id="mpCode" maxlength="5" placeholder="COD" autocomplete="off" autocapitalize="characters"><button class="ok big" data-mp="join">➜ Intră cu cod</button></div>
+    <div class="mpb"><button data-mp="close">Înapoi</button></div>`;
+  else if (v === 'wait') box.innerHTML = `<p class="mph">Spune-i prietenului codul camerei:</p><div class="mpcode">${NET.room}</div><p class="mph" id="mpMsg">${txt || 'Se așteaptă al doilea jucător…'}</p><div class="mpb"><button data-mp="cancel">Anulează</button></div>`;
+  else if (v === 'msg') box.innerHTML = `<p class="mph">${txt}</p><div class="mpb"><button data-mp="cancel">Înapoi</button></div>`;
+  else if (v === 'guest') box.innerHTML = `<p class="mph">Conectat la camera <b>${NET.room}</b>.</p><div class="mpb"><button class="ok big" data-mp="go">▶ Intră în luptă</button></div><p class="mph" id="mpMsg"></p>`;
+}
+async function mpClick(ev) {
+  const b = ev.target.closest('[data-mp]'); if (!b) return; const a = b.dataset.mp; sfx('click');
+  if (a === 'close') { $('mp').classList.add('hidden'); return; }
+  if (a === 'cancel') { if (NET.room) api('leave').catch(() => {}); location.reload(); return; }
+  if (a === 'create') { mpView('msg', 'Se creează camera…');
+    try { const r = await api('create', { mode: 'coop', map: MAPI }); if (!r.room) throw 0; NET.on = NET.host = true; NET.room = r.room; mpView('wait'); netPollLoop(); }
+    catch (e) { mpView('msg', '❌ Nu mă pot conecta la server. Verifică internetul.'); } return; }
+  if (a === 'join') { const code = ($('mpCode').value || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); if (code.length !== 5) { toast('Codul are 5 caractere'); return; }
+    mpView('msg', 'Se intră în camera ' + code + '…');
+    try { NET.room = code; const r = await api('join'); if (r.err) { mpView('msg', '❌ ' + (r.err === 'nu există camera' ? 'Nu există camera ' + code : r.err)); NET.room = ''; return; }
+      NET.on = NET.cl = true; netPollLoop(); netSend({ t: 'hi' }); mpView('msg', 'Se primește harta…'); }
+    catch (e) { mpView('msg', '❌ Nu mă pot conecta la server. Verifică internetul.'); } return; }
+  if (a === 'go') { audioInit(); $('mpBody').innerHTML = '<p class="mph">Se așteaptă gazda…</p>'; $('intro').classList.add('hidden'); clientStart(); netSend({ t: 'ready' }); }
+}
+function clientStart() {
+  $('hud').classList.remove('hidden'); scene.add(sky); buildTerrain(); buildDecor(); buildMiniBg();
+  uid = 1e9; cam.x = PLAYER2.x; cam.z = PLAYER2.z - 8; S.running = true; $('mp').classList.remove('hidden');
+}
+
 // ================= GAME FLOW =================
 function setupGame() {
   scene.add(sky);
@@ -1928,6 +2139,11 @@ function setupGame() {
   createBuilding(0, 'generator', B.x - 14, B.z + 12, true);
   for (let i = 0; i < 3; i++) createUnit(0, { ch: 'light', pr: 'wheels', wp: 'truck' }, B.x - 4 + i * 3, B.z - 10);
   for (let i = 0; i < 4; i++) createUnit(0, { ch: 'light', pr: 'wheels', wp: 'mg' }, B.x + 6 + i * 3, B.z - 13);
+  if (NET.host) { const P = PLAYER2;
+    createBuilding(0, 'hq', P.x + 5, P.z + 5, true, Math.PI); createBuilding(0, 'factory', P.x - 6, P.z - 2, true, Math.PI);
+    for (let i = 0; i < 2; i++) createUnit(0, { ch: 'light', pr: 'wheels', wp: 'truck' }, P.x - 3 + i * 3, P.z - 10);
+    for (let i = 0; i < 3; i++) createUnit(0, { ch: 'light', pr: 'wheels', wp: 'mg' }, P.x + 4 + i * 3, P.z - 12);
+    NET.ccx = P.x; NET.ccz = P.z; }
   for (const u of ents) if (u.kind === 'unit') u.heading = Math.PI;
   setupEnemy();
 }
@@ -1944,6 +2160,7 @@ function update(dt) {
   for (let i = markers.length - 1; i >= 0; i--) { const m = markers[i]; m.t -= dt; m.m.scale.setScalar(0.4 + m.t); m.m.material.opacity = m.t; if (m.t <= 0) { scene.remove(m.m); markers.splice(i, 1); } }
   engineAudio(dt); heat = Math.max(0, heat - dt * 0.08); AU.heat = lerp(AU.heat, clamp(heat, 0, 1), dt * 0.5);
   winT += dt; if (winT > 1) { winT = 0; checkEnd(); }
+  if (NET.host) hostTick(dt);
 }
 function checkEnd() {
   if (S.over) return;
@@ -1955,13 +2172,14 @@ function endGame(win) {
   S.over = true; $('end').classList.remove('hidden'); $('endT').textContent = win ? 'VICTORIE' : 'ÎNFRÂNGERE';
   $('endS').innerHTML = `Timp: ${fmtTime(S.time)} · Unități produse: ${S.stats.built} · Inamici distruși: ${S.stats.killed} · Pierderi: ${S.stats.lost}`;
   sfx(win ? 'done' : 'alert');
+  if (NET.host) netSend({ t: 's', time: r1(S.time), ev: [...NET.ev.splice(0), ['end', win, S.stats]] });
 }
 
 let last = performance.now();
 function loop(now) {
   requestAnimationFrame(loop);
   const dt = Math.min(0.05, (now - last) / 1000) * (window.__speed || 1); last = now;
-  if (S.running && !S.paused && !S.over) update(dt);
+  if (S.running && !S.paused && !S.over) (NET.cl ? clientUpdate : update)(dt);
   updFx(S.paused ? 0 : dt);
   updateCamera(dt); updRings();
   if (prevR && !$('designer').classList.contains('hidden') && prevGrp) { prevGrp.rotation.y += dt * 0.8; prevR.render(prevScene, prevCam); }
@@ -1981,11 +2199,15 @@ addEventListener('resize', resize);
 // buttons
 try { const d0 = localStorage.getItem('ironfall.diff'); if (d0 !== null) { S.diff = +d0; document.querySelectorAll('#diff button').forEach(x => x.classList.toggle('on', +x.dataset.v === S.diff)); } } catch (e) {}
 document.querySelectorAll('#diff button').forEach(b => b.addEventListener('click', () => { document.querySelectorAll('#diff button').forEach(x => x.classList.remove('on')); b.classList.add('on'); S.diff = +b.dataset.v; }));
-$('bPlay').addEventListener('click', () => { audioInit(); $('intro').classList.add('hidden'); $('hud').classList.remove('hidden'); setupGame(); S.running = true; toast('Construiește generatoare pe sondele de petrol! ⚡'); });
+function startGame() { audioInit(); $('intro').classList.add('hidden'); $('hud').classList.remove('hidden'); setupGame(); S.running = true; toast('Construiește generatoare pe sondele de petrol! ⚡'); }
+$('bPlay').addEventListener('click', startGame);
+$('bMp').addEventListener('click', () => { audioInit(); mpOpen(); });
+$('mp').addEventListener('click', mpClick);
+if (NETCFG) { NET.on = NET.cl = true; NET.room = NETCFG.room; NET.after = NETCFG.after | 0; S.diff = NETCFG.diff | 0; $('mp').classList.remove('hidden'); mpView('guest'); netPollLoop(); }
 $('bHelp').addEventListener('click', () => $('help').classList.remove('hidden'));
 $('pHelp').addEventListener('click', () => $('help').classList.remove('hidden'));
 $('hClose').addEventListener('click', () => $('help').classList.add('hidden'));
-$('bPause').addEventListener('click', () => { S.paused = true; $('pause').classList.remove('hidden'); sfx('click'); });
+$('bPause').addEventListener('click', () => { S.paused = !NET.on; $('pause').classList.remove('hidden'); sfx('click'); });
 $('pResume').addEventListener('click', () => { S.paused = false; $('pause').classList.add('hidden'); });
 $('pMusic').addEventListener('click', e => { AU.music = !AU.music; e.target.textContent = '🎵 Muzică: ' + (AU.music ? 'DA' : 'NU'); });
 $('pSfx').addEventListener('click', e => { AU.sfx = !AU.sfx; e.target.textContent = '🔊 Sunete: ' + (AU.sfx ? 'DA' : 'NU'); });
@@ -2001,17 +2223,17 @@ $('bTrucks').addEventListener('click', () => { setSel(ents.filter(e => e.alive &
 $('bBox').addEventListener('click', () => { boxMode = !boxMode; $('bBox').classList.toggle('on', boxMode); sfx('click'); });
 $('bBase').addEventListener('click', () => { const hq = ents.find(e => e.alive && e.team === 0 && e.kind === 'bld') || { x: BASES[0].x, z: BASES[0].z }; cam.x = hq.x; cam.z = hq.z; sfx('click'); });
 
-window.onAppPause = () => { if (S.running && !S.over) { S.paused = true; $('pause').classList.remove('hidden'); } if (AU.ctx) AU.ctx.suspend(); };
+window.onAppPause = () => { if (S.running && !S.over && !NET.on) { S.paused = true; $('pause').classList.remove('hidden'); } if (AU.ctx) AU.ctx.suspend(); };
 window.onAppResume = () => { if (AU.ctx) AU.ctx.resume(); };
 window.onBack = () => {
   if (!$('help').classList.contains('hidden')) { $('help').classList.add('hidden'); return true; }
   if (!$('designer').classList.contains('hidden')) { $('designer').classList.add('hidden'); return true; }
   if (placing) { cancelPlacing(); return true; }
   if (!S.running || S.over) return false;
-  if (S.paused) return false;
-  S.paused = true; $('pause').classList.remove('hidden'); return true;
+  if (S.paused || !$('pause').classList.contains('hidden')) return false;
+  S.paused = !NET.on; $('pause').classList.remove('hidden'); return true;
 };
-window.__game = { S, TEAMS, ents, cam, setSel, sel: () => sel, createUnit, createBuilding, sfx, AU, SB, buildSfx, projs: () => projs, BD, WP };
+window.__game = { NET, execCmd, doCmd, byId, PLAYER2, S, TEAMS, ents, cam, setSel, sel: () => sel, createUnit, createBuilding, sfx, AU, SB, buildSfx, projs: () => projs, BD, WP };
 
 resize(); updateCamera(0); requestAnimationFrame(loop);
 // background scene behind the intro

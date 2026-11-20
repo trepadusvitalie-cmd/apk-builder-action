@@ -209,21 +209,62 @@ class Builder {
 
 // ---- terrain
 let terrainMesh;
+// detail texture for the ground: R = grass, G = sand/snow, B = rock (tileable, generated in code)
+const terrainTex = (() => {
+  const n = 512, c = document.createElement('canvas'); c.width = c.height = n; const g = c.getContext('2d');
+  const chan = draw => { const cv = document.createElement('canvas'); cv.width = cv.height = n; const x = cv.getContext('2d'); x.fillStyle = '#808080'; x.fillRect(0, 0, n, n); draw(x); return x.getImageData(0, 0, n, n).data; };
+  const wrap = (x, f) => { for (const ox of [-n, 0, n]) for (const oy of [-n, 0, n]) f(ox, oy); };
+  const R = Math.random;
+  const grass = chan(x => {
+    for (let i = 0; i < 260; i++) { const cx = R() * n, cy = R() * n, r = 10 + R() * 40, v = R() < 0.5 ? 60 : 200; wrap(x, (ox, oy) => { const gr = x.createRadialGradient(cx + ox, cy + oy, 0, cx + ox, cy + oy, r); gr.addColorStop(0, `rgba(${v},${v},${v},.18)`); gr.addColorStop(1, `rgba(${v},${v},${v},0)`); x.fillStyle = gr; x.fillRect(cx + ox - r, cy + oy - r, r * 2, r * 2); }); }
+    x.lineCap = 'round';
+    for (let i = 0; i < 5200; i++) { const cx = R() * n, cy = R() * n, l = 3 + R() * 7, a = -Math.PI / 2 + (R() - 0.5) * 1.2, v = R() < 0.55 ? 40 + R() * 50 : 170 + R() * 80;
+      x.strokeStyle = `rgba(${v},${v},${v},${0.35 + R() * 0.4})`; x.lineWidth = 0.8 + R() * 1.2; wrap(x, (ox, oy) => { x.beginPath(); x.moveTo(cx + ox, cy + oy); x.lineTo(cx + ox + Math.cos(a) * l, cy + oy + Math.sin(a) * l); x.stroke(); }); }
+  });
+  const sand = chan(x => {
+    for (let y = 0; y < n; y += 1) { const v = 128 + Math.sin((y + Math.sin(y * 0.05) * 6) / n * TAU * 22) * 26; x.fillStyle = `rgba(${v},${v},${v},.55)`; x.fillRect(0, y, n, 1); }
+    for (let i = 0; i < 2200; i++) { const cx = R() * n, cy = R() * n, r = 0.6 + R() * 2.2, v = R() < 0.6 ? 70 : 220; x.fillStyle = `rgba(${v},${v},${v},${0.3 + R() * 0.5})`; wrap(x, (ox, oy) => { x.beginPath(); x.arc(cx + ox, cy + oy, r, 0, TAU); x.fill(); }); }
+  });
+  const rock = chan(x => {
+    for (let i = 0; i < 90; i++) { const cx = R() * n, cy = R() * n, r = 20 + R() * 60, v = R() < 0.5 ? 80 : 180; wrap(x, (ox, oy) => { const gr = x.createRadialGradient(cx + ox, cy + oy, 0, cx + ox, cy + oy, r); gr.addColorStop(0, `rgba(${v},${v},${v},.35)`); gr.addColorStop(1, `rgba(${v},${v},${v},0)`); x.fillStyle = gr; x.fillRect(cx + ox - r, cy + oy - r, r * 2, r * 2); }); }
+    for (let i = 0; i < 70; i++) { let px = R() * n, py = R() * n, a = R() * TAU; x.strokeStyle = `rgba(30,30,30,${0.4 + R() * 0.4})`; x.lineWidth = 0.8 + R() * 1.6; const pts = [[px, py]];
+      for (let k = 0; k < 14; k++) { a += (R() - 0.5) * 1.1; px += Math.cos(a) * 7; py += Math.sin(a) * 7; pts.push([px, py]); }
+      wrap(x, (ox, oy) => { x.beginPath(); pts.forEach(([u, v], k) => k ? x.lineTo(u + ox, v + oy) : x.moveTo(u + ox, v + oy)); x.stroke(); }); }
+    for (let i = 0; i < 1500; i++) { const v = R() < 0.5 ? 60 : 210; x.fillStyle = `rgba(${v},${v},${v},.35)`; x.fillRect(R() * n, R() * n, 1 + R() * 2, 1 + R() * 2); }
+  });
+  const img = g.createImageData(n, n); for (let i = 0; i < n * n * 4; i += 4) { img.data[i] = grass[i]; img.data[i + 1] = sand[i]; img.data[i + 2] = rock[i]; img.data[i + 3] = 255; } g.putImageData(img, 0, 0);
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4; return t;
+})();
+function terrainMaterial() {
+  const m = new THREE.MeshLambertMaterial({ vertexColors: true, map: terrainTex });
+  m.onBeforeCompile = sh => {
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec4 bio;\nvarying vec4 vBio;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvBio = bio;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec4 vBio;\nfloat th(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }').replace('#include <map_fragment>', `
+#ifdef USE_MAP
+  vec3 d1 = texture2D(map, vMapUv * 0.42).rgb, d2 = texture2D(map, vMapUv * 0.11 + vec2(0.31, 0.17)).rgb, d3 = texture2D(map, vMapUv * 1.3).rgb;
+  vec3 dd = d1 * 0.5 + d2 * 0.3 + d3 * 0.2;
+  float ws = vBio.x + vBio.y + vBio.z + 0.0001;
+  float det = (dd.r * vBio.x + dd.g * vBio.y + dd.b * vBio.z) / ws;
+  det = clamp((det - 0.5) * 2.6 + 0.5, 0.0, 1.0);
+  diffuseColor.rgb *= mix(1.0, 0.58 + det * 0.84, clamp(ws, 0.0, 1.0));
+  // concrete plates (2 m) with seams in base areas
+  vec2 q = vMapUv * 2.5; vec2 f = fract(q); float seam = smoothstep(0.0, 0.035, f.x) * smoothstep(1.0, 0.965, f.x) * smoothstep(0.0, 0.035, f.y) * smoothstep(1.0, 0.965, f.y);
+  float plate = (0.9 + th(floor(q)) * 0.16) * mix(0.62, 1.0, seam) * (0.85 + d3.b * 0.3);
+  diffuseColor.rgb *= mix(1.0, plate, vBio.w);
+#endif`);
+  };
+  return m;
+}
 function buildTerrain() {
   const SEG = Math.min(300, Math.round(MAP / 1.5));
   const g = new THREE.PlaneGeometry(MAP, MAP, SEG, SEG); g.rotateX(-Math.PI / 2);
-  const p = g.attributes.position;
-  for (let i = 0; i < p.count; i++) p.setY(i, heightAt(p.getX(i), p.getZ(i)));
-  const ng = g.toNonIndexed(); g.dispose();
-  const pos = ng.attributes.position; const cols = new Float32Array(pos.count * 3);
-  const c = new THREE.Color(); const a = new THREE.Vector3(), b = new THREE.Vector3(), cc = new THREE.Vector3(), n = new THREE.Vector3(), t2 = new THREE.Vector3();
-  for (let i = 0; i < pos.count; i += 3) {
-    a.fromBufferAttribute(pos, i); b.fromBufferAttribute(pos, i + 1); cc.fromBufferAttribute(pos, i + 2);
-    const cx = (a.x + b.x + cc.x) / 3, cy = (a.y + b.y + cc.y) / 3, cz = (a.z + b.z + cc.z) / 3;
-    n.subVectors(b, a).cross(t2.subVectors(cc, a)).normalize();
-    const slope = 1 - Math.abs(n.y);
+  const pos = g.attributes.position;
+  for (let i = 0; i < pos.count; i++) pos.setY(i, heightAt(pos.getX(i), pos.getZ(i)));
+  g.computeVertexNormals(); const nrm = g.attributes.normal;
+  const cols = new Float32Array(pos.count * 3), bio = new Float32Array(pos.count * 4), uv = new Float32Array(pos.count * 2); const c = new THREE.Color();
+  for (let i = 0; i < pos.count; i++) {
+    const cx = pos.getX(i), cy = pos.getY(i), cz = pos.getZ(i); const slope = 1 - Math.abs(nrm.getY(i));
     const bw = biomeW(cx, cz); const nz = fbm(cx * 0.07 + 300, cz * 0.07); const t1 = smooth(clamp((nz - 0.4) / 0.25, 0, 1));
-    // per-biome ground colour
     const grass = [lerp(0.33, 0.45, t1), lerp(0.50, 0.40, t1), lerp(0.20, 0.22, t1)];
     const sand = [lerp(0.88, 0.80, t1), lerp(0.73, 0.62, t1), lerp(0.46, 0.38, t1)];
     const snow = [lerp(0.93, 0.80, t1 * 0.5), lerp(0.95, 0.85, t1 * 0.5), lerp(0.99, 0.92, t1 * 0.5)];
@@ -231,18 +272,22 @@ function buildTerrain() {
     let r = grass[0] * bw.green + sand[0] * bw.sand + snow[0] * bw.snow + rock[0] * bw.mtn;
     let gg = grass[1] * bw.green + sand[1] * bw.sand + snow[1] * bw.snow + rock[1] * bw.mtn;
     let bb = grass[2] * bw.green + sand[2] * bw.sand + snow[2] * bw.snow + rock[2] * bw.mtn;
-    if (slope > 0.2) { const t = clamp((slope - 0.2) / 0.25, 0, 1) * (1 - bw.sand * 0.7); r = lerp(r, 0.40, t); gg = lerp(gg, 0.37, t); bb = lerp(bb, 0.35, t); }
-    if (cy > 16) { const t = clamp((cy - 16) / 5, 0, 1) * clamp(1 - slope * 1.5, 0.3, 1); r = lerp(r, 0.95, t); gg = lerp(gg, 0.96, t); bb = lerp(bb, 0.99, t); }
-    const sc2 = fbm(cx * 0.05 - 200, cz * 0.05 + 100); if (sc2 > 0.7) { const t = clamp((sc2 - 0.7) / 0.08, 0, 1) * 0.6; r = lerp(r, 0.24, t); gg = lerp(gg, 0.21, t); bb = lerp(bb, 0.19, t); }
-    for (const B of FLAT) { const d = Math.hypot(cx - B.x, cz - B.z); const pr = B.r - 4; if (d < pr) { const t = clamp((pr - d) / 4, 0, 1); const grid = ((Math.floor(cx / 4) + Math.floor(cz / 4)) & 1) ? 0.55 : 0.5; r = lerp(r, grid, t); gg = lerp(gg, grid * 0.98, t); bb = lerp(bb, grid * 0.92, t); } }
+    let wg = bw.green, wsd = bw.sand + bw.snow * 0.8, wr = bw.mtn, wc = 0;
+    if (slope > 0.2) { const t = clamp((slope - 0.2) / 0.25, 0, 1) * (1 - bw.sand * 0.7); r = lerp(r, 0.40, t); gg = lerp(gg, 0.37, t); bb = lerp(bb, 0.35, t); wr = lerp(wr, 1, t); wg *= 1 - t; wsd *= 1 - t; }
+    if (cy > 16) { const t = clamp((cy - 16) / 5, 0, 1) * clamp(1 - slope * 1.5, 0.3, 1); r = lerp(r, 0.95, t); gg = lerp(gg, 0.96, t); bb = lerp(bb, 0.99, t); wsd = lerp(wsd, 0.4, t); wg *= 1 - t; wr *= 1 - t * 0.7; }
+    const sc2 = fbm(cx * 0.05 - 200, cz * 0.05 + 100); if (sc2 > 0.7) { const t = clamp((sc2 - 0.7) / 0.08, 0, 1) * 0.6; r = lerp(r, 0.24, t); gg = lerp(gg, 0.21, t); bb = lerp(bb, 0.19, t); wr = lerp(wr, 1, t); }
+    // dirt patches and tracks break up big uniform areas
+    const dn = fbm(cx * 0.16 + 50, cz * 0.16 - 70); if (dn > 0.62 && bw.green > 0.3) { const t = clamp((dn - 0.62) / 0.1, 0, 1) * 0.55 * bw.green; r = lerp(r, 0.47, t); gg = lerp(gg, 0.40, t); bb = lerp(bb, 0.28, t); wsd = lerp(wsd, 1, t); wg *= 1 - t * 0.6; }
+    for (const B of FLAT) { const d = Math.hypot(cx - B.x, cz - B.z); const pr = B.r - 4; if (d < pr + 1.5) { const t = clamp((pr - d) / 4 + 0.35, 0, 1); r = lerp(r, 0.53, t); gg = lerp(gg, 0.52, t); bb = lerp(bb, 0.49, t); wc = Math.max(wc, t); wg *= 1 - t; wsd *= 1 - t; wr *= 1 - t; } }
     for (const w of WELLS) { const d = Math.hypot(cx - w.x, cz - w.z); if (d < 2.6) { r = 0.08; gg = 0.07; bb = 0.06; } else if (d < 4) { r *= 0.6; gg *= 0.55; bb *= 0.5; } }
     const conc = (heightAt(cx + 4, cz) + heightAt(cx - 4, cz) + heightAt(cx, cz + 4) + heightAt(cx, cz - 4)) / 4 - cy;
-    const v = (0.92 + hash2(i, 7) * 0.14) * clamp(1 - conc * 0.05, 0.72, 1.12); c.setRGB(r * v, gg * v, bb * v, THREE.SRGBColorSpace);
-    for (let k = 0; k < 3; k++) { cols[(i + k) * 3] = c.r; cols[(i + k) * 3 + 1] = c.g; cols[(i + k) * 3 + 2] = c.b; }
+    const v = (0.94 + (fbm(cx * 0.4, cz * 0.4) - 0.5) * 0.16) * clamp(1 - conc * 0.05, 0.72, 1.12); c.setRGB(r * v, gg * v, bb * v, THREE.SRGBColorSpace);
+    cols[i * 3] = c.r; cols[i * 3 + 1] = c.g; cols[i * 3 + 2] = c.b;
+    bio[i * 4] = wg; bio[i * 4 + 1] = wsd; bio[i * 4 + 2] = wr; bio[i * 4 + 3] = wc;
+    uv[i * 2] = cx / 5; uv[i * 2 + 1] = cz / 5;
   }
-  ng.setAttribute('color', new THREE.BufferAttribute(cols, 3)); ng.computeVertexNormals();
-  { const uv = new Float32Array(pos.count * 2); for (let i = 0; i < pos.count; i++) { uv[i * 2] = pos.getX(i) / 5; uv[i * 2 + 1] = pos.getZ(i) / 5; } ng.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); }
-  terrainMesh = new THREE.Mesh(ng, new THREE.MeshLambertMaterial({ vertexColors: true, map: groundTex }));
+  g.setAttribute('color', new THREE.BufferAttribute(cols, 3)); g.setAttribute('bio', new THREE.BufferAttribute(bio, 4)); g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  terrainMesh = new THREE.Mesh(g, terrainMaterial());
   terrainMesh.receiveShadow = true;
   scene.add(terrainMesh);
 }
@@ -1006,7 +1051,7 @@ function completeBld(b) {
 // ================= FX =================
 const glowTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d'); const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.35, 'rgba(255,255,255,0.55)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })();
 function makePool(n, blend) { const arr = []; for (let i = 0; i < n; i++) { const m = new THREE.SpriteMaterial({ map: glowTex, transparent: true, depthWrite: false, blending: blend }); const s = new THREE.Sprite(m); s.visible = false; scene.add(s); arr.push({ s, life: 0, max: 1, vx: 0, vy: 0, vz: 0, s0: 1, s1: 2, a0: 1, g: 0, smoke: false }); } return arr; }
-const addPool = makePool(180, THREE.AdditiveBlending), normPool = makePool(160, THREE.NormalBlending);
+const addPool = makePool(240, THREE.AdditiveBlending), normPool = makePool(220, THREE.NormalBlending);
 let addIdx = 0, normIdx = 0;
 const FXT = {
   flash: { life: 0.14, s0: 1.6, s1: 4, a: 1, color: 0xfff0b0, v: 0, vy: 0 },
@@ -1018,11 +1063,14 @@ const FXT = {
   snow: { life: 5, s0: 0.35, s1: 0.3, a: 0.9, color: 0xffffff, v: 0.6, vy: -5, wind: 0.8 },
   steam: { life: 3, s0: 1.2, s1: 4.5, a: 0.5, color: 0xf2f2ee, v: 0.3, vy: 2.2, wind: 0.5 },
   flame: { life: 0.5, s0: 1.4, s1: 0.4, a: 0.9, color: 0xff8a30, v: 0.3, vy: 3 },
+  ember: { life: 1.4, s0: 0.22, s1: 0.05, a: 1, color: 0xff9a30, v: 3, vy: 6, g: 4 },
+  fireball: { life: 0.9, s0: 1.5, s1: 4.2, a: 0.9, color: 0xff6a18, v: 0.6, vy: 2.6 },
+  blacksmoke: { life: 5, s0: 1.4, s1: 6.5, a: 0.62, color: 0x24211e, v: 0.35, vy: 2.4, wind: 0.7 },
 };
 function fx(type, x, y, z, size = 1) {
   const P = FXT[type]; const normal = type === 'smoke' || type === 'dust' || type === 'snow' || type === 'steam';
-  const p = normal ? normPool[normIdx = (normIdx + 1) % normPool.length] : addPool[addIdx = (addIdx + 1) % addPool.length];
-  p.life = p.max = P.life * rand(0.8, 1.2); p.s0 = P.s0 * size; p.s1 = P.s1 * size; p.a0 = P.a; p.smoke = normal;
+  const p = (normal || type === 'blacksmoke') ? normPool[normIdx = (normIdx + 1) % normPool.length] : addPool[addIdx = (addIdx + 1) % addPool.length];
+  p.life = p.max = P.life * rand(0.8, 1.2); p.s0 = P.s0 * size; p.s1 = P.s1 * size; p.a0 = P.a; p.smoke = normal || type === 'blacksmoke';
   p.vx = rand(-P.v, P.v) + (P.wind || 0); p.vy = P.vy * rand(0.6, 1.2); p.vz = rand(-P.v, P.v); p.g = P.g || 0;
   p.s.material.color.setHex(P.color); p.s.position.set(x, y, z); p.s.visible = true; p.s.scale.setScalar(p.s0);
 }
@@ -1036,13 +1084,40 @@ function updFx(dt) {
   }
 }
 let shake = 0;
+// ---- explosion extras: ground shockwave, scorch marks, flying debris
+const shockGeo = new THREE.RingGeometry(0.86, 1, 40).rotateX(-Math.PI / 2);
+const shocks = []; for (let i = 0; i < 10; i++) { const m = new THREE.Mesh(shockGeo, new THREE.MeshBasicMaterial({ color: 0xffb060, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending })); m.visible = false; scene.add(m); shocks.push({ m, t: 0, max: 1, r: 1 }); }
+const scorchTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d'); const gr = g.createRadialGradient(32, 32, 2, 32, 32, 31); gr.addColorStop(0, 'rgba(10,8,6,.95)'); gr.addColorStop(0.55, 'rgba(25,20,15,.7)'); gr.addColorStop(1, 'rgba(30,25,20,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); for (let i = 0; i < 40; i++) { g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.arc(32 + rand(-24, 24), 32 + rand(-24, 24), rand(1, 4), 0, TAU); g.fill(); } return new THREE.CanvasTexture(c); })();
+const scorchGeo = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
+const scorches = []; let scIdx = 0; for (let i = 0; i < 40; i++) { const m = new THREE.Mesh(scorchGeo, new THREE.MeshBasicMaterial({ map: scorchTex, transparent: true, opacity: 0, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 })); m.visible = false; m.renderOrder = 1; scene.add(m); scorches.push({ m, t: 0 }); }
+const debGeo = new THREE.BoxGeometry(1, 1, 1); const debMats = [0x2a2622, 0x4a4438, 0x6a5a40, 0x3a3f30].map(c => new THREE.MeshLambertMaterial({ color: c, flatShading: true }));
+const debris = []; let dbIdx = 0; for (let i = 0; i < 48; i++) { const m = new THREE.Mesh(debGeo, debMats[i % 4]); m.visible = false; scene.add(m); debris.push({ m, t: 0, vx: 0, vy: 0, vz: 0, rx: 0, rz: 0, smk: 0 }); }
+function shockwave(x, z, r) { const s = shocks.find(q => !q.m.visible) || shocks[0]; s.m.position.set(x, heightAt(x, z) + 0.25, z); s.t = 0; s.max = 0.32 + r * 0.03; s.r = r; s.m.visible = true; }
+function scorch(x, z, r) { const s = scorches[scIdx = (scIdx + 1) % scorches.length]; s.m.position.set(x, heightAt(x, z) + 0.08, z); s.m.rotation.y = rand(0, TAU); s.m.scale.set(r * 2, 1, r * 2); s.t = 40; s.m.visible = true; s.m.material.opacity = 0.85; }
+function throwDebris(x, y, z, n, pw) { for (let i = 0; i < n; i++) { const d = debris[dbIdx = (dbIdx + 1) % debris.length]; const sz = rand(0.15, 0.4) * Math.min(2, pw); d.m.scale.set(sz, sz * rand(0.4, 1), sz * rand(0.6, 1.4)); d.m.position.set(x, y, z); const a = rand(0, TAU), v = rand(3, 7) * pw; d.vx = Math.sin(a) * v; d.vz = Math.cos(a) * v; d.vy = rand(5, 10) * pw; d.rx = rand(-12, 12); d.rz = rand(-12, 12); d.t = 3.5; d.smk = 0; d.burn = Math.random() < 0.5; d.m.visible = true; } }
+function updBoomFx(dt) {
+  for (const s of shocks) if (s.m.visible) { s.t += dt; const k = s.t / s.max; if (k >= 1) { s.m.visible = false; continue; } const r = s.r * (0.6 + 2.4 * Math.sqrt(k)); s.m.scale.set(r, 1, r); s.m.material.opacity = 0.55 * (1 - k) * (1 - k); }
+  for (const s of scorches) if (s.m.visible) { s.t -= dt; if (s.t < 8) s.m.material.opacity = 0.85 * Math.max(0, s.t / 8); if (s.t <= 0) s.m.visible = false; }
+  for (const d of debris) if (d.m.visible) { d.t -= dt; const p = d.m.position; d.vy -= 18 * dt; p.x += d.vx * dt; p.y += d.vy * dt; p.z += d.vz * dt; d.m.rotation.x += d.rx * dt; d.m.rotation.z += d.rz * dt;
+    const gy = heightAt(p.x, p.z) + 0.1; if (p.y < gy) { p.y = gy; if (Math.abs(d.vy) > 2.5) { d.vy *= -0.3; d.vx *= 0.5; d.vz *= 0.5; d.rx *= 0.5; d.rz *= 0.5; } else { d.vx = d.vz = d.vy = d.rx = d.rz = 0; } }
+    d.smk -= dt; if (d.burn && d.smk <= 0 && d.t > 1.2) { d.smk = 0.07; fx('smoke', p.x, p.y, p.z, 0.3); if (d.vy > 0) fx('fire', p.x, p.y, p.z, 0.25); }
+    if (d.t < 0.8) d.m.scale.multiplyScalar(1 - dt * 2.5); if (d.t <= 0) d.m.visible = false; }
+}
 function explosion(x, y, z, size) {
-  fx('flash', x, y, z, size);
-  for (let i = 0; i < 3 + size * 3; i++) fx('fire', x + rand(-0.5, 0.5) * size, y + rand(0, 0.5) * size, z + rand(-0.5, 0.5) * size, size * 0.8);
-  for (let i = 0; i < 5 * size; i++) fx('spark', x, y, z, 1);
-  for (let i = 0; i < 2 + size * 2; i++) fx('smoke', x + rand(-1, 1) * size, y + rand(0, 1), z + rand(-1, 1) * size, size);
-  fx('dust', x, heightAt(x, z) + 0.3, z, size * 1.5);
+  const near = Math.abs(x - cam.x) < 90 && Math.abs(z - cam.z) < 90; // keep effects cheap off-screen
+  fx('flash', x, y, z, size * 1.3);
+  if (near) {
+    for (let i = 0; i < 2 + size * 2; i++) fx('fireball', x + rand(-0.6, 0.6) * size, y + rand(0, 0.6) * size, z + rand(-0.6, 0.6) * size, size * 0.75);
+    for (let i = 0; i < 3 + size * 3; i++) fx('fire', x + rand(-0.5, 0.5) * size, y + rand(0, 0.5) * size, z + rand(-0.5, 0.5) * size, size * 0.8);
+    for (let i = 0; i < 5 * size; i++) fx('spark', x, y, z, 1);
+    for (let i = 0; i < 4 + size * 3; i++) fx('ember', x, y + 0.3, z, 1);
+    for (let i = 0; i < 2 + size * 2; i++) fx('smoke', x + rand(-1, 1) * size, y + rand(0, 1), z + rand(-1, 1) * size, size);
+    for (let i = 0; i < 1 + size; i++) later(0.15 + i * 0.12, () => fx('blacksmoke', x + rand(-0.5, 0.5) * size, y + 0.8, z + rand(-0.5, 0.5) * size, size * 0.8));
+    fx('dust', x, heightAt(x, z) + 0.3, z, size * 1.5);
+    shockwave(x, z, size * 1.6); scorch(x, z, size * 1.4); throwDebris(x, y + 0.5, z, Math.round(3 + size * 3), 0.7 + size * 0.25);
+  }
   sfx(size > 1.5 ? 'bigboom' : 'boom', x, z);
+  if (size > 1.5) { later(0.12, () => sfx('collapse', x, z)); } else { later(0.08, () => sfx('debris', x, z)); if (Math.random() < 0.45) later(rand(0.5, 1.1), () => { sfx('cookoff', x, z); fx('spark', x, y + 0.5, z, 1.2); fx('fire', x, y + 0.6, z, 0.6); }); }
   if (size > 1.5) shake = Math.max(shake, 0.5 * clamp(1 - Math.hypot(x - cam.x, z - cam.z) / 60, 0, 1));
 }
 
@@ -1084,7 +1159,7 @@ function updProjs(dt) {
     if (k >= 1) {
       scene.remove(p.m); projs.splice(i, 1);
       fx('flash', x, y, z, p.kind === 'rocket' ? 1 : 0.7); fx('fire', x, y, z, 0.7); fx('smoke', x, y, z, 0.6); for (let s = 0; s < 4; s++) fx('spark', x, y, z, 1);
-      if (p.kind === 'mortar') { const big = p.w && p.w.big; fx('flash', x, y, z, big ? 3 : 1.6); fx('dust', x, y, z, big ? 2.6 : 1.4); if (big) for (let s = 0; s < 3; s++) fx('fire', x + rand(-1.5, 1.5), y, z + rand(-1.5, 1.5), 1.4); }
+      if (p.kind === 'mortar') { const big = p.w && p.w.big; fx('flash', x, y, z, big ? 3 : 1.6); fx('dust', x, y, z, big ? 2.6 : 1.4); if (Math.abs(x - cam.x) < 90 && Math.abs(z - cam.z) < 90) { shockwave(x, z, big ? 3 : 1.8); scorch(x, z, big ? 2.4 : 1.4); fx('fireball', x, y + 0.4, z, big ? 1.5 : 0.9); for (let k = 0; k < (big ? 6 : 3); k++) fx('ember', x, y + 0.3, z, 1); if (big) throwDebris(x, y + 0.3, z, 4, 0.9); } if (big) for (let s = 0; s < 3; s++) fx('fire', x + rand(-1.5, 1.5), y, z + rand(-1.5, 1.5), 1.4); }
       sfx(p.kind === 'shell' ? 'imp_shell' : p.kind === 'rocket' ? 'imp_rocket' : (p.w && IMP_SND[p.w.id]) || 'imp_mortar', x, z); if (p.kind !== 'mortar' && p.tgt.alive) sfx('hit', x, z);
       if (p.w && p.w.fire) fireZones.push({ x, z, r: p.splash, t: 5, dps: p.w.fire, team: p.team, src: p.src, fxT: 0 });
       if (p.w && p.w.emp) { sfx('art_emp', x, z); for (const e of ents) if (e.alive && e.kind === 'unit' && e.team !== p.team && Math.hypot(e.x - x, e.z - z) < p.splash) e.stun = p.w.emp; for (let s = 0; s < 6; s++) fx('spark', x + rand(-2, 2), y + rand(0, 2), z + rand(-2, 2), 1.2); }
@@ -2006,6 +2081,16 @@ function buildSfx() {
       const roar = (l(br(), 300) * 1.2 + l2(W(), 1600) * 0.5) * Math.min(1, t * 6) * Math.exp(-t * 1.2); const crackle = Math.random() < 0.02 * Math.exp(-t) ? W() * 0.9 : 0; return W() * Math.exp(-t * 120) * 0.6 + whump + roar + crackle; }); }
   { const l = LP(); let ph = 0; const b = blast(2, { crack: 140, ca: 0.8, f0: 2200, f1: 150, decay: 2.6, sub: 60, sa: 0.9, dd: 0.2, deb: 0.004, sand: 0.2 }).getChannelData(0);
     SB.imp_plasma = mk(2, (t, i) => { ph += TAU2 * (1400 * Math.exp(-t * 3) + 180) / SR; const zap = (Math.random() < 0.05 * Math.exp(-t * 2) ? W() : 0) + Math.sin(ph) * 0.35 * Math.exp(-t * 4); return b[i] + l(zap, 6000) * 1.2; }); }
+  // wreck: scattered metal clanks and rattles after a vehicle blows up
+  SB.debris = [0, 1].map(v => { const l = LP(); const hits = []; for (let i = 0; i < 14; i++) hits.push([0.05 + Math.pow(Math.random(), 1.6) * 1.5, 600 + Math.random() * 2600, 0.3 + Math.random() * 0.7]);
+    return mk(1.8, t => { let s = 0; for (const [t0, f, a] of hits) { const tt = t - t0; if (tt > 0 && tt < 0.25) s += (Math.sin(TAU2 * f * tt) * 0.6 + Math.sin(TAU2 * f * 1.47 * tt) * 0.35 + W() * 0.5) * Math.exp(-tt * 28) * a * Math.exp(-t0 * 1.2); } return s + l(W(), 1200) * Math.exp(-t * 4) * 0.25; }, 1.2); });
+  // building collapse: long low rumble with falling concrete
+  { const l = LP(), l2 = LP(), l3 = LP(), br = BR(); SB.collapse = mk(4.2, t => { const env = Math.min(1, t * 3) * Math.exp(-t * 0.75); const rum = l(br(), 140) * 2.2 * env; const crunch = l2(Math.random() < 0.012 * Math.exp(-t * 0.6) ? W() * 3 : 0, 1800) * 1.4; const grit = l3(W(), 900) * env * 0.35; return rum + crunch + grit; }, 1.4); }
+  // ammunition cooking off: irregular pops and crackles
+  { const l = LP(); const pops = []; for (let i = 0; i < 9; i++) pops.push([Math.random() * 1.6, 0.4 + Math.random() * 0.6]);
+    SB.cookoff = mk(2.2, t => { let s = 0; for (const [t0, a] of pops) { const tt = t - t0; if (tt > 0 && tt < 0.2) s += (W() * Math.exp(-tt * 160) + Math.sin(TAU2 * 110 * tt) * Math.exp(-tt * 30) * 0.8) * a; } return s + l(Math.random() < 0.02 ? W() * 1.5 : 0, 3000) * Math.exp(-t * 0.8); }, 1.5); }
+  SB.boom.push(boom(2.6, 1.9, 1800, 110, 52, 0.006), boom(2.2, 2.6, 2200, 140, 62, 0.003));
+  SB.bigboom.push(boom(4.6, 1.0, 1100, 60, 36, 0.009));
   // incoming artillery whistle (falling pitch) heard just before the shell lands
   SB.whistle = [0, 1].map(k => { const l = LP(); let ph = 0; return mk(1.0, t => { const f = (1700 - k * 200) - 900 * t + 25 * Math.sin(TAU2 * 7 * t); ph += TAU2 * f / SR; return (Math.sin(ph) * 0.7 + l(W(), f) * 0.35) * Math.min(1, t * 2.5) * Math.min(1, (1 - t) * 30); }, 1); });
   // bullet ricochet off armour
@@ -2031,14 +2116,16 @@ const lastS = {};
 function sfx(type, x, z) {
   const ctx = AU.ctx; if (!ctx || !AU.sfx || ctx.state !== 'running') return; if (!SB.click) buildSfx();
   const t = ctx.currentTime;
-  const thr = { weld: 0.55, flame: 0.12, laser: 0.06, mg: 0.07, shell: 0.05, rocket: 0.08, boom: 0.06, bigboom: 0.2, hit: 0.05, imp_shell: 0.05, imp_rocket: 0.06, imp_mortar: 0.07, imp_how: 0.12, imp_hhow: 0.2, imp_inc: 0.15, imp_plasma: 0.12, imp_salvo: 0.09, whistle: 0.15, ric: 0.12, click: 0.03, ack: 0.25 }[type] || 0; if (lastS[type] && t - lastS[type] < thr) return; lastS[type] = t;
+  const thr = { weld: 0.55, flame: 0.12, laser: 0.06, mg: 0.07, shell: 0.05, rocket: 0.08, boom: 0.06, bigboom: 0.2, hit: 0.05, imp_shell: 0.05, imp_rocket: 0.06, imp_mortar: 0.07, imp_how: 0.12, imp_hhow: 0.2, imp_inc: 0.15, imp_plasma: 0.12, imp_salvo: 0.09, whistle: 0.15, ric: 0.12, debris: 0.1, collapse: 0.4, cookoff: 0.3, click: 0.03, ack: 0.25 }[type] || 0; if (lastS[type] && t - lastS[type] < thr) return; lastS[type] = t;
   let vol = 1, pan = 0;
   if (x !== undefined) { const dx = x - cam.x, dz = z - cam.z, d = Math.hypot(dx, dz); vol = clamp(1 - d / (60 + cam.dist), 0, 1) * clamp(70 / (cam.dist + 20), 0.4, 1); if (vol < 0.03) return; pan = clamp((dx * Math.cos(cam.yaw) - dz * Math.sin(cam.yaw)) / 40, -0.7, 0.7); }
   const key = type === 'shell' ? 'cannon' : type; let buf = SB[key]; if (!buf) return; if (Array.isArray(buf)) buf = pick(buf);
-  const VOL = { art_mortar: 0.7, art_rmortar: 0.6, art_how: 0.85, art_rhow: 0.75, art_hhow: 1, art_inc: 0.75, art_emp: 0.5, art_plasma: 0.55, art_salvo: 0.6, art_ball: 0.9, weld: 0.14, flame: 0.3, laser: 0.35, cannon: 0.75, mg: 0.32, rocket: 0.5, boom: 0.85, bigboom: 1, hit: 0.35, imp_shell: 0.7, imp_rocket: 0.75, imp_mortar: 0.85, imp_how: 0.95, imp_hhow: 1, imp_inc: 0.8, imp_plasma: 0.75, imp_salvo: 0.6, whistle: 0.3, ric: 0.22, click: 0.25, ack: 0.22, done: 0.3, done2: 0.3, alert: 0.25 }[key] || 0.4;
+  const VOL = { art_mortar: 0.7, art_rmortar: 0.6, art_how: 0.85, art_rhow: 0.75, art_hhow: 1, art_inc: 0.75, art_emp: 0.5, art_plasma: 0.55, art_salvo: 0.6, art_ball: 0.9, weld: 0.14, flame: 0.3, laser: 0.35, cannon: 0.75, mg: 0.32, rocket: 0.5, boom: 0.85, bigboom: 1, hit: 0.35, imp_shell: 0.7, imp_rocket: 0.75, imp_mortar: 0.85, imp_how: 0.95, imp_hhow: 1, imp_inc: 0.8, imp_plasma: 0.75, imp_salvo: 0.6, whistle: 0.3, ric: 0.22, debris: 0.45, collapse: 0.8, cookoff: 0.4, click: 0.25, ack: 0.22, done: 0.3, done2: 0.3, alert: 0.25 }[key] || 0.4;
   const s = ctx.createBufferSource(); s.buffer = buf; s.playbackRate.value = ['click', 'ack', 'done', 'done2', 'alert'].includes(key) ? 1 : rand(0.9, 1.1);
   const g = ctx.createGain(); g.gain.value = VOL * vol; const p = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
-  s.connect(g); if (p) { p.pan.value = pan; g.connect(p); p.connect(AU.sfxG); if (['cannon', 'boom', 'bigboom', 'rocket', 'hit'].includes(key) || key.startsWith('art_') || key.startsWith('imp_')) p.connect(AU.srev); } else g.connect(AU.sfxG);
+  const loud = key.startsWith('imp_') || key.startsWith('art_') || ['boom', 'bigboom', 'cannon', 'rocket', 'collapse', 'debris', 'cookoff'].includes(key);
+  if (loud && x !== undefined) { const d = Math.hypot(x - cam.x, z - cam.z); const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = clamp(16000 / (1 + Math.pow(d / 22, 1.7)), 500, 16000); s.connect(lp); lp.connect(g); } else s.connect(g);
+  if (p) { p.pan.value = pan; g.connect(p); p.connect(AU.sfxG); if (['cannon', 'boom', 'bigboom', 'rocket', 'hit', 'collapse', 'debris', 'cookoff'].includes(key) || key.startsWith('art_') || key.startsWith('imp_')) p.connect(AU.srev); } else g.connect(AU.sfxG);
   s.start(t);
   if (type === 'done') setTimeout(() => sfx('done2'), 140);
 }
@@ -2166,7 +2253,7 @@ function clientUpdate(dt) {
     } else updBld(e, dt);
   }
   for (let i = ents.length - 1; i >= 0; i--) if (!ents[i].alive) { EID.delete(ents[i].id); ents.splice(i, 1); }
-  updProjs(dt); updWrecks(dt); updWells(dt); updFireZones(dt);
+  updProjs(dt); updWrecks(dt); updWells(dt); updFireZones(dt); updBoomFx(dt);
   for (let i = markers.length - 1; i >= 0; i--) { const m = markers[i]; m.t -= dt; m.m.scale.setScalar(0.4 + m.t); m.m.material.opacity = m.t; if (m.t <= 0) { scene.remove(m.m); markers.splice(i, 1); } }
   engineAudio(dt); heat = Math.max(0, heat - dt * 0.08); AU.heat = lerp(AU.heat, clamp(heat, 0, 1), dt * 0.5);
   NET.camT = (NET.camT || 0) - dt; if (NET.camT <= 0) { NET.camT = 1; netSend({ t: 'cam', x: Math.round(cam.x), z: Math.round(cam.z) }); }
@@ -2238,7 +2325,7 @@ function update(dt) {
   for (const e of ents) if (e.alive) (e.kind === 'unit' ? updUnit : updBld)(e, dt);
   separate();
   for (let i = ents.length - 1; i >= 0; i--) if (!ents[i].alive) ents.splice(i, 1);
-  updProjs(dt); updWrecks(dt); updWells(dt); updFireZones(dt);
+  updProjs(dt); updWrecks(dt); updWells(dt); updFireZones(dt); updBoomFx(dt);
   for (let i = markers.length - 1; i >= 0; i--) { const m = markers[i]; m.t -= dt; m.m.scale.setScalar(0.4 + m.t); m.m.material.opacity = m.t; if (m.t <= 0) { scene.remove(m.m); markers.splice(i, 1); } }
   engineAudio(dt); heat = Math.max(0, heat - dt * 0.08); AU.heat = lerp(AU.heat, clamp(heat, 0, 1), dt * 0.5);
   winT += dt; if (winT > 1) { winT = 0; checkEnd(); }
@@ -2315,7 +2402,7 @@ window.onBack = () => {
   if (S.paused || !$('pause').classList.contains('hidden')) return false;
   S.paused = !NET.on; $('pause').classList.remove('hidden'); return true;
 };
-window.__game = { NET, execCmd, doCmd, byId, PLAYER2, S, TEAMS, ents, cam, setSel, sel: () => sel, createUnit, createBuilding, sfx, AU, SB, buildSfx, projs: () => projs, BD, WP };
+window.__game = { killNear: () => { for (const e of ents) if (e.alive && e.team === 1 && Math.hypot(e.x - PLAYER2.x, e.z - PLAYER2.z) < 25) kill(e); }, NET, execCmd, doCmd, byId, PLAYER2, S, TEAMS, ents, cam, setSel, sel: () => sel, createUnit, createBuilding, sfx, AU, SB, buildSfx, projs: () => projs, BD, WP };
 
 resize(); updateCamera(0); requestAnimationFrame(loop);
 // background scene behind the intro

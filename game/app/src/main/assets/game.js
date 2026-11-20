@@ -345,6 +345,7 @@ function buildGroundCover() {
 const TEAMC = [
   { body: 0x71804e, dark: 0x3d432f, acc: 0x3f9fe0, mini: '#5fc0ff', name: 'Tu' },
   { body: 0x7e5544, dark: 0x3d2a23, acc: 0xe0402a, mini: '#ff5a3a', name: 'Inamic' },
+  { body: 0x4e6a8a, dark: 0x27364a, acc: 0xffc832, mini: '#ffd23a', name: 'Aliat' }, // co-op guest commander
 ];
 const CH = {
   scout: { name: 'Cercetaș', hp: 80, cost: 25, spd: 1.25, size: 0.8, hue: 0xb8a868 },
@@ -901,21 +902,22 @@ function bldGeo(type, team) {
 // ================= ENTITIES =================
 const ents = []; let uid = 1; const EID = new Map(); const byId = id => EID.get(id);
 const glowDisc = new THREE.CircleGeometry(1, 16).rotateX(-Math.PI / 2);
-const glowMat = [new THREE.MeshBasicMaterial({ color: 0x66ccff, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false }), new THREE.MeshBasicMaterial({ color: 0xff7040, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false })];
+const glowMat = [new THREE.MeshBasicMaterial({ color: 0x66ccff, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false }), new THREE.MeshBasicMaterial({ color: 0xff7040, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false }), new THREE.MeshBasicMaterial({ color: 0xffd040, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false })];
 
-function createUnit(team, d, x, z, tier) {
-  const T = TEAMS[team]; const st = unitStats(d, team); if (tier !== undefined) st.hp = Math.round(st.hp * TIERS[tier].hp); const g = unitGeo(d, team);
+function createUnit(team, d, x, z, tier, pal) {
+  if (pal === undefined) pal = team;
+  const T = TEAMS[team]; const st = unitStats(d, team); if (tier !== undefined) st.hp = Math.round(st.hp * TIERS[tier].hp); const g = unitGeo(d, pal);
   const grp = new THREE.Group(); grp.rotation.order = 'YXZ';
   const body = new THREE.Mesh(g.body, matUnit); body.castShadow = true; grp.add(body);
   const tur = new THREE.Mesh(g.tur, matUnit); tur.position.y = g.turY; tur.castShadow = true; grp.add(tur);
-  if (d.pr === 'hover') { const gl = new THREE.Mesh(glowDisc, glowMat[team]); gl.scale.set(CH[d.ch].size * 1.3, 1, CH[d.ch].size * 1.7); gl.position.y = 0.05; grp.add(gl); }
+  if (d.pr === 'hover') { const gl = new THREE.Mesh(glowDisc, glowMat[pal]); gl.scale.set(CH[d.ch].size * 1.3, 1, CH[d.ch].size * 1.7); gl.position.y = 0.05; grp.add(gl); }
   scene.add(grp);
-  const u = { kind: 'unit', team, d, st, x, z, y: heightAt(x, z), hp: st.hp, maxHp: st.hp, r: 1.0 * CH[d.ch].size, h: g.turY + 0.6, heading: team === 0 ? Math.PI * 0.75 : -Math.PI * 0.25, vx: 0, vz: 0, mesh: grp, tur, turYaw: 0, state: 'idle', tx: x, tz: z, target: null, cd: rand(0, 0.5), acq: rand(0, 0.3), isTruck: d.wp === 'truck', bob: Math.random() * 6, smokeT: 0, alive: true, id: uid++, lastHit: -99, amove: false, lx: x, lz: z, tier, post: null };
+  const u = { kind: 'unit', team, d, st, x, z, y: heightAt(x, z), hp: st.hp, maxHp: st.hp, r: 1.0 * CH[d.ch].size, h: g.turY + 0.6, heading: team === 0 ? Math.PI * 0.75 : -Math.PI * 0.25, vx: 0, vz: 0, mesh: grp, tur, turYaw: 0, state: 'idle', tx: x, tz: z, target: null, cd: rand(0, 0.5), acq: rand(0, 0.3), isTruck: d.wp === 'truck', bob: Math.random() * 6, smokeT: 0, alive: true, id: uid++, lastHit: -99, amove: false, lx: x, lz: z, tier, post: null, pal };
   ents.push(u); EID.set(u.id, u); T.units++; return u;
 }
 
 function bldY(x, z, size) { const r = size * 0.4; let s = 0; const pts = [[0, 0], [r, r], [-r, r], [r, -r], [-r, -r]]; for (const p of pts) s += heightAt(x + p[0], z + p[1]); return s / pts.length; }
-function makeBldMesh(type, team) {
+function makeBldMesh(type, team) { // team = colour palette index
   const g = bldGeo(type, team); const grp = new THREE.Group(); const main = new THREE.Mesh(g.geo, matVC); main.castShadow = true; main.receiveShadow = true; grp.add(main); const parts = {};
   if (type === 'hq') { const d = new THREE.Mesh(g.anim.dish, matVC); d.position.set(-1.2, 5.4, -1.2); grp.add(d); parts.dish = d; }
   if (type === 'generator') { const f = new THREE.Mesh(g.anim.fan, matVC); f.position.set(-0.9, 3.15, 0.9); grp.add(f); parts.fan = f; const gl = new THREE.Mesh(g.anim.glow, matGlow); grp.add(gl); parts.glow = gl; }
@@ -931,13 +933,14 @@ function makeBldMesh(type, team) {
 }
 function wellAt(x, z) { for (const w of WELLS) if (Math.hypot(w.x - x, w.z - z) < 1) return w; return null; }
 
-function createBuilding(team, type, x, z, complete, rotOverride, tier) {
-  const def = BD[type]; const m = makeBldMesh(type, team);
+function createBuilding(team, type, x, z, complete, rotOverride, tier, pal) {
+  if (pal === undefined) pal = team;
+  const def = BD[type]; const m = makeBldMesh(type, pal);
   const y = (type === 'pump' || type === 'generator') ? heightAt(x, z) : bldY(x, z, def.size); m.grp.position.set(x, y, z);
   const rot = rotOverride !== undefined && rotOverride !== null ? rotOverride : Math.round(Math.atan2(-x, -z) / (Math.PI / 2)) * (Math.PI / 2); m.grp.rotation.y = rot;
   scene.add(m.grp);
   const maxHp = Math.round(def.hp * TEAMS[team].shpMul * (tier !== undefined ? TIERS[tier].hp : 1));
-  const b = { kind: 'bld', type, team, x, z, y, rot, def, hp: complete ? maxHp : maxHp * 0.1, maxHp, r: def.r || def.size * 0.55, h: def.h, tier, mesh: m.grp, parts: m.parts, complete: !!complete, built: complete ? 1 : 0, queue: [], prod: 0, rally: null, res: null, resProg: 0, cd: 0, acq: 0, target: null, turYaw: 0, alive: true, id: uid++, smokeT: 0, lastHit: -99, anim: Math.random() * 6 };
+  const b = { kind: 'bld', type, team, x, z, y, rot, def, hp: complete ? maxHp : maxHp * 0.1, maxHp, r: def.r || def.size * 0.55, h: def.h, tier, mesh: m.grp, parts: m.parts, complete: !!complete, built: complete ? 1 : 0, queue: [], prod: 0, rally: null, res: null, resProg: 0, cd: 0, acq: 0, target: null, turYaw: 0, alive: true, id: uid++, smokeT: 0, lastHit: -99, anim: Math.random() * 6, pal };
   if (!complete) m.grp.scale.y = 0.12;
   if (type === 'pump' || type === 'generator') { const w = wellAt(x, z); b.well = w; if (w) w.pump = b; }
   ents.push(b); EID.set(b.id, b); return b;
@@ -1045,7 +1048,7 @@ const wrecks = [];
 const matWreck = new THREE.MeshLambertMaterial({ color: 0x2a2622, flatShading: true });
 function addWreck(e) {
   let m;
-  if (e.kind === 'unit') { m = new THREE.Mesh(unitGeo(e.d, e.team).body, matWreck); m.position.set(e.x, e.y - 0.15, e.z); m.rotation.set(rand(-0.2, 0.2), e.heading, rand(-0.2, 0.2)); }
+  if (e.kind === 'unit') { m = new THREE.Mesh(unitGeo(e.d, e.pal).body, matWreck); m.position.set(e.x, e.y - 0.15, e.z); m.rotation.set(rand(-0.2, 0.2), e.heading, rand(-0.2, 0.2)); }
   else { const B = new Builder(); for (let i = 0; i < 9; i++) B.add(G.ico, rand(0.6, 1.6), rand(0.3, 0.9), rand(0.6, 1.6), rand(-e.r, e.r) * 0.7, 0, rand(-e.r, e.r) * 0.7, pick([0x3a3530, 0x2a2622, 0x4a443c]), rand(0, 3), rand(0, 3), 0); m = new THREE.Mesh(B.build(), matVC); m.position.set(e.x, e.y, e.z); }
   scene.add(m); wrecks.push({ m, life: e.kind === 'unit' ? 25 : 60, smokeT: 0, x: e.x, y: e.y, z: e.z, big: e.kind !== 'unit' });
 }
@@ -1284,7 +1287,7 @@ function updBld(b, dt) {
 }
 function spawnFromFactory(b, d) {
   const fxv = Math.sin(b.rot), fz = Math.cos(b.rot);
-  const u = createUnit(b.team, d, b.x + fxv * (b.r + 1.6), b.z + fz * (b.r + 1.6)); u.heading = b.rot;
+  const u = createUnit(b.team, d, b.x + fxv * (b.r + 1.6), b.z + fz * (b.r + 1.6), undefined, b.pal); u.heading = b.rot;
   if (b.team === 0) S.stats.built++;
   if (u.isTruck && b.team === 0) { truckAuto(u); if (u.state === 'build') return; }
   const rx = b.rally ? b.rally.x : b.x + fxv * (b.r + 7) + rand(-3, 3), rz = b.rally ? b.rally.z : b.z + fz * (b.r + 7) + rand(-3, 3);
@@ -1336,7 +1339,7 @@ function execCmd(c, remote) {
     case 'pl': { const [, type, x, z, ids] = c; const def = BD[type]; if (!def) break;
       if (!canPlace(type, x, z, 0)) { say('Nu se poate construi aici'); break; }
       if (T.energy < def.cost) { say('Energie insuficientă'); break; }
-      T.energy -= def.cost; const b = createBuilding(0, type, x, z, false); for (const u of U(ids)) if (u.isTruck) { u.state = 'build'; u.buildTarget = b; u.target = null; } break; }
+      T.energy -= def.cost; const b = createBuilding(0, type, x, z, false, undefined, undefined, remote ? 2 : 0); for (const u of U(ids)) if (u.isTruck) { u.state = 'build'; u.buildTarget = b; u.target = null; } break; }
     case 'ra': { const f = byId(c[1]); if (f && f.team === 0) f.rally = { x: c[2], z: c[3] }; break; }
     case 'q': { const f = byId(c[1]); if (!f || !f.alive || f.team !== 0 || f.type !== 'factory') break; const d = c[2]; if (!CH[d.ch] || !PR[d.pr] || !WP[d.wp]) break;
       let k = 0; for (let i = 0; i < Math.min(5, c[3] | 0); i++) { const cost = unitStats(d, 0).cost; if (T.energy < cost || f.queue.length >= 8) break; T.energy -= cost; f.queue.push({ ch: d.ch, pr: d.pr, wp: d.wp }); k++; }
@@ -1751,7 +1754,7 @@ let prevR = null, prevScene, prevCam, prevGrp;
 function updatePreview() {
   try {
     if (!prevR) { prevR = new THREE.WebGLRenderer({ canvas: $('prev'), antialias: true, alpha: true }); prevR.setPixelRatio(Math.min(devicePixelRatio, 2)); prevR.setSize(260, $('prev').clientHeight || 150, false); prevScene = new THREE.Scene(); prevScene.add(new THREE.HemisphereLight(0xffffff, 0x444033, 2)); const dl = new THREE.DirectionalLight(0xffffff, 2); dl.position.set(3, 5, 4); prevScene.add(dl); prevCam = new THREE.PerspectiveCamera(35, 260 / 150, 0.1, 50); prevCam.position.set(4.5, 3.2, 5.5); prevCam.lookAt(0, 0.8, 0); }
-    if (prevGrp) prevScene.remove(prevGrp); prevGrp = new THREE.Group(); const g = unitGeo(dsg, 0); prevGrp.add(new THREE.Mesh(g.body, matUnit)); const t = new THREE.Mesh(g.tur, matUnit); t.position.y = g.turY; prevGrp.add(t); prevScene.add(prevGrp);
+    if (prevGrp) prevScene.remove(prevGrp); prevGrp = new THREE.Group(); const g = unitGeo(dsg, NET.cl ? 2 : 0); prevGrp.add(new THREE.Mesh(g.body, matUnit)); const t = new THREE.Mesh(g.tur, matUnit); t.position.y = g.turY; prevGrp.add(t); prevScene.add(prevGrp);
   } catch (e) { prevR = null; }
 }
 
@@ -1770,8 +1773,8 @@ function drawMini(dt) {
   const W = mini.width; mctx.save(); mctx.clearRect(0, 0, W, W); mctx.beginPath(); mctx.arc(W / 2, W / 2, W / 2, 0, TAU); mctx.clip();
   mctx.translate(W / 2, W / 2); mctx.rotate(cam.yaw); mctx.translate(-W / 2, -W / 2);
   mctx.drawImage(miniBg, 0, 0, W, W); const k = W / MAP; const P = (x) => (x + HALF) * k;
-  for (const w of WELLS) { mctx.fillStyle = w.pump ? TEAMC[w.pump.team].mini : '#111'; mctx.fillRect(P(w.x) - 2, P(w.z) - 2, 4, 4); }
-  for (const e of ents) { if (!e.alive) continue; mctx.fillStyle = e.selected ? '#fff' : TEAMC[e.team].mini; const s = e.kind === 'bld' ? 5 : 3; mctx.fillRect(P(e.x) - s / 2, P(e.z) - s / 2, s, s); }
+  for (const w of WELLS) { mctx.fillStyle = w.pump ? TEAMC[w.pump.pal].mini : '#111'; mctx.fillRect(P(w.x) - 2, P(w.z) - 2, 4, 4); }
+  for (const e of ents) { if (!e.alive) continue; mctx.fillStyle = e.selected ? '#fff' : TEAMC[e.pal].mini; const s = e.kind === 'bld' ? 5 : 3; mctx.fillRect(P(e.x) - s / 2, P(e.z) - s / 2, s, s); }
   for (let i = pings.length - 1; i >= 0; i--) { const p = pings[i]; p.t -= dt; if (p.t <= 0) { pings.splice(i, 1); continue; } mctx.strokeStyle = 'rgba(255,80,40,' + p.t / 2 + ')'; mctx.lineWidth = 2; mctx.beginPath(); mctx.arc(P(p.x), P(p.z), (2 - p.t) * 12 + 3, 0, TAU); mctx.stroke(); }
   miniViewT -= dt; if (miniViewT <= 0) { miniViewT = 0.2; const pts = [[0, 0], [innerWidth, 0], [innerWidth, innerHeight], [0, innerHeight]].map(p => screenToGround(p[0], p[1])); miniView = pts.every(p => p) ? pts : null; }
   if (miniView) { mctx.strokeStyle = 'rgba(255,255,255,.8)'; mctx.lineWidth = 1.2; mctx.beginPath(); miniView.forEach((p, i) => i ? mctx.lineTo(P(p.x), P(p.z)) : mctx.moveTo(P(p.x), P(p.z))); mctx.closePath(); mctx.stroke(); }
@@ -2024,7 +2027,7 @@ async function rtcSignal(m) {
 function hostStart() {
   if (NET.started) return; NET.started = true;
   $('mp').classList.add('hidden'); $('intro').classList.add('hidden'); startGame();
-  toast('👥 Prietenul tău comandă din baza de la est'); rtcOffer();
+  toast('👥 Tu: verde-albastru · Prietenul: albastru-galben (baza de la est)'); rtcOffer();
 }
 function hostTick(dt) {
   NET.sendT -= dt; if (NET.sendT > 0) return;
@@ -2035,8 +2038,8 @@ function hostTick(dt) {
   for (const e of ents) {
     if (!e.alive) continue;
     if (!NET.known.has(e.id)) { NET.known.add(e.id);
-      if (e.kind === 'unit') m.nu.push([e.id, e.team, e.d.ch, e.d.pr, e.d.wp, e.tier === undefined ? -1 : e.tier, r1(e.x), r1(e.z), Math.round(e.maxHp)]);
-      else m.nb.push([e.id, e.team, e.type, r1(e.x), r1(e.z), r1(e.rot * 10) / 10, e.tier === undefined ? -1 : e.tier, e.complete ? 1 : 0, Math.round(e.maxHp)]); }
+      if (e.kind === 'unit') m.nu.push([e.id, e.team, e.d.ch, e.d.pr, e.d.wp, e.tier === undefined ? -1 : e.tier, r1(e.x), r1(e.z), Math.round(e.maxHp), e.pal]);
+      else m.nb.push([e.id, e.team, e.type, r1(e.x), r1(e.z), r1(e.rot * 10) / 10, e.tier === undefined ? -1 : e.tier, e.complete ? 1 : 0, Math.round(e.maxHp), e.pal]); }
     if (e.kind === 'unit') m.u.push(e.id, Math.round(e.x * 10), Math.round(e.z * 10), Math.round(e.heading * 100), Math.round(e.turYaw * 100), Math.ceil(e.hp), (e.state === 'build' && e.buildTarget && Math.hypot(e.buildTarget.x - e.x, e.buildTarget.z - e.z) < e.buildTarget.r + 3 ? 1 : 0) | (e.stun > 0 ? 2 : 0), Math.round(e.maxHp));
     else { const key = Math.ceil(e.hp) + ':' + Math.round(e.built * 100) + ':' + Math.round(e.turYaw * 20) + ':' + Math.round(e.maxHp);
       if (NET.lastBld.get(e.id) !== key) { NET.lastBld.set(e.id, key); m.b.push([e.id, Math.ceil(e.hp), Math.round(e.built * 1000), Math.round(e.turYaw * 100), Math.round(e.maxHp)]); }
@@ -2048,15 +2051,15 @@ function hostTick(dt) {
 }
 // --- guest: mirror the host's world
 function clientApply(m) {
-  if (!NET.started) { NET.started = true; $('mp').classList.add('hidden'); netStatus(''); }
+  if (!NET.started) { NET.started = true; $('mp').classList.add('hidden'); netStatus(''); toast('👥 Tu: albastru-galben · Gazda: verde-albastru'); }
   NET.snapAt = performance.now();
   const T = TEAMS[0]; if (m.T) { T.energy = m.T[0]; T.inc = m.T[1]; T.units = m.T[2]; }
   if (m.tech) { T.tech = new Set(m.tech); T.researching = new Set(m.rsg || []); const k = m.mul; if (k) { T.hpMul = k[0]; T.spdMul = k[1]; T.prodMul = k[2]; T.shpMul = k[3]; T.powMul = k[4]; T.rsMul = k[5]; T.dmg = k[6] || {}; T.rof = k[7] || {}; } }
   const adopt = (e, id) => { EID.delete(e.id); e.id = id; EID.set(id, e); };
-  if (m.nb) for (const [id, team, type, x, z, rot, tier, comp, mhp] of m.nb) { if (byId(id) || NET.dead.has(id) || !BD[type]) continue;
-    const b = createBuilding(team, type, x, z, !!comp, rot, tier < 0 ? undefined : tier); adopt(b, id); b.maxHp = mhp; if (!comp) b.mesh.scale.y = 0.12; }
-  if (m.nu) for (const [id, team, ch, pr, wp, tier, x, z, mhp] of m.nu) { if (byId(id) || NET.dead.has(id) || !CH[ch] || !PR[pr] || !WP[wp]) continue;
-    const u = createUnit(team, { ch, pr, wp }, x, z, tier < 0 ? undefined : tier); adopt(u, id); u.maxHp = mhp; u.nx = x; u.nz = z; }
+  if (m.nb) for (const [id, team, type, x, z, rot, tier, comp, mhp, pal] of m.nb) { if (byId(id) || NET.dead.has(id) || !BD[type]) continue;
+    const b = createBuilding(team, type, x, z, !!comp, rot, tier < 0 ? undefined : tier, pal); adopt(b, id); b.maxHp = mhp; if (!comp) b.mesh.scale.y = 0.12; }
+  if (m.nu) for (const [id, team, ch, pr, wp, tier, x, z, mhp, pal] of m.nu) { if (byId(id) || NET.dead.has(id) || !CH[ch] || !PR[pr] || !WP[wp]) continue;
+    const u = createUnit(team, { ch, pr, wp }, x, z, tier < 0 ? undefined : tier, pal); adopt(u, id); u.maxHp = mhp; u.nx = x; u.nz = z; }
   if (m.u) for (let i = 0; i < m.u.length; i += 8) { const u = byId(m.u[i]); if (!u || u.kind !== 'unit') continue;
     u.nx = m.u[i + 1] / 10; u.nz = m.u[i + 2] / 10; u.nh = m.u[i + 3] / 100; u.nt = m.u[i + 4] / 100; u.hp = m.u[i + 5]; u.weld = m.u[i + 6] & 1; u.stunV = m.u[i + 6] & 2; u.maxHp = m.u[i + 7]; }
   if (m.b) for (const [id, hp, built, ty, mhp] of m.b) { const b = byId(id); if (!b || b.kind !== 'bld') continue; b.hp = hp; b.maxHp = mhp; b.built = built / 1000; b.nYaw = ty / 100; if (!b.complete && built >= 1000) completeBld(b); }
@@ -2140,9 +2143,9 @@ function setupGame() {
   for (let i = 0; i < 3; i++) createUnit(0, { ch: 'light', pr: 'wheels', wp: 'truck' }, B.x - 4 + i * 3, B.z - 10);
   for (let i = 0; i < 4; i++) createUnit(0, { ch: 'light', pr: 'wheels', wp: 'mg' }, B.x + 6 + i * 3, B.z - 13);
   if (NET.host) { const P = PLAYER2;
-    createBuilding(0, 'hq', P.x + 5, P.z + 5, true, Math.PI); createBuilding(0, 'factory', P.x - 6, P.z - 2, true, Math.PI);
-    for (let i = 0; i < 2; i++) createUnit(0, { ch: 'light', pr: 'wheels', wp: 'truck' }, P.x - 3 + i * 3, P.z - 10);
-    for (let i = 0; i < 3; i++) createUnit(0, { ch: 'light', pr: 'wheels', wp: 'mg' }, P.x + 4 + i * 3, P.z - 12);
+    createBuilding(0, 'hq', P.x + 5, P.z + 5, true, Math.PI, undefined, 2); createBuilding(0, 'factory', P.x - 6, P.z - 2, true, Math.PI, undefined, 2);
+    for (let i = 0; i < 2; i++) createUnit(0, { ch: 'light', pr: 'wheels', wp: 'truck' }, P.x - 3 + i * 3, P.z - 10, undefined, 2);
+    for (let i = 0; i < 3; i++) createUnit(0, { ch: 'light', pr: 'wheels', wp: 'mg' }, P.x + 4 + i * 3, P.z - 12, undefined, 2);
     NET.ccx = P.x; NET.ccz = P.z; }
   for (const u of ents) if (u.kind === 'unit') u.heading = Math.PI;
   setupEnemy();

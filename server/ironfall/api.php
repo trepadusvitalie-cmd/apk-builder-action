@@ -11,8 +11,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') exit;
 
 const DIR = __DIR__ . '/data';
 const TTL = 3 * 3600;         // rooms expire after 3 hours without activity
-const KEEP = 300;             // messages kept per direction
-const MAX_BODY = 262144;      // 256 KB per request
+const KEEP = 400;             // messages kept per direction
+const MAX_BODY = 1048576;     // 1 MB per request (first full world update can be large)
 
 function out($a, $code = 200) { http_response_code($code); echo json_encode($a); exit; }
 function roomFile($r) { return DIR . '/r_' . $r . '.json'; }
@@ -30,7 +30,7 @@ function withRoom($r, $fn) {
 }
 function gc() {
   if (mt_rand(0, 30) !== 0) return;
-  foreach (glob(DIR . '/r_*.json') ?: [] as $f) if (filemtime($f) < time() - TTL) @unlink($f);
+  foreach (glob(DIR . '/r_*.json') ?: [] as $f) if (filemtime($f) < time() - TTL) @unlink($f); // rooms and their state files
 }
 
 if (!is_dir(DIR)) @mkdir(DIR, 0775, true);
@@ -76,5 +76,26 @@ if ($a === 'poll') {   // returns messages addressed to me after sequence number
   out($res);
 }
 
-if ($a === 'leave') { @unlink(roomFile($r)); out(['ok' => true]); }
+if ($a === 'sync') {   // POST {to:[...], snap?}: deliver my messages, store (host) / fetch (guest) the latest state, return my messages
+  $body = file_get_contents('php://input', false, null, 0, MAX_BODY + 1);
+  if (strlen($body) > MAX_BODY) out(['err' => 'prea mare'], 413);
+  $in = json_decode($body ?: '{}', true); if (!is_array($in)) $in = [];
+  $to = isset($in['to']) && is_array($in['to']) ? $in['to'] : [];
+  $after = (int)($_GET['after'] ?? 0); $have = (int)($_GET['have'] ?? 0);
+  $snapIn = ($me === 'h' && isset($in['snap'])) ? json_encode($in['snap']) : null;
+  $sf = DIR . '/r_' . $r . '.snap.json';
+  $res = withRoom($r, function (&$room) use ($to, $me, $other, $after, $snapIn, $sf) {
+    foreach ($to as $m) { $room['seq'][$other]++; $room['q'][$other][] = [$room['seq'][$other], $m]; }
+    if (count($room['q'][$other]) > KEEP) $room['q'][$other] = array_slice($room['q'][$other], -KEEP);
+    $list = []; foreach ($room['q'][$me] as $e) if ($e[0] > $after) $list[] = $e;
+    $room['q'][$me] = $list;
+    if (!isset($room['snapSeq'])) $room['snapSeq'] = 0;
+    if ($snapIn !== null) { $room['snapSeq']++; file_put_contents($sf, $snapIn, LOCK_EX); }
+    return ['joined' => $room['joined'], 'msgs' => $list, 'snapSeq' => $room['snapSeq']];
+  });
+  if ($me === 'c' && $res['snapSeq'] > $have && is_file($sf)) { $snap = json_decode(file_get_contents($sf), true); if ($snap !== null) $res['snap'] = $snap; }
+  out($res);
+}
+
+if ($a === 'leave') { @unlink(roomFile($r)); @unlink(DIR . '/r_' . $r . '.snap.json'); out(['ok' => true]); }
 out(['err' => 'acțiune necunoscută'], 400);

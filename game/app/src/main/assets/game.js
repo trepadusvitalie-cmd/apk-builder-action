@@ -2165,30 +2165,41 @@ function sfx(type, x, z) {
 // Phones meet through the room server (room code); then talk directly (WebRTC) or, if a network blocks
 // that, through the server.
 const NET_URL = (() => { try { return localStorage.getItem('ironfall.server') || 'https://easofty.com/ironfall/api.php'; } catch (e) { return 'https://easofty.com/ironfall/api.php'; } })();
-const NET = { on: false, host: false, cl: false, room: '', after: 0, pc: null, dc: null, ev: [], out: [], ccx: 0, ccz: 0, known: new Set(), dead: new Set(), lastRx: 0, sendT: 0, techT: 0, labT: 0, started: false, peerOk: false, flushT: null, pollT: null, lastBld: new Map() };
+const NET = { on: false, host: false, cl: false, room: '', after: 0, pc: null, dc: null, ev: [], out: [], slot: null, snapSeq: 0, ccx: 0, ccz: 0, known: new Set(), dead: new Set(), lastRx: 0, dcRx: 0, sendT: 0, started: false, peerOk: false, loopT: null, lastBld: new Map(), bTime: new Map(), aliveT: 0, rtcT: 0, fails: 0, nextSend: 0 };
 async function api(a, params, body) {
   const q = new URLSearchParams(Object.assign({ a, room: NET.room, me: NET.host ? 'h' : 'c' }, params || {}));
-  const r = await fetch(NET_URL + '?' + q.toString(), body ? { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'text/plain' } } : { cache: 'no-store' });
-  return r.json();
+  const ctl = window.AbortController ? new AbortController() : null; const to = ctl ? setTimeout(() => ctl.abort(), 8000) : 0;
+  try { const r = await fetch(NET_URL + '?' + q.toString(), Object.assign(body ? { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'text/plain' } } : { cache: 'no-store' }, ctl ? { signal: ctl.signal } : {}));
+    if (!r.ok) throw new Error('http ' + r.status); return await r.json(); } finally { clearTimeout(to); }
 }
+const dcOpen = () => !!(NET.dc && NET.dc.readyState === 'open');
+// the guest trusts the direct link only while game state actually arrives on it
+const dcLive = () => dcOpen() && (NET.host || performance.now() - (NET.dcSnap || 0) < 1500);
 function netSend(m) {
-  if (NET.dc && NET.dc.readyState === 'open') { try { NET.dc.send(JSON.stringify(m)); return; } catch (e) {} }
-  NET.out.push(m); if (!NET.flushT) NET.flushT = setTimeout(netFlush, 120);
+  if (dcLive() || (dcOpen() && m.t === 'p')) { try { NET.dc.send(JSON.stringify(m)); return; } catch (e) { rtcDrop(); } }
+  NET.out.push(m); if (NET.out.length > 400) NET.out.splice(0, NET.out.length - 400);
+  if (NET.out.length === 1 && NET.on) { clearTimeout(NET.loopT); NET.loopT = setTimeout(netPollLoop, 60); }
 }
-async function netFlush() { NET.flushT = null; if (!NET.out.length) return; const b = NET.out.splice(0, 40); try { await api('send', null, b); } catch (e) { NET.out.unshift(...b); } if (NET.out.length && !NET.flushT) NET.flushT = setTimeout(netFlush, 150); }
+// one request does everything: deliver my queued messages, (host) store the latest state, (guest) fetch it
 function netPollLoop() {
-  clearTimeout(NET.pollT);
+  clearTimeout(NET.loopT);
   const go = async () => {
-    try { const r = await api('poll', { after: NET.after }); if (r && r.msgs) for (const [seq, m] of r.msgs) { NET.after = Math.max(NET.after, seq); netRecv(m); } if (r && r.joined && NET.host && !NET.peerOk) onPeerJoined(); }
-    catch (e) { netStatus('Conexiune slabă cu serverul…'); }
-    const direct = NET.dc && NET.dc.readyState === 'open';
-    NET.pollT = setTimeout(go, direct ? 2000 : 180);
+    const out = NET.out.splice(0, 60); const body = { to: out }; if (NET.host && NET.slot && !dcLive()) { body.snap = NET.slot; NET.slot = null; }
+    try {
+      const r = await api('sync', { after: NET.after, have: NET.snapSeq }, body); NET.fails = 0;
+      if (r && r.msgs) for (const [seq, m] of r.msgs) { if (seq <= NET.after) continue; NET.after = seq; netRecv(m); }
+      if (r && r.snap && r.snapSeq > NET.snapSeq) { NET.snapSeq = r.snapSeq; if (!dcLive()) netRecv(r.snap); }
+      if (r && r.joined && NET.host && !NET.peerOk) onPeerJoined();
+    } catch (e) { NET.out.unshift(...out); NET.fails++; if (NET.fails > 2) netStatus('Conexiune slabă cu serverul… se reîncearcă'); }
+    const busy = NET.out.length > 0; const wait = dcLive() ? 1500 : busy ? 150 : 330;
+    NET.loopT = setTimeout(go, NET.fails ? Math.min(3000, 400 * NET.fails) : wait);
   };
   go();
 }
 function netRecv(m) {
   if (!m || typeof m !== 'object') return;
   NET.lastRx = performance.now();
+  if (m.t === 'p') return;
   if (m.t === 'sdp' || m.t === 'ice') return rtcSignal(m);
   if (NET.host) {
     if (m.t === 'hi') netSend({ t: 'cfg', seed: SEED, map: MAPI, diff: S.diff });
@@ -2201,20 +2212,27 @@ function netRecv(m) {
   }
 }
 function onPeerJoined() { NET.peerOk = true; netStatus('Prietenul a intrat! Se încarcă harta la el…'); }
-// --- WebRTC direct link (falls back to the server relay if it cannot connect)
+// --- WebRTC direct link; watched by a heartbeat, falls back to the server if it goes quiet
 function rtcMake() {
   if (!window.RTCPeerConnection) return null;
   const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] });
   pc.onicecandidate = e => { if (e.candidate) netSend({ t: 'ice', c: e.candidate.toJSON ? e.candidate.toJSON() : e.candidate }); };
   pc.ondatachannel = e => rtcChannel(e.channel);
+  pc.onconnectionstatechange = () => { if (['failed', 'closed'].includes(pc.connectionState) && NET.pc === pc) rtcDrop(); };
   NET.pc = pc; return pc;
 }
-function rtcChannel(dc) { NET.dc = dc; dc.onmessage = e => { try { netRecv(JSON.parse(e.data)); } catch (x) {} }; dc.onopen = () => { toast('🔗 Legătură directă între telefoane'); }; }
+function rtcChannel(dc) { NET.dc = dc; dc.onmessage = e => { NET.dcRx = performance.now(); try { const m = JSON.parse(e.data); if (m && m.t === 's') NET.dcSnap = NET.dcRx; netRecv(m); } catch (x) {} }; dc.onopen = () => { NET.dcRx = performance.now(); toast('🔗 Legătură directă între telefoane'); }; dc.onclose = () => { if (NET.dc === dc) rtcDrop(); }; }
+function rtcDrop() {   // direct link died: go back to the server and resend the whole world
+  const had = dcOpen() || NET.dc; try { NET.dc && NET.dc.close(); } catch (e) {} try { NET.pc && NET.pc.close(); } catch (e) {}
+  NET.dc = null; NET.pc = null; if (NET.host) { NET.known.clear(); NET.lastBld.clear(); NET.rtcT = 20; }
+  if (had && NET.started) toast('↺ Legătura directă s-a pierdut — continuăm prin server');
+  clearTimeout(NET.loopT); NET.loopT = setTimeout(netPollLoop, 50);
+}
 async function rtcOffer() { try { const pc = rtcMake(); if (!pc) return; rtcChannel(pc.createDataChannel('g', { ordered: true })); const o = await pc.createOffer(); await pc.setLocalDescription(o); netSend({ t: 'sdp', d: { type: pc.localDescription.type, sdp: pc.localDescription.sdp } }); } catch (e) {} }
 async function rtcSignal(m) {
   try {
     if (m.t === 'sdp') {
-      if (m.d.type === 'offer') { const pc = rtcMake(); if (!pc) return; await pc.setRemoteDescription(m.d); const a = await pc.createAnswer(); await pc.setLocalDescription(a); netSend({ t: 'sdp', d: { type: pc.localDescription.type, sdp: pc.localDescription.sdp } }); }
+      if (m.d.type === 'offer') { if (NET.pc) { try { NET.pc.close(); } catch (e) {} } NET.dc = null; const pc = rtcMake(); if (!pc) return; await pc.setRemoteDescription(m.d); const a = await pc.createAnswer(); await pc.setLocalDescription(a); netSend({ t: 'sdp', d: { type: pc.localDescription.type, sdp: pc.localDescription.sdp } }); }
       else if (NET.pc) await NET.pc.setRemoteDescription(m.d);
     } else if (m.t === 'ice' && NET.pc) await NET.pc.addIceCandidate(m.c);
   } catch (e) {}
@@ -2226,24 +2244,32 @@ function hostStart() {
   toast('👥 Tu: verde-albastru · Prietenul: albastru-galben (baza de la est)'); rtcOffer();
 }
 function hostTick(dt) {
-  NET.sendT -= dt; if (NET.sendT > 0) return;
-  const direct = NET.dc && NET.dc.readyState === 'open'; NET.sendT = direct ? 0.1 : 0.33;
-  const T = TEAMS[0]; const m = { t: 's', time: r1(S.time), T: [Math.floor(T.energy), r1(T.inc), T.units], nu: [], nb: [], u: [], b: [], ev: NET.ev.splice(0) };
-  NET.techT -= NET.sendT; if (NET.techT <= 0) { NET.techT = 1; m.tech = [...T.tech]; m.rsg = [...T.researching]; m.mul = [T.hpMul, T.spdMul, T.prodMul, T.shpMul, T.powMul, T.rsMul, T.dmg, T.rof]; }
-  NET.labT -= NET.sendT; const labs = NET.labT <= 0; if (labs) { NET.labT = 0.5; m.L = []; }
+  if (!NET.dc && NET.rtcT > 0) { NET.rtcT -= dt; if (NET.rtcT <= 0) rtcOffer(); }
+  const now = performance.now(); if (now < NET.nextSend) return; // real time, so slow phones still send on time
+  const direct = dcOpen(); NET.sendT = direct ? 0.1 : 0.33; NET.nextSend = now + NET.sendT * 1000;
+  const T = TEAMS[0];
+  // "rel" must arrive (creations, deaths, messages); "m" is the latest state and may be replaced by a newer one
+  const rel = { t: 's', time: r1(S.time), nu: [], nb: [], ev: [] };
+  const m = { t: 's', time: r1(S.time), T: [Math.floor(T.energy), r1(T.inc), T.units], u: [], b: [], L: [], tech: [...T.tech], rsg: [...T.researching], mul: [T.hpMul, T.spdMul, T.prodMul, T.shpMul, T.powMul, T.rsMul, T.dmg, T.rof], ev: [] };
+  for (const ev of NET.ev.splice(0)) (ev[0] === 'f' ? m.ev : rel.ev).push(ev);
+  NET.aliveT -= NET.sendT; if (NET.aliveT <= 0) { NET.aliveT = 3; m.alive = ents.filter(e => e.alive).map(e => e.id); }
   for (const e of ents) {
     if (!e.alive) continue;
     if (!NET.known.has(e.id)) { NET.known.add(e.id);
-      if (e.kind === 'unit') m.nu.push([e.id, e.team, e.d.ch, e.d.pr, e.d.wp, e.tier === undefined ? -1 : e.tier, r1(e.x), r1(e.z), Math.round(e.maxHp), e.pal]);
-      else m.nb.push([e.id, e.team, e.type, r1(e.x), r1(e.z), r1(e.rot * 10) / 10, e.tier === undefined ? -1 : e.tier, e.complete ? 1 : 0, Math.round(e.maxHp), e.pal]); }
+      if (e.kind === 'unit') rel.nu.push([e.id, e.team, e.d.ch, e.d.pr, e.d.wp, e.tier === undefined ? -1 : e.tier, r1(e.x), r1(e.z), Math.round(e.maxHp), e.pal]);
+      else rel.nb.push([e.id, e.team, e.type, r1(e.x), r1(e.z), r1(e.rot * 10) / 10, e.tier === undefined ? -1 : e.tier, e.complete ? 1 : 0, Math.round(e.maxHp), e.pal]); }
     if (e.kind === 'unit') m.u.push(e.id, Math.round(e.x * 10), Math.round(e.z * 10), Math.round(e.heading * 100), Math.round(e.turYaw * 100), Math.ceil(e.hp), (e.state === 'build' && e.buildTarget && Math.hypot(e.buildTarget.x - e.x, e.buildTarget.z - e.z) < e.buildTarget.r + 3 ? 1 : 0) | (e.stun > 0 ? 2 : 0) | ((e.rank || 0) << 2), Math.round(e.maxHp));
     else { const key = Math.ceil(e.hp) + ':' + Math.round(e.built * 100) + ':' + Math.round(e.turYaw * 20) + ':' + Math.round(e.maxHp);
-      if (NET.lastBld.get(e.id) !== key) { NET.lastBld.set(e.id, key); m.b.push([e.id, Math.ceil(e.hp), Math.round(e.built * 1000), Math.round(e.turYaw * 100), Math.round(e.maxHp)]); }
-      if (labs && e.team === 0 && (e.type === 'lab' || e.type === 'factory')) m.L.push([e.id, e.res ? e.res.id : '', r1(e.resProg), e.queue.map(d => [d.ch, d.pr, d.wp]), r1(e.prod), e.lastRes || '']); }
+      if (NET.lastBld.get(e.id) !== key) { NET.lastBld.set(e.id, key); NET.bTime.set(e.id, now); }
+      // direct link: only what changed; via server: everything changed in the last 3 s (a dropped state is covered by the next one)
+      const tch = NET.bTime.get(e.id) || 0; if (direct ? tch === now : now - tch < 3000) m.b.push([e.id, Math.ceil(e.hp), Math.round(e.built * 1000), Math.round(e.turYaw * 100), Math.round(e.maxHp)]);
+      if (e.team === 0 && (e.type === 'lab' || e.type === 'factory')) m.L.push([e.id, e.res ? e.res.id : '', r1(e.resProg), e.queue.map(d => [d.ch, d.pr, d.wp]), r1(e.prod), e.lastRes || '']); }
   }
-  for (const id of NET.lastBld.keys()) { const e = byId(id); if (!e || !e.alive) NET.lastBld.delete(id); }
-  if (!m.nu.length) delete m.nu; if (!m.nb.length) delete m.nb; if (!m.b.length) delete m.b; if (!m.ev.length) delete m.ev;
-  netSend(m);
+  for (const id of NET.lastBld.keys()) { const e = byId(id); if (!e || !e.alive) { NET.lastBld.delete(id); NET.bTime.delete(id); } }
+  const hasRel = rel.nu.length || rel.nb.length || rel.ev.length;
+  if (!rel.nu.length) delete rel.nu; if (!rel.nb.length) delete rel.nb; if (!rel.ev.length) delete rel.ev; if (!m.b.length) delete m.b; if (!m.ev.length) delete m.ev;
+  if (direct) { if (hasRel) netSend(rel); netSend(m); }
+  else { if (hasRel) NET.out.push(rel); NET.slot = m; }
 }
 // --- guest: mirror the host's world
 function clientApply(m) {
@@ -2253,9 +2279,9 @@ function clientApply(m) {
   if (m.tech) { T.tech = new Set(m.tech); T.researching = new Set(m.rsg || []); const k = m.mul; if (k) { T.hpMul = k[0]; T.spdMul = k[1]; T.prodMul = k[2]; T.shpMul = k[3]; T.powMul = k[4]; T.rsMul = k[5]; T.dmg = k[6] || {}; T.rof = k[7] || {}; } }
   const adopt = (e, id) => { EID.delete(e.id); e.id = id; EID.set(id, e); };
   if (m.nb) for (const [id, team, type, x, z, rot, tier, comp, mhp, pal] of m.nb) { if (byId(id) || NET.dead.has(id) || !BD[type]) continue;
-    const b = createBuilding(team, type, x, z, !!comp, rot, tier < 0 ? undefined : tier, pal); adopt(b, id); b.maxHp = mhp; if (!comp) b.mesh.scale.y = 0.12; }
+    const b = createBuilding(team, type, x, z, !!comp, rot, tier < 0 ? undefined : tier, pal); adopt(b, id); b.born = performance.now(); b.maxHp = mhp; if (!comp) b.mesh.scale.y = 0.12; }
   if (m.nu) for (const [id, team, ch, pr, wp, tier, x, z, mhp, pal] of m.nu) { if (byId(id) || NET.dead.has(id) || !CH[ch] || !PR[pr] || !WP[wp]) continue;
-    const u = createUnit(team, { ch, pr, wp }, x, z, tier < 0 ? undefined : tier, pal); adopt(u, id); u.maxHp = mhp; u.nx = x; u.nz = z; }
+    const u = createUnit(team, { ch, pr, wp }, x, z, tier < 0 ? undefined : tier, pal); adopt(u, id); u.born = performance.now(); u.maxHp = mhp; u.nx = x; u.nz = z; }
   if (m.u) for (let i = 0; i < m.u.length; i += 8) { const u = byId(m.u[i]); if (!u || u.kind !== 'unit') continue;
     u.nx = m.u[i + 1] / 10; u.nz = m.u[i + 2] / 10; u.nh = m.u[i + 3] / 100; u.nt = m.u[i + 4] / 100; u.hp = m.u[i + 5]; u.weld = m.u[i + 6] & 1; u.stunV = m.u[i + 6] & 2; u.rank = (m.u[i + 6] >> 2) & 3; u.maxHp = m.u[i + 7]; }
   if (m.b) for (const [id, hp, built, ty, mhp] of m.b) { const b = byId(id); if (!b || b.kind !== 'bld') continue; b.hp = hp; b.maxHp = mhp; b.built = built / 1000; b.nYaw = ty / 100; if (!b.complete && built >= 1000) completeBld(b); }
@@ -2268,7 +2294,9 @@ function clientApply(m) {
     else if (ev[0] === 'rd') techPopup(ev[1]);
     else if (ev[0] === 'end') { S.stats = ev[2] || S.stats; S.time = m.time; endGame(ev[1]); }
   }
-  S.time = m.time;
+  if (m.alive) { const keep = new Set(m.alive), now = performance.now(); // remove anything the host no longer has (missed while the link was down)
+    for (const e of ents) if (e.alive && !keep.has(e.id) && now - (e.born || 0) > 5000) { e.alive = false; e.hp = 0; scene.remove(e.mesh); if (e.selected) { e.selected = false; sel = sel.filter(x => x !== e); panelSig = ''; } NET.dead.add(e.id); } }
+  if (m.time !== undefined) S.time = m.time;
 }
 function clientUpdate(dt) {
   for (let i = timers.length - 1; i >= 0; i--) if (S.time >= timers[i].t) { const f = timers[i].fn; timers.splice(i, 1); f(); }
@@ -2292,8 +2320,9 @@ function clientUpdate(dt) {
 function netWatch() {   // connection banner for both sides
   if (!NET.on || !NET.started || S.over) return;
   const idle = (performance.now() - (NET.cl ? (NET.snapAt || 0) : NET.lastRx)) / 1000;
-  if (NET.host) { NET.pingT = (NET.pingT || 0) + 1; }
-  if (NET.cl) { NET.pingT = (NET.pingT || 0) + 1; if (NET.pingT % 2 === 0) netSend({ t: 'p' }); }
+  NET.pingT = (NET.pingT || 0) + 1;
+  if (dcOpen()) { netSend({ t: 'p' }); if (performance.now() - NET.dcRx > 5000) rtcDrop(); }
+  else if (NET.cl && NET.pingT % 2 === 0) netSend({ t: 'p' });
   netStatus(idle > 6 ? (NET.cl ? '⏳ Se așteaptă gazda… (verifică internetul)' : '⏳ Prietenul nu răspunde…') : '');
 }
 setInterval(netWatch, 1000);

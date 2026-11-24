@@ -1251,12 +1251,23 @@ function scorch(x, z, r) { const s = scorches[scIdx = (scIdx + 1) % scorches.len
 function throwDebris(x, y, z, n, pw) { for (let i = 0; i < n; i++) { const d = debris[dbIdx = (dbIdx + 1) % debris.length]; const sz = rand(0.15, 0.4) * Math.min(2, pw); d.m.scale.set(sz, sz * rand(0.4, 1), sz * rand(0.6, 1.4)); d.m.position.set(x, y, z); const a = rand(0, TAU), v = rand(3, 7) * pw; d.vx = Math.sin(a) * v; d.vz = Math.cos(a) * v; d.vy = rand(5, 10) * pw; d.rx = rand(-12, 12); d.rz = rand(-12, 12); d.t = 3.5; d.smk = 0; d.burn = Math.random() < 0.5; d.m.visible = true; } }
 const EXPL = 3; // impact explosions are 3x their original size
 // solid 3D fireballs: opaque yellow-white core inside an orange shell, grows fast, darkens to red and fades
-const FB_GEO = (() => { const g = new THREE.SphereGeometry(1, 40, 28); const p = g.attributes.position; const c = new Float32Array(p.count * 3); const v = new THREE.Vector3();
-  for (let i = 0; i < p.count; i++) { v.fromBufferAttribute(p, i); const hot = Math.max(0, Math.min(1, 0.55 + v.y * 0.45)); c[i * 3] = 1; c[i * 3 + 1] = 0.62 + 0.33 * hot; c[i * 3 + 2] = 0.18 + 0.3 * hot * hot; }
-  g.setAttribute('color', new THREE.BufferAttribute(c, 3)); return g; })();
-const FBALLS = []; for (let i = 0; i < 28; i++) { const outer = new THREE.Mesh(FB_GEO, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, fog: false, toneMapped: false }));
-  const core = new THREE.Mesh(FB_GEO, new THREE.MeshBasicMaterial({ color: 0xfff4b0, transparent: true, fog: false, toneMapped: false, depthWrite: false })); core.scale.setScalar(0.62); outer.add(core);
-  outer.visible = false; outer.renderOrder = 2; scene.add(outer); FBALLS.push({ m: outer, core, t: 0, life: 0, r: 1 }); }
+const FB_GEOS = (() => { const out = []; const v = new THREE.Vector3(), d = new THREE.Vector3();
+  for (let n = 0; n < 6; n++) { const g = new THREE.SphereGeometry(1, 36, 26); const p = g.attributes.position; const c = new Float32Array(p.count * 3);
+    const bumps = []; for (let k = 0; k < 14; k++) { d.set(rand(-1, 1), rand(-0.6, 1), rand(-1, 1)).normalize(); bumps.push([d.x, d.y, d.z, rand(0.12, 0.38), rand(0.35, 0.75)]); }
+    const ph = [rand(0, 9), rand(0, 9), rand(0, 9)];
+    for (let i = 0; i < p.count; i++) { v.fromBufferAttribute(p, i); let disp = 0;
+      for (const bb of bumps) { const dot = v.x * bb[0] + v.y * bb[1] + v.z * bb[2]; const t = Math.max(0, (dot - (1 - bb[4])) / bb[4]); disp += bb[3] * t * t * (3 - 2 * t); }
+      disp += 0.06 * Math.sin(v.x * 7 + ph[0]) * Math.sin(v.y * 6 + ph[1]) * Math.sin(v.z * 8 + ph[2]);
+      let rr = 0.82 + disp; let y = v.y; if (y < -0.25) y = -0.25 + (y + 0.25) * 0.45;
+      p.setXYZ(i, v.x * rr * 1.08, y * rr, v.z * rr * 1.08);
+      const hot = Math.max(0, Math.min(1, 0.35 + disp * 1.6 + v.y * 0.3)); c[i * 3] = 1; c[i * 3 + 1] = 0.42 + 0.5 * hot; c[i * 3 + 2] = 0.06 + 0.4 * hot * hot; }
+    g.setAttribute('color', new THREE.BufferAttribute(c, 3)); g.computeVertexNormals(); out.push(g); }
+  return out; })();
+const FB_GEO = FB_GEOS[0];
+const FBALLS = []; for (let i = 0; i < 28; i++) { const outer = new THREE.Mesh(FB_GEOS[i % 6], new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, fog: false, toneMapped: false }));
+  const core = new THREE.Mesh(FB_GEOS[(i + 3) % 6], new THREE.MeshBasicMaterial({ color: 0xfff4b0, transparent: true, fog: false, toneMapped: false, depthWrite: false })); core.scale.setScalar(0.6); outer.add(core);
+  const puffs = []; for (let j = 0; j < 4; j++) { const pm = new THREE.Mesh(FB_GEOS[(i + j + 1) % 6], outer.material); outer.add(pm); puffs.push({ m: pm, dir: new THREE.Vector3(), s: 0.5 }); }
+  outer.visible = false; outer.renderOrder = 2; scene.add(outer); FBALLS.push({ m: outer, core, puffs, t: 0, life: 0, r: 1, spin: 0 }); }
 let fbIdx = 0;
 // light rays bursting out of an explosion: thin bright spikes, mostly upwards and sideways
 const RAY_GEO = [0, 1, 2].map(v => { const B = new Builder(), up = new THREE.Vector3(0, 1, 0), q = new THREE.Quaternion(), e = new THREE.Euler(), d = new THREE.Vector3();
@@ -1278,9 +1289,9 @@ function updStreamers(dt) { for (let i = STREAM.length - 1; i >= 0; i--) { const
 function rays3D(x, y, z, r, life, tint) { const f = RAYS[rayIdx = (rayIdx + 1) % RAYS.length]; f.t = 0; f.r = r; f.life = life || 0.35; f.m.position.set(x, y, z); f.m.rotation.y = rand(0, TAU); f.m.visible = true; f.m.scale.setScalar(0.01); f.m.material.opacity = 0.4; const tt = tint || [1, 1, 1]; f.m.material.color.setRGB(tt[0], tt[1], tt[2]); }
 function updRays(dt) { for (const f of RAYS) { if (!f.m.visible) continue; f.t += dt; const k = f.t / f.life; if (k >= 1) { f.m.visible = false; continue; }
   f.m.scale.setScalar(f.r * (0.5 + 1.3 * (1 - Math.pow(1 - k, 3)))); f.m.material.opacity = 0.4 * (k < 0.25 ? 1 : 1 - (k - 0.25) / 0.75); } }
-function fireball3D(x, y, z, r, tint, str) { const f = FBALLS[fbIdx = (fbIdx + 1) % FBALLS.length]; f.t = 0; f.tint = tint || [1, 1, 1]; f.life = 0.45 + r * 0.04; f.r = r; f.m.position.set(x, y + r * 0.35, z); f.m.rotation.set(0, 0, 0); f.m.visible = true; f.m.scale.setScalar(r * 0.25); rays3D(x, y + r * 0.35, z, r * 1.5, f.life * 0.75, f.tint); if (str !== 0 && Math.abs(x - cam.x) < 110 && Math.abs(z - cam.z) < 110) streamers(x, y + r * 0.35, z, r * (str || 1)); f.m.material.color.setRGB(f.tint[0], f.tint[1], f.tint[2]); f.core.material.color.setRGB(Math.min(1, f.tint[0] + 0.3), Math.min(1, f.tint[1] + 0.3), Math.min(1, f.tint[2] + 0.4)); f.m.material.opacity = 0.7; f.core.material.opacity = 0.85; f.m.material.depthWrite = false; f.core.visible = true; }
+function fireball3D(x, y, z, r, tint, str) { const f = FBALLS[fbIdx = (fbIdx + 1) % FBALLS.length]; f.t = 0; f.tint = tint || [1, 1, 1]; f.life = 0.45 + r * 0.04; f.r = r; f.m.position.set(x, y + r * 0.35, z); f.m.rotation.set(rand(-0.25, 0.25), rand(0, TAU), rand(-0.25, 0.25)); f.spin = rand(-0.8, 0.8); for (const q of f.puffs) { q.dir.set(rand(-1, 1), rand(-0.3, 0.9), rand(-1, 1)).normalize(); q.s = rand(0.35, 0.6); q.m.rotation.set(rand(0, TAU), rand(0, TAU), 0); q.m.scale.setScalar(q.s); q.m.position.copy(q.dir).multiplyScalar(0.55); } f.m.visible = true; f.m.scale.setScalar(r * 0.25); rays3D(x, y + r * 0.35, z, r * 1.5, f.life * 0.75, f.tint); if (str !== 0 && Math.abs(x - cam.x) < 110 && Math.abs(z - cam.z) < 110) streamers(x, y + r * 0.35, z, r * (str || 1)); f.m.material.color.setRGB(f.tint[0], f.tint[1], f.tint[2]); f.core.material.color.setRGB(Math.min(1, f.tint[0] + 0.3), Math.min(1, f.tint[1] + 0.3), Math.min(1, f.tint[2] + 0.4)); f.m.material.opacity = 0.7; f.core.material.opacity = 0.85; f.m.material.depthWrite = false; f.core.visible = true; }
 function updFireballs(dt) { for (const f of FBALLS) { if (!f.m.visible) continue; f.t += dt; const k = f.t / f.life; if (k >= 1) { f.m.visible = false; continue; }
-  const grow = k < 0.3 ? 1 - Math.pow(1 - k / 0.3, 3) : 1; f.m.scale.setScalar(f.r * (0.25 + 0.75 * grow + 0.15 * k)); f.m.position.y += dt * f.r * 0.6;
+  const grow = k < 0.3 ? 1 - Math.pow(1 - k / 0.3, 3) : 1; f.m.scale.setScalar(f.r * (0.25 + 0.75 * grow + 0.15 * k)); f.m.position.y += dt * f.r * 0.6; f.m.rotation.y += dt * f.spin; for (const q of f.puffs) { q.m.position.copy(q.dir).multiplyScalar(0.55 + 0.35 * k); q.m.scale.setScalar(q.s * (1 + 0.4 * k)); }
   const dark = k < 0.45 ? 0 : (k - 0.45) / 0.55; f.m.material.color.setRGB(f.tint[0] * (1 - dark * 0.1), f.tint[1] * (1 - dark * 0.55), f.tint[2] * (1 - dark * 0.85)); f.core.material.opacity = Math.max(0, 1 - k * 1.8); f.core.visible = k < 0.55;
   f.m.material.opacity = 0.7 * (k < 0.6 ? 1 : 1 - (k - 0.6) / 0.4); } }
 const XST = { shell: { t: [1, 0.85, 0.55], str: 0.6 }, rocket: { t: [1, 0.6, 0.35], str: 1 }, mortar: { t: [1, 0.78, 0.42], str: 0.9, dirt: 1 }, how: { t: [1, 0.7, 0.35], str: 1.3, dirt: 1.5 },

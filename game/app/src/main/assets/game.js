@@ -866,26 +866,36 @@ function unitGeo(d, team) {
     tb.add(G.sph, 0.18 * s, 0.18 * s, 0.18 * s, 0, 0.3 * s, 0.45 * s, T.dark);
     for (const sx of [-1, 1]) tb.add(G.cyl16, 0.06 * s, 1.1 * s, 0.06 * s, sx * 0.12 * s, 0.28 * s, 0.95 * s, 0x1a1a1a, PI2, 0, 0);
   } else if (d.wp === 'cannon') {
+    const KX = 1.32, KY = 1.22, KZ = 1.12; // larger, wider turret; barrels keep their round section
+    const TC = { box: (w, h, dd, x, y, z, c, rx, ry, rz) => tb.box(w * KX, h * KY, dd * KZ, x * KX, y * KY, z * KZ, c, rx, ry, rz),
+      add: (g, w, h, dd, x, y, z, c, rx, ry, rz) => rx || ry || rz ? tb.add(g, w * 1.15, h * KZ, dd * 1.15, x * KX, y * KY, z * KZ, c, rx, ry, rz) : tb.add(g, w * KX, h * KY, dd * KZ, x * KX, y * KY, z * KZ, c, rx, ry, rz) };
     // modern MBT turret: arrow-shaped wedge armour, bustle, long smoothbore gun
-    tb.add(G.wedge, 1.38 * s, 0.4 * s, 1.8 * s, 0, 0.02, -0.05 * s, T.body);
-    tb.add(G.wedge, 1.0 * s, 0.06 * s, 1.3 * s, 0, 0.44 * s, -0.12 * s, T.dark); // roof plate
-    tb.box(1.0 * s, 0.32 * s, 0.55 * s, 0, 0.2 * s, -1.05 * s, T.body); // bustle
-    for (let k = 0; k < 3; k++) tb.box(1.08 * s, 0.03 * s, 0.03 * s, 0, 0.22 * s + k * 0.08 * s, -1.35 * s, 0x2a2a2a); // bustle rack
-    tb.box(1.27 * s, 0.05 * s, 0.9 * s, 0, 0.3 * s, -0.1 * s, T.acc); // team band
+    tb.add(G.cyl16, 0.95 * s, 0.14 * s, 0.95 * s, 0, 0.0, -0.1 * s, T.dark); // heavy turret ring
+    for (const sx of [-1, 1]) { // bolted side armour modules and stowage boxes
+      TC.box(0.16 * s, 0.36 * s, 1.5 * s, sx * 0.72 * s, 0.2 * s, -0.25 * s, T.body, 0, 0, sx * 0.12);
+      for (let k = 0; k < 4; k++) TC.box(0.17 * s, 0.32 * s, 0.03 * s, sx * 0.72 * s, 0.2 * s, -0.85 * s + k * 0.4 * s, T.dark, 0, 0, sx * 0.12);
+      TC.box(0.22 * s, 0.2 * s, 0.5 * s, sx * 0.62 * s, 0.32 * s, -1.0 * s, 0x4a5a2a); }
+    TC.box(0.62 * s, 0.42 * s, 0.34 * s, 0, 0.22 * s, 0.9 * s, T.dark); // massive gun mantlet
+    TC.box(0.66 * s, 0.06 * s, 0.36 * s, 0, 0.45 * s, 0.9 * s, T.acc);
+    TC.add(G.wedge, 1.38 * s, 0.4 * s, 1.8 * s, 0, 0.02, -0.05 * s, T.body);
+    TC.add(G.wedge, 1.0 * s, 0.06 * s, 1.3 * s, 0, 0.44 * s, -0.12 * s, T.dark); // roof plate
+    TC.box(1.0 * s, 0.32 * s, 0.55 * s, 0, 0.2 * s, -1.05 * s, T.body); // bustle
+    for (let k = 0; k < 3; k++) TC.box(1.08 * s, 0.03 * s, 0.03 * s, 0, 0.22 * s + k * 0.08 * s, -1.35 * s, 0x2a2a2a); // bustle rack
+    TC.box(1.27 * s, 0.05 * s, 0.9 * s, 0, 0.3 * s, -0.1 * s, T.acc); // team band
     // gun: mantlet, barrel with thermal sleeve, fume extractor, muzzle reference
-    tb.box(0.42 * s, 0.3 * s, 0.25 * s, 0, 0.22 * s, 0.86 * s, T.dark);
-    tb.add(G.cyl16, 0.085 * s, 2.6 * s, 0.085 * s, 0, 0.24 * s, 2.25 * s, 0x2e3128, Math.PI / 2, 0, 0);
-    tb.add(G.cyl16, 0.11 * s, 0.7 * s, 0.11 * s, 0, 0.24 * s, 1.35 * s, T.dark, Math.PI / 2, 0, 0);
-    tb.add(G.cyl16, 0.14 * s, 0.32 * s, 0.14 * s, 0, 0.24 * s, 2.0 * s, T.dark, Math.PI / 2, 0, 0);
-    tb.add(G.cyl16, 0.1 * s, 0.6 * s, 0.1 * s, 0, 0.24 * s, 2.6 * s, T.dark, Math.PI / 2, 0, 0);
-    tb.add(G.cyl16, 0.1 * s, 0.12 * s, 0.1 * s, 0, 0.24 * s, 3.5 * s, 0x1a1a1a, Math.PI / 2, 0, 0);
-    tb.box(0.08 * s, 0.07 * s, 0.1 * s, 0, 0.35 * s, 3.45 * s, 0x1a1a1a);
+    TC.box(0.42 * s, 0.3 * s, 0.25 * s, 0, 0.22 * s, 0.86 * s, T.dark);
+    TC.add(G.cyl16, 0.085 * s, 2.6 * s, 0.085 * s, 0, 0.24 * s, 2.25 * s, 0x2e3128, Math.PI / 2, 0, 0);
+    TC.add(G.cyl16, 0.11 * s, 0.7 * s, 0.11 * s, 0, 0.24 * s, 1.35 * s, T.dark, Math.PI / 2, 0, 0);
+    TC.add(G.cyl16, 0.14 * s, 0.32 * s, 0.14 * s, 0, 0.24 * s, 2.0 * s, T.dark, Math.PI / 2, 0, 0);
+    TC.add(G.cyl16, 0.1 * s, 0.6 * s, 0.1 * s, 0, 0.24 * s, 2.6 * s, T.dark, Math.PI / 2, 0, 0);
+    TC.add(G.cyl16, 0.1 * s, 0.12 * s, 0.1 * s, 0, 0.24 * s, 3.5 * s, 0x1a1a1a, Math.PI / 2, 0, 0);
+    TC.box(0.08 * s, 0.07 * s, 0.1 * s, 0, 0.35 * s, 3.45 * s, 0x1a1a1a);
     // sights, cupola, smoke dischargers, antenna
-    tb.box(0.26 * s, 0.22 * s, 0.24 * s, 0.32 * s, 0.58 * s, -0.2 * s, T.dark); tb.box(0.2 * s, 0.12 * s, 0.03 * s, 0.32 * s, 0.6 * s, -0.07 * s, 0x3fb0ff);
-    tb.box(0.24 * s, 0.18 * s, 0.22 * s, -0.36 * s, 0.53 * s, 0.25 * s, T.dark); tb.box(0.18 * s, 0.1 * s, 0.03 * s, -0.36 * s, 0.55 * s, 0.37 * s, 0x3fb0ff);
-    tb.add(G.cyl16, 0.18 * s, 0.1 * s, 0.18 * s, -0.25 * s, 0.49 * s, -0.45 * s, T.dark);
-    for (const sx of [-1, 1]) for (let k = 0; k < 3; k++) tb.add(G.cyl10, 0.045 * s, 0.22 * s, 0.045 * s, sx * 0.6 * s, 0.32 * s + k * 0.07 * s, 0.1 * s, 0x2a2a2a, Math.PI / 2 - 0.5, sx * 0.5, 0);
-    tb.add(G.cyl6, 0.02, 1.3 * s, 0.02, -0.45 * s, 0.95 * s, -0.8 * s, 0x222222, -0.12, 0, 0);
+    TC.box(0.26 * s, 0.22 * s, 0.24 * s, 0.32 * s, 0.58 * s, -0.2 * s, T.dark); TC.box(0.2 * s, 0.12 * s, 0.03 * s, 0.32 * s, 0.6 * s, -0.07 * s, 0x3fb0ff);
+    TC.box(0.24 * s, 0.18 * s, 0.22 * s, -0.36 * s, 0.53 * s, 0.25 * s, T.dark); TC.box(0.18 * s, 0.1 * s, 0.03 * s, -0.36 * s, 0.55 * s, 0.37 * s, 0x3fb0ff);
+    TC.add(G.cyl16, 0.18 * s, 0.1 * s, 0.18 * s, -0.25 * s, 0.49 * s, -0.45 * s, T.dark);
+    for (const sx of [-1, 1]) for (let k = 0; k < 3; k++) TC.add(G.cyl10, 0.045 * s, 0.22 * s, 0.045 * s, sx * 0.6 * s, 0.32 * s + k * 0.07 * s, 0.1 * s, 0x2a2a2a, Math.PI / 2 - 0.5, sx * 0.5, 0);
+    TC.add(G.cyl6, 0.02, 1.3 * s, 0.02, -0.45 * s, 0.95 * s, -0.8 * s, 0x222222, -0.12, 0, 0);
   } else if (d.wp === 'viper') { // pivot block with two side arms, each carrying a pair of long missiles
     tb.add(G.cyl16, 0.45 * s, 0.14 * s, 0.45 * s, 0, 0.07 * s, 0, T.dark); tb.add(G.cyl16, 0.47 * s, 0.04 * s, 0.47 * s, 0, 0.15 * s, 0, T.acc);
     tb.box(0.55 * s, 0.42 * s, 0.75 * s, 0, 0.38 * s, -0.05 * s, T.body); tb.camo(0.57 * s, 0.42 * s, 0.75 * s, 0, 0.38 * s, -0.05 * s, 0, 5); tb.box(0.5 * s, 0.1 * s, 0.6 * s, 0, 0.62 * s, -0.1 * s, T.dark);
@@ -1803,7 +1813,7 @@ function updUnit(u, dt) {
     u.cd -= dt;
     if (inRange(u, t, 0.5) && Math.abs(angDiff(u.turYaw, local)) < 0.25 && u.cd <= 0) {
       const wy = u.heading + u.turYaw; const s = CH[u.d.ch].size;
-      const ml = (w.kind === 'shell' ? 3.5 : w.kind === 'laser' ? 2.3 : w.kind === 'flame' ? 1.5 : w.kind === 'mortar' ? (w.art === 'how' ? 2.2 : 1.2) : 1.6) * s; fireWeapon(u, t, w, u.x + Math.sin(wy) * ml, u.y + u.h - 0.3, u.z + Math.cos(wy) * ml, u.rb > 1.3 ? 1.25 : u.rb > 1 ? 1.15 : 1);
+      const ml = (w.kind === 'shell' ? 3.9 : w.kind === 'laser' ? 2.3 : w.kind === 'flame' ? 1.5 : w.kind === 'mortar' ? (w.art === 'how' ? 2.2 : 1.2) : 1.6) * s; fireWeapon(u, t, w, u.x + Math.sin(wy) * ml, u.y + u.h - 0.3, u.z + Math.cos(wy) * ml, u.rb > 1.3 ? 1.25 : u.rb > 1 ? 1.15 : 1);
       u.cd = w.rof * rand(0.9, 1.1) * (TEAMS[u.team].rof[wfam(w)] || 1);
     }
   } else if ((!u.isTruck || u.state !== 'build') && w.kind !== 'radar' && !(w.kind === 'repair' && u.heal)) { u.cd = Math.max(0, u.cd - dt); u.turYaw += clamp(angDiff(u.turYaw, 0), -2 * dt, 2 * dt); }

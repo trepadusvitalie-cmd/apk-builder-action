@@ -1499,10 +1499,11 @@ function spawnProj(kind, src, tgt, dmg, splash, ox, oy, oz, w, realT, mlen, lift
   if (rk && !(w && w.plasma)) { const mk = !w ? 'rocket' : w.id === 'viper' ? 'viper' : w.id === 'smissile' ? 'seeker' : w.id === 'omissile' ? 'orizont' : w.id === 'ballistic' ? 'ballistic' : w.id === 'icbm' ? 'icbm' : w.kind === 'salvo' ? 'salvo' : 'rocket';
     m = new THREE.Mesh(missileGeo(mk), matVC); m.add(new THREE.Mesh(mslExh, exhMat)); m.add(new THREE.Mesh(mslExhCore, exhCoreMat));
     m.scale.setScalar(mlen || ({ rocket: 1.5, viper: 2.3, seeker: 2.0, orizont: 4.5, ballistic: 3, salvo: 1.4 })[mk]); }
+  else if (kind === 'shell') { m = new THREE.Mesh(artShellGeo, matVC); m.scale.setScalar(1.5); const g = new THREE.Mesh(shellGeo, shellMat); g.scale.setScalar(0.9); g.position.z = -0.45; m.add(g); }
   else if (kind === 'mortar' && !(w && w.plasma)) { m = new THREE.Mesh(artShellGeo, matVC); m.scale.setScalar(w && w.big ? 2.6 : w && w.art === 'how' ? 2.0 : 1.7); }
   else { m = new THREE.Mesh(shellGeo, w && w.plasma ? plasmaMat : shellMat); if (kind === 'mortar') m.scale.setScalar(w && w.big ? 2.6 : w && w.plasma ? 2.4 : 1.6); }
   scene.add(m); if (lift) m.position.set(ox, oy, oz);
-  const tx = tgt.x, tz = tgt.z, ty = tgt.y + (tgt.kind === 'bld' ? 1.5 : 0.8); const d = Math.hypot(tx - ox, tz - oz); const spd = kind === 'shell' ? 34 : kind === 'mortar' ? 26 : 22;
+  const tx = tgt.x, tz = tgt.z, ty = tgt.y + (tgt.kind === 'bld' ? 1.5 : 0.8); const d = Math.hypot(tx - ox, tz - oz); const spd = kind === 'shell' ? 26 : kind === 'mortar' ? 26 : 22;
   projs.push({ kind, m, team: src.team, src, tgt, ox, oy, oz, tx, ty, tz, t: 0, dur: w && w.kind === 'bomb' ? 0.75 : Math.max(0.12, kind === 'mortar' ? Math.min(d / spd, 3 + d / 120) : d / spd), arc: w && w.kind === 'bomb' ? 0 : kind === 'shell' ? d * 0.05 : kind === 'mortar' ? Math.min(d * 0.55, 60 + d * 0.1) : d * 0.13, dmg, splash, smokeT: 0, w, realT, lift: !!lift, big: !!(w && w.big) });
 }
 const fireZones = [];
@@ -1519,6 +1520,7 @@ function updProjs(dt) {
     const k = Math.min(1, p.lift ? Math.pow(p.t, 1.6) : p.t); const x = lerp(p.ox, p.tx, k), z = lerp(p.oz, p.tz, k), y = lerp(p.oy, p.ty, k) + Math.sin(k * Math.PI) * p.arc;
     const px = p.m.position.x, py = p.m.position.y, pz = p.m.position.z;
     p.m.position.set(x, y, z); if (p.w && p.w.plasma && Math.random() < 0.5) fx('spark', x, y, z, 0.6); if (p.kind === 'rocket' || (p.w && p.w.kind === 'salvo')) { p.m.lookAt(x + (x - px), y + (y - py), z + (z - pz)); p.smokeT -= dt; if (p.smokeT <= 0) { const hv = p.w && (p.w.heavy || p.w.big); p.smokeT = 0.035; fx('trail', x, y, z, p.big ? 1.8 : hv ? 0.75 : 0.55); fx('fire', x, y, z, p.big ? 1.0 : hv ? 0.45 : 0.32); if (p.big && Math.random() < 0.3) fx('blacksmoke', x, y, z, 0.8); } }
+    else if (p.kind === 'shell') { p.m.lookAt(x + (x - px), y + (y - py), z + (z - pz)); p.smokeT -= dt; if (p.smokeT <= 0) { p.smokeT = 0.03; fx('trail', x, y, z, 0.5); fx('fire', x, y, z, 0.28); } }
     else if (p.kind === 'mortar' && !(p.w && p.w.plasma)) { p.m.lookAt(x + (x - px), y + (y - py), z + (z - pz)); p.smokeT -= dt; if (p.smokeT <= 0) { p.smokeT = 0.045; fx('trail', x, y, z, p.w && p.w.big ? 0.6 : 0.45); if (Math.random() < 0.35) fx('fire', x, y, z, 0.25); } }
     if (p.kind === 'mortar' && !p.wh && p.dur > 1.2 && (1 - p.t) * p.dur < 0.95 && !(p.w && (p.w.plasma || p.w.kind === 'salvo' || p.w.id === 'ballistic'))) { p.wh = 1; sfx('whistle', p.tx, p.tz); }
     if (k >= 1) {

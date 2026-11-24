@@ -187,6 +187,11 @@ class Builder {
   constructor() { this.parts = []; }
   add(geo, sx, sy, sz, x, y, z, color, rx = 0, ry = 0, rz = 0) { this.parts.push({ geo, sx, sy, sz, x, y, z, color, rx, ry, rz }); return this; }
   box(w, h, d, x, y, z, c, rx, ry, rz) { return this.add(G.box, w, h, d, x, y, z, c, rx, ry, rz); }
+  // yellow/black warning band on a face: ax 'z' = band faces ±z (runs along x), ax 'x' = faces ±x (runs along z)
+  hazard(len, h, x, y, z, ax, sgn) { const n = Math.max(2, Math.round(len / (h * 1.1))), st = len / n, t = 0.025;
+    if (ax === 'z') { this.box(len, h, t, x, y, z, 0xe0b020); for (let i = 0; i < n; i++) this.box(st * 0.42, h * 1.15, t * 1.6, x - len / 2 + (i + 0.5) * st, y, z + sgn * 0.008, 0x161616, 0, 0, 0.62); }
+    else { this.box(t, h, len, x, y, z, 0xe0b020); for (let i = 0; i < n; i++) this.box(t * 1.6, h * 1.15, st * 0.42, x + sgn * 0.008, y, z - len / 2 + (i + 0.5) * st, 0x161616, 0.62, 0, 0); }
+    return this; }
   cyl(r, h, x, y, z, c, rx, ry, rz) { return this.add(G.cyl10, r, h, r, x, y, z, c, rx, ry, rz); }
   build() {
     let n = 0; for (const p of this.parts) n += p.geo.attributes.position.count;
@@ -436,11 +441,12 @@ const WP = {
   flame: { name: 'Aruncător de flăcări', dmg: 10, rof: 0.16, range: 8, cost: 50, kind: 'flame' },
   laser: { name: 'Laser', dmg: 22, rof: 0.55, range: 17, cost: 80, kind: 'laser' },
   rockets: { name: 'Rachete', dmg: 30, rof: 2.4, range: 18, cost: 60, kind: 'rocket', splash: 2.8 },
+  viper: { name: 'Rachete Viperă', dmg: 62, rof: 3.4, range: 22, cost: 115, kind: 'rocket', splash: 2.4, heavy: true, fam: 'rockets' },
   radar: { name: 'Radar', dmg: 0, range: 0, cost: 40, kind: 'radar', aura: 24 },
   repair: { name: 'Reparator', dmg: 0, range: 0, cost: 50, kind: 'repair', heal: 16, reach: 7 },
   truck: { name: 'Constructor', dmg: 0, range: 0, cost: 40, kind: 'truck' },
 };
-const wfam = w => w.art ? 'art' : w.id;
+const wfam = w => w.art ? 'art' : w.fam || w.id;
 const BASE_SPEED = 5.4;
 const BD = {
   hq: { name: 'Cartier General', icon: '🏛', hp: 1600, cost: 300, size: 6.5, time: 40, h: 5.5 },
@@ -467,14 +473,14 @@ const DCLASS = {
 const IMP_SND = { mortar: 'imp_mortar', rmortar: 'imp_mortar', imortar: 'imp_inc', ihowitzer: 'imp_inc', empmortar: 'imp_salvo', salvo: 'imp_salvo', howitzer: 'imp_how', rhowitzer: 'imp_how', hhowitzer: 'imp_hhow', ballistic: 'imp_hhow', plasma: 'imp_plasma' };
 const ART_SND = { mortar: 'art_mortar', imortar: 'art_inc', empmortar: 'art_emp', rmortar: 'art_rmortar', salvo: 'art_salvo', howitzer: 'art_how', ihowitzer: 'art_inc', rhowitzer: 'art_rhow', hhowitzer: 'art_hhow', plasma: 'art_plasma', ballistic: 'art_ball' };
 const ART_W = ['mortar', 'imortar', 'empmortar', 'salvo', 'howitzer', 'ihowitzer', 'rhowitzer', 'hhowitzer', 'plasma', 'ballistic'];
-const WSHORT = { mg: 'mitralieră', cannon: 'tun', flame: 'flăcări', rockets: 'rachete', laser: 'laser', mortar: 'mortier', imortar: 'mortier incendiar', empmortar: 'mortier IEM', salvo: 'salve', howitzer: 'obuzier', ihowitzer: 'obuzier incendiar', rhowitzer: 'obuzier rapid', hhowitzer: 'obuzier greu', plasma: 'plasmă', ballistic: 'rachetă balistică' };
+const WSHORT = { mg: 'mitralieră', cannon: 'tun', flame: 'flăcări', rockets: 'rachete', viper: 'rachete Viperă', laser: 'laser', mortar: 'mortier', imortar: 'mortier incendiar', empmortar: 'mortier IEM', salvo: 'salve', howitzer: 'obuzier', ihowitzer: 'obuzier incendiar', rhowitzer: 'obuzier rapid', hhowitzer: 'obuzier greu', plasma: 'plasmă', ballistic: 'rachetă balistică' };
 for (const [ck, c] of Object.entries(DCLASS)) for (const w of c.wps) BD['d_' + ck + '_' + w] = { short: WSHORT[w][0].toUpperCase() + WSHORT[w].slice(1), name: `${c.name} ${WSHORT[w]}`, icon: '', hp: c.hp, cost: c.cost + 0 * 1, size: c.size, time: c.time, h: c.h, tw: w, cls: ck, req: c.req, ty: c.ty, ts: c.ts, rb: c.rb, dm: c.dm };
 // enemy technology tiers: 0 = outer ring (weak) … 3 = citadel (latest technology)
 const TIERS = [
   { name: 'Avanpost', ch: ['light'], pr: ['wheels'], wp: ['mg'], tower: 'mg', hp: 1, garrison: 3, towers: 2 },
   { name: 'Fort', ch: ['light', 'medium'], pr: ['wheels', 'tracks'], wp: ['mg', 'cannon', 'flame'], tower: 'mg', hp: 1.1, garrison: 5, towers: 3 },
   { name: 'Bastion', ch: ['medium', 'assault', 'heavy'], pr: ['halftrack', 'tracks', 'hover'], wp: ['cannon', 'rockets'], tower: 'cannon', hp: 1.25, garrison: 7, towers: 4 },
-  { name: 'Cetate', ch: ['heavy', 'titan', 'nova'], pr: ['tracks', 'hover'], wp: ['rockets', 'cannon', 'laser'], tower: 'rockets', hp: 1.5, garrison: 10, towers: 8 },
+  { name: 'Cetate', ch: ['heavy', 'titan', 'nova'], pr: ['tracks', 'hover'], wp: ['rockets', 'cannon', 'laser', 'viper'], tower: 'rockets', hp: 1.5, garrison: 10, towers: 8 },
 ];
 const RS = [
   { id: 'halftrack', name: 'Semi-șenile', cost: 60, time: 16, req: [] },
@@ -509,6 +515,7 @@ const RS = [
   { id: 'ballistic', name: 'Rachetă balistică', cost: 420, time: 65, req: ['salvo', 'hhowitzer'] },
   { id: 'flame', name: 'Aruncător de flăcări', cost: 120, time: 26, req: [] },
   { id: 'laser', name: 'Laser de luptă', cost: 240, time: 45, req: ['rockets'] },
+  { id: 'viper', name: 'Rachete Viperă', cost: 300, time: 52, req: ['rockets', 'heavy'] },
   { id: 'nova', name: 'Șasiu Nova (auriu)', cost: 300, time: 52, req: ['titan', 'laser'] },
   { id: 'radar2', name: 'Radar avansat', cost: 180, time: 34, req: ['radar'] },
   { id: 'repair2', name: 'Reparare rapidă', cost: 170, time: 32, req: ['repair'] },
@@ -519,7 +526,7 @@ const SV = (inner) => `<svg class="ric" viewBox="0 0 48 48" fill="none" stroke-l
 const BRANCHES = [
   { name: 'Mobilitate', ids: ['halftrack', 'tracks', 'hover', 'engine'] },
   { name: 'Corp și blindaj', ids: ['scout', 'medium', 'assault', 'heavy', 'armor', 'titan', 'nova'] },
-  { name: 'Armament', ids: ['cannon', 'flame', 'rockets', 'laser'] },
+  { name: 'Armament', ids: ['cannon', 'flame', 'rockets', 'viper', 'laser'] },
   { name: 'Artilerie', ids: ['mortar', 'imortar', 'empmortar', 'salvo', 'howitzer', 'ihowitzer', 'rhowitzer', 'hhowitzer', 'plasma', 'ballistic'] },
   { name: 'Sprijin', ids: ['radar', 'radar2', 'repair', 'repair2'] },
   { name: 'Apărare', ids: ['traps', 'tower2', 'bunker', 'hardpoint', 'fortress'] },
@@ -582,6 +589,7 @@ const RICON = {
   plasma: SV(`<path d="M6 40l8-10h20l8 10z" fill="#3d432f"/><path d="M16 30l22-16" stroke="#3a3a40" stroke-width="7"/><path d="M20 27l4-3M26 23l4-3M32 19l4-3" stroke="#60ff90" stroke-width="3"/><circle cx="41" cy="11" r="5" fill="#9affb8" stroke="#2eaa4a" stroke-width="2"/>`),
   ballistic: SV(`<path d="M10 42h28" stroke="#c9b48a" stroke-width="3"/><path d="M24 4c5 6 6 12 6 30h-12c0-18 1-24 6-30z" fill="#e8e8e8" stroke="#c9b48a" stroke-width="1.5"/><path d="M18 26l-5 8h5zM30 26l5 8h-5z" fill="#b8432c"/><path d="M20 34l4 7 4-7" fill="#ff9a2a"/><rect x="20" y="12" width="8" height="3" fill="#b8432c"/>`),
   flame: SV(`<rect x="6" y="20" width="9" height="18" rx="4.5" fill="#b8432c" stroke="#c9b48a" stroke-width="1.5"/><rect x="16" y="22" width="9" height="16" rx="4.5" fill="#b8432c" stroke="#c9b48a" stroke-width="1.5"/><path d="M24 28h8" stroke="#3a3a36" stroke-width="4"/><path d="M32 28c6-8 10-2 14-8-1 7-4 9-2 14-4-2-7 2-12-2z" fill="#ff8a2a"/><path d="M33 28c4-4 6-1 9-4-1 4-2 5-1 8-3-1-5 1-8-1z" fill="#ffe680"/>`),
+  viper: SV(`<rect x="8" y="30" width="32" height="9" rx="3" fill="#3d432f"/><rect x="17" y="22" width="14" height="10" fill="#71804e" stroke="#c9b48a" stroke-width="1.5"/><path d="M17 30h14" stroke="#e0b020" stroke-width="3" stroke-dasharray="2.5 2.5"/><g transform="rotate(-14 24 22)"><rect x="3" y="14" width="22" height="4.5" rx="2" fill="#e8e8e8" stroke="#c9b48a" stroke-width="1"/><path d="M25 14l5 2.25-5 2.25z" fill="#e0402a"/><rect x="25" y="20" width="0" height="0"/><rect x="23" y="24" width="22" height="4.5" rx="2" fill="#e8e8e8" stroke="#c9b48a" stroke-width="1"/><path d="M45 24l3 2.25-3 2.25z" fill="#e0402a"/><path d="M3 14l-2-2M3 18.5l-2 2" stroke="#3a3a36" stroke-width="1.5"/></g>`),
   laser: SV(`<path d="M8 34a10 7 0 0 1 20 0z" fill="#71804e" stroke="#c9b48a" stroke-width="2"/><rect x="18" y="22" width="16" height="5" rx="2.5" fill="#3a3a40" transform="rotate(-15 18 24)"/><circle cx="34" cy="19" r="3" fill="#fff2a0"/><path d="M36 18l10-3" stroke="#ffd84a" stroke-width="3"/><path d="M36 18l10-3" stroke="#fff" stroke-width="1"/><rect x="6" y="34" width="26" height="6" rx="3" fill="#3d432f"/>`),
   radar2: SV(`<path d="M24 44V28" stroke="#c9b48a" stroke-width="3"/><path d="M14 44h20" stroke="#c9b48a" stroke-width="3"/><rect x="8" y="10" width="32" height="16" rx="2" fill="#3d4a52" stroke="#c9b48a" stroke-width="2"/><path d="M14 12v12M20 12v12M26 12v12M32 12v12" stroke="#6fa8c8" stroke-width="2.5"/><path d="M40 4l4 6h-3v6h-2v-6h-3z" fill="#7fb84a"/>`),
   repair2: SV(`<path d="M8 40l14-14" stroke="#8c867a" stroke-width="6"/><path d="M20 14a8 8 0 0 0 11 11l4 4 4-4-4-4a8 8 0 0 0-11-11l5 5-3 3-4 1z" fill="#c9c2b0" stroke="#5a564f" stroke-width="1.5"/><circle cx="13" cy="14" r="8" fill="#2e8a3e" stroke="#bff08a" stroke-width="2"/><path d="M13 9v10M8 14h10" stroke="#fff" stroke-width="3"/><path d="M36 36l6-6M36 42l6-6" stroke="#ffcf5a" stroke-width="3"/>`),
@@ -740,6 +748,20 @@ function unitGeo(d, team) {
     tb.add(G.cyl16, 0.18 * s, 0.1 * s, 0.18 * s, -0.25 * s, 0.49 * s, -0.45 * s, T.dark);
     for (const sx of [-1, 1]) for (let k = 0; k < 3; k++) tb.add(G.cyl10, 0.045 * s, 0.22 * s, 0.045 * s, sx * 0.6 * s, 0.32 * s + k * 0.07 * s, 0.1 * s, 0x2a2a2a, Math.PI / 2 - 0.5, sx * 0.5, 0);
     tb.add(G.cyl6, 0.02, 1.3 * s, 0.02, -0.45 * s, 0.95 * s, -0.8 * s, 0x222222, -0.12, 0, 0);
+  } else if (d.wp === 'viper') { // pivot block with two side arms, each carrying a pair of long missiles
+    tb.add(G.cyl16, 0.45 * s, 0.14 * s, 0.45 * s, 0, 0.07 * s, 0, T.dark); tb.add(G.cyl16, 0.47 * s, 0.04 * s, 0.47 * s, 0, 0.15 * s, 0, T.acc);
+    tb.box(0.55 * s, 0.42 * s, 0.75 * s, 0, 0.38 * s, -0.05 * s, T.body); tb.box(0.5 * s, 0.1 * s, 0.6 * s, 0, 0.62 * s, -0.1 * s, T.dark);
+    tb.hazard(0.55 * s, 0.1 * s, 0, 0.3 * s, 0.33 * s, 'z', 1); tb.box(0.16 * s, 0.08 * s, 0.03 * s, 0.12 * s, 0.5 * s, 0.33 * s, 0x3fb0ff);
+    const a = 0.22, ca = Math.cos(a), sa = Math.sin(a);
+    for (const sx of [-1, 1]) { const ax = sx * 0.62 * s;
+      tb.box(0.36 * s, 0.1 * s, 0.14 * s, sx * 0.4 * s, 0.48 * s, 0, 0x3a3a36);                       // arm
+      tb.box(0.42 * s, 0.08 * s, 1.5 * s, ax, 0.5 * s + 0.1 * s * sa, 0.15 * s, T.body, -a, 0, 0);   // rail
+      tb.hazard(0.42 * s, 0.06 * s, ax, 0.45 * s - 0.6 * s * sa, 0.15 * s - 0.6 * s * ca, 'z', -1);
+      for (const ox of [-0.11, 0.11]) { const x = ax + ox * s, y = 0.62 * s, z = 0.12 * s, L = 1.7 * s;
+        tb.add(G.cyl16, 0.085 * s, L, 0.085 * s, x, y + sa * 0.05 * s, z, 0xe8e8e8, Math.PI / 2 - a, 0, 0);
+        tb.add(G.cone, 0.085 * s, 0.3 * s, 0.085 * s, x, y + sa * (L / 2 + 0.15 * s), z + ca * (L / 2 + 0.15 * s), 0xc8321e, Math.PI / 2 - a, 0, 0);
+        tb.add(G.cyl16, 0.09 * s, 0.12 * s, 0.09 * s, x, y + sa * L * 0.25, z + ca * L * 0.25, 0xc8321e, Math.PI / 2 - a, 0, 0);
+        for (const fx of [-1, 1]) tb.box(0.012 * s, 0.2 * s, 0.22 * s, x + fx * 0.06 * s, y - sa * L * 0.42 + 0.06 * s, z - ca * L * 0.42, 0x3a3a36, -a, 0, 0); } }
   } else if (d.wp === 'rockets') {
     tb.add(G.dome, 0.42 * s, 0.35 * s, 0.42 * s, 0, 0.02, 0, T.dark);
     for (const sx of [-1, 1]) {
@@ -760,6 +782,7 @@ function unitGeo(d, team) {
       else { // big armoured rocket pod: 4x3 tubes with red warheads
         const a = 0.55, ca = Math.cos(a), sa = Math.sin(a), P = (x, y, z) => [x, 0.75 * s + y * ca + z * sa, 0.05 * s - y * sa + z * ca];
         tb.box(0.35 * s, 0.6 * s, 0.4 * s, 0, 0.35 * s, -0.1 * s, T.dark);
+        tb.box(0.9 * s, 0.22 * s, 0.7 * s, 0, 0.2 * s, -0.1 * s, T.body); tb.hazard(0.9 * s, 0.1 * s, 0, 0.2 * s, 0.255 * s, 'z', 1);
         { const [x, y, z] = P(0, 0, 0); tb.box(1.2 * s, 0.82 * s, 1.5 * s, x, y, z, T.body, -a, 0, 0); }
         for (const zz of [-0.45, 0.45]) { const [x, y, z] = P(0, 0, zz * s); tb.box(1.26 * s, 0.86 * s, 0.12 * s, x, y, z, T.acc, -a, 0, 0); }
         for (const sx of [-1, 1]) { const [x, y, z] = P(sx * 0.62 * s, 0, 0); tb.box(0.06 * s, 0.9 * s, 1.56 * s, x, y, z, T.dark, -a, 0, 0); }
@@ -784,14 +807,28 @@ function unitGeo(d, team) {
       tb.box(1.0 * s, 0.4 * s, 0.6 * s, 0, 0.45 * s, -0.75 * s, 0x5a5a3a); for (let k = 0; k < 4; k++) tb.add(G.cyl10, 0.07 * s, 0.4 * s, 0.07 * s, -0.3 * s + k * 0.2 * s, 0.75 * s, -0.75 * s, 0xc9a23a);
       tb.add(G.cyl6, 0.02, 1.0 * s, 0.02, 0.55 * s, 1.3 * s, -0.5 * s, 0x222222);
     } else {
-      const L = (w.big ? 2.6 : 2.0) * s, rr = (w.big ? 0.15 : 0.11) * s;
-      tb.add(G.cyl16, 0.55 * s, 0.15 * s, 0.55 * s, 0, 0.08 * s, 0, T.dark); tb.box(0.9 * s, 0.5 * s, 0.4 * s, 0, 0.4 * s, 0.25 * s, T.body, -0.2, 0, 0);
-      const tubes = d.wp === 'rhowitzer' ? [-0.14, 0.14] : [0];
-      for (const ox of tubes) { tb.add(G.cyl16, rr, L, rr, ox * s, 0.45 * s + Math.sin(0.55) * L * 0.5, 0.2 * s + Math.cos(0.55) * L * 0.5, w.plasma ? 0x3a3a40 : 0x2e2e2a, Math.PI / 2 - 0.55, 0, 0); }
-      tb.add(G.cyl16, rr * 1.6, L * 0.35, rr * 1.6, 0, 0.45 * s + Math.sin(0.55) * L * 0.2, 0.2 * s + Math.cos(0.55) * L * 0.2, tint, Math.PI / 2 - 0.55, 0, 0);
-      if (w.plasma) for (let k = 1; k <= 3; k++) tb.add(G.cyl16, rr * 1.8, 0.08 * s, rr * 1.8, 0, 0.45 * s + Math.sin(0.55) * L * k * 0.22, 0.2 * s + Math.cos(0.55) * L * k * 0.22, 0x60ff90, Math.PI / 2 - 0.55, 0, 0);
-      for (const sx of [-1, 1]) tb.box(0.08 * s, 0.4 * s, 0.6 * s, sx * 0.5 * s, 0.35 * s, 0.1 * s, T.dark);
-      tb.box(0.6 * s, 0.25 * s, 0.4 * s, 0, 0.25 * s, -0.5 * s, 0x6a5a3a);
+      // enclosed armoured gun house, long barrel with bore evacuator and muzzle brake, warning stripes
+      const L = (w.big ? 2.7 : 2.2) * s, rr = (w.big ? 0.14 : 0.1) * s, ang = 0.5, ca = Math.cos(ang), sa = Math.sin(ang);
+      const py = 0.6 * s, pz = 0.5 * s, along = (k, ox) => [ox, py + sa * L * k, pz + ca * L * k], R = Math.PI / 2 - ang;
+      tb.add(G.cyl16, 0.6 * s, 0.14 * s, 0.6 * s, 0, 0.07 * s, 0, T.dark); tb.add(G.cyl16, 0.62 * s, 0.04 * s, 0.62 * s, 0, 0.15 * s, 0, T.acc);
+      tb.box(1.0 * s, 0.5 * s, 1.15 * s, 0, 0.42 * s, -0.1 * s, T.body);                       // gun house
+      tb.box(1.0 * s, 0.34 * s, 0.4 * s, 0, 0.5 * s, 0.52 * s, T.body, -0.55, 0, 0);            // sloped glacis
+      tb.box(0.94 * s, 0.08 * s, 1.1 * s, 0, 0.7 * s, -0.12 * s, T.dark);                       // roof
+      tb.add(G.cyl16, 0.16 * s, 0.1 * s, 0.16 * s, 0.25 * s, 0.78 * s, -0.35 * s, T.dark); tb.box(0.14 * s, 0.08 * s, 0.03 * s, -0.3 * s, 0.6 * s, 0.38 * s, 0x3fb0ff);
+      tb.hazard(1.0 * s, 0.18 * s, 0, 0.26 * s, 0.47 * s, 'z', 1);
+      for (const sx of [-1, 1]) tb.hazard(1.0 * s, 0.16 * s, sx * 0.505 * s, 0.24 * s, -0.1 * s, 'x', sx);
+      tb.box(0.42 * s, 0.36 * s, 0.24 * s, 0, py, pz + 0.04 * s, T.dark, -ang * 0.5, 0, 0);       // mantlet
+      const tubes = d.wp === 'rhowitzer' ? [-0.13, 0.13] : [0];
+      for (const ox of tubes) { const o = ox * s;
+        { const [x, y, z] = along(0.5, o); tb.add(G.cyl16, rr, L, rr, x, y, z, w.plasma ? 0x3a3a40 : 0x2e2e2a, R, 0, 0); }
+        { const [x, y, z] = along(0.16, o); tb.add(G.cyl16, rr * 1.55, L * 0.28, rr * 1.55, x, y, z, tint, R, 0, 0); }
+        { const [x, y, z] = along(0.6, o); tb.add(G.cyl16, rr * 1.45, L * 0.12, rr * 1.45, x, y, z, 0x3a3a36, R, 0, 0); }   // bore evacuator
+        { const [x, y, z] = along(0.98, o); tb.box(rr * 3.2, rr * 2.2, L * 0.1, x, y, z, 0x262622, -ang, 0, 0); }          // muzzle brake
+        { const [x, y, z] = along(0.98, o); for (const sx of [-1, 1]) tb.box(0.012 * s, rr * 1.6, L * 0.05, x + sx * rr * 1.62, y, z, 0x111111, -ang, 0, 0); } }
+      if (w.plasma) for (let k = 1; k <= 3; k++) { const [x, y, z] = along(k * 0.22, 0); tb.add(G.cyl16, rr * 1.8, 0.08 * s, rr * 1.8, x, y, z, 0x60ff90, R, 0, 0); }
+      for (const sx of [-1, 1]) tb.box(0.12 * s, 0.26 * s, 0.5 * s, sx * 0.58 * s, 0.4 * s, -0.3 * s, 0x5a5a3a);                       // side stowage
+      tb.box(0.8 * s, 0.22 * s, 0.25 * s, 0, 0.35 * s, -0.8 * s, 0x6a5a3a);
+      tb.add(G.cyl6, 0.02, 1.0 * s, 0.02, -0.4 * s, 1.2 * s, -0.55 * s, 0x222222);
     }
   } else if (d.wp === 'mortar') {
     tb.add(G.cyl16, 0.55 * s, 0.12 * s, 0.55 * s, 0, 0.06 * s, 0, 0x5a564f); tb.add(G.cyl16, 0.57 * s, 0.05 * s, 0.57 * s, 0, 0.14 * s, 0, T.acc);
@@ -1084,13 +1121,14 @@ function completeBld(b) {
 // ================= FX =================
 const glowTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d'); const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.35, 'rgba(255,255,255,0.55)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })();
 function makePool(n, blend) { const arr = []; for (let i = 0; i < n; i++) { const m = new THREE.SpriteMaterial({ map: glowTex, transparent: true, depthWrite: false, blending: blend }); const s = new THREE.Sprite(m); s.visible = false; scene.add(s); arr.push({ s, life: 0, max: 1, vx: 0, vy: 0, vz: 0, s0: 1, s1: 2, a0: 1, g: 0, smoke: false }); } return arr; }
-const addPool = makePool(240, THREE.AdditiveBlending), normPool = makePool(220, THREE.NormalBlending);
+const addPool = makePool(360, THREE.AdditiveBlending), normPool = makePool(560, THREE.NormalBlending);
 let addIdx = 0, normIdx = 0;
 const FXT = {
   flash: { life: 0.14, s0: 1.6, s1: 4, a: 1, color: 0xfff0b0, v: 0, vy: 0 },
   fire: { life: 0.6, s0: 1.2, s1: 2.6, a: 0.95, color: 0xff7a22, v: 1.2, vy: 2 },
   spark: { life: 0.45, s0: 0.35, s1: 0.1, a: 1, color: 0xffd060, v: 6, vy: 7, g: 14 },
   smoke: { life: 2.6, s0: 1, s1: 4.2, a: 0.55, color: 0x48433c, v: 0.4, vy: 1.6, wind: 0.6 },
+  trail: { life: 2.6, s0: 0.8, s1: 3.2, a: 0.85, color: 0xc4bfb5, v: 0.15, vy: 0.5, wind: 0.35 },
   dust: { life: 1.1, s0: 1, s1: 2.8, a: 0.4, color: 0xb59c78, v: 0.8, vy: 0.6 },
   muzzle: { life: 0.06, s0: 0.7, s1: 1.1, a: 1, color: 0xfff3c0, v: 0, vy: 0 },
   snow: { life: 5, s0: 0.35, s1: 0.3, a: 0.9, color: 0xffffff, v: 0.6, vy: -5, wind: 0.8 },
@@ -1101,9 +1139,9 @@ const FXT = {
   blacksmoke: { life: 5, s0: 1.4, s1: 6.5, a: 0.62, color: 0x24211e, v: 0.35, vy: 2.4, wind: 0.7 },
 };
 function fx(type, x, y, z, size = 1) {
-  const P = FXT[type]; const normal = type === 'smoke' || type === 'dust' || type === 'snow' || type === 'steam';
+  const P = FXT[type]; const normal = type === 'smoke' || type === 'trail' || type === 'dust' || type === 'snow' || type === 'steam';
   const p = (normal || type === 'blacksmoke') ? normPool[normIdx = (normIdx + 1) % normPool.length] : addPool[addIdx = (addIdx + 1) % addPool.length];
-  p.life = p.max = P.life * rand(0.8, 1.2); p.s0 = P.s0 * size; p.s1 = P.s1 * size; p.a0 = P.a; p.smoke = normal || type === 'blacksmoke';
+  p.life = p.max = P.life * rand(0.8, 1.2); p.s0 = P.s0 * size; p.s1 = P.s1 * size; p.a0 = P.a; p.smoke = normal || type === 'blacksmoke'; p.fast = type === 'trail';
   p.vx = rand(-P.v, P.v) + (P.wind || 0); p.vy = P.vy * rand(0.6, 1.2); p.vz = rand(-P.v, P.v); p.g = P.g || 0;
   p.s.material.color.setHex(P.color); p.s.position.set(x, y, z); p.s.visible = true; p.s.scale.setScalar(p.s0);
 }
@@ -1111,7 +1149,7 @@ function updFx(dt) {
   for (const pool of [addPool, normPool]) for (const p of pool) {
     if (!p.s.visible) continue; p.life -= dt; if (p.life <= 0) { p.s.visible = false; continue; }
     const k = 1 - p.life / p.max; p.s.scale.setScalar(lerp(p.s0, p.s1, k));
-    p.s.material.opacity = p.smoke ? p.a0 * (1 - k) * Math.min(1, k * 6) : p.a0 * (1 - k);
+    p.s.material.opacity = p.smoke ? p.a0 * (1 - k) * Math.min(1, k * (p.fast ? 30 : 6)) : p.a0 * (1 - k);
     if (p.s.position.y < -50) p.life = 0;
     p.vy -= p.g * dt; p.s.position.x += p.vx * dt; p.s.position.y += p.vy * dt; p.s.position.z += p.vz * dt;
   }
@@ -1165,11 +1203,13 @@ let bmIdx = 0;
 function beam(x1, y1, z1, x2, y2, z2) { const t = beams[bmIdx = (bmIdx + 1) % beams.length]; const d = Math.hypot(x2 - x1, y2 - y1, z2 - z1); t.m.position.set((x1 + x2) / 2, (y1 + y2) / 2, (z1 + z2) / 2); t.m.lookAt(x2, y2, z2); t.m.scale.set(1, 1, d); t.m.visible = true; t.life = 0.14; }
 function tracer(x1, y1, z1, x2, y2, z2) { const t = tracers[trIdx = (trIdx + 1) % tracers.length]; const d = Math.hypot(x2 - x1, y2 - y1, z2 - z1); t.m.position.set((x1 + x2) / 2, (y1 + y2) / 2, (z1 + z2) / 2); t.m.lookAt(x2, y2, z2); t.m.scale.set(1, 1, d); t.m.visible = true; t.life = 0.06; }
 const plasmaMat = new THREE.MeshBasicMaterial({ color: 0x9affb8 });
-const shellGeo = new THREE.SphereGeometry(0.2, 6, 4), rocketGeo = new THREE.ConeGeometry(0.13, 0.7, 5).rotateX(Math.PI / 2);
+const shellGeo = new THREE.SphereGeometry(0.2, 6, 4), rocketGeo = new THREE.ConeGeometry(0.18, 1.0, 6).rotateX(Math.PI / 2);
 const shellMat = new THREE.MeshBasicMaterial({ color: 0xffd27a }), rocketMat = new THREE.MeshBasicMaterial({ color: 0xe8e8e8 });
+const exhGeo = new THREE.ConeGeometry(0.12, 1.1, 6).rotateX(-Math.PI / 2).translate(0, 0, -0.85), exhCoreGeo = new THREE.ConeGeometry(0.06, 0.6, 6).rotateX(-Math.PI / 2).translate(0, 0, -0.6);
+const exhMat = new THREE.MeshBasicMaterial({ color: 0xff7a1a, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false }), exhCoreMat = new THREE.MeshBasicMaterial({ color: 0xfff0a0, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
 const projs = [];
 function spawnProj(kind, src, tgt, dmg, splash, ox, oy, oz, w, realT) {
-  const rk = kind === 'rocket' || (w && w.kind === 'salvo'); const m = new THREE.Mesh(rk ? rocketGeo : shellGeo, w && w.plasma ? plasmaMat : rk ? rocketMat : shellMat); scene.add(m); if (kind === 'mortar') m.scale.setScalar(w && w.big ? 2.6 : w && w.plasma ? 2.4 : 1.6);
+  const rk = kind === 'rocket' || (w && w.kind === 'salvo'); const m = new THREE.Mesh(rk ? rocketGeo : shellGeo, w && w.plasma ? plasmaMat : rk ? rocketMat : shellMat); scene.add(m); if (rk && !(w && w.plasma)) { m.add(new THREE.Mesh(exhGeo, exhMat)); m.add(new THREE.Mesh(exhCoreGeo, exhCoreMat)); } if (kind === 'rocket') m.scale.setScalar(w && w.heavy ? 2.2 : 1.5); if (kind === 'mortar') m.scale.setScalar(w && w.big ? 2.6 : w && w.plasma ? 2.4 : w && w.kind === 'salvo' ? 1.7 : 1.6);
   const tx = tgt.x, tz = tgt.z, ty = tgt.y + (tgt.kind === 'bld' ? 1.5 : 0.8); const d = Math.hypot(tx - ox, tz - oz); const spd = kind === 'shell' ? 34 : kind === 'mortar' ? 15 : 22;
   projs.push({ kind, m, team: src.team, src, tgt, ox, oy, oz, tx, ty, tz, t: 0, dur: Math.max(0.12, d / spd), arc: kind === 'shell' ? d * 0.05 : kind === 'mortar' ? d * 0.55 : d * 0.13, dmg, splash, smokeT: 0, w, realT });
 }
@@ -1186,8 +1226,8 @@ function updProjs(dt) {
     if (p.tgt.alive) { p.tx = p.tgt.x; p.tz = p.tgt.z; p.ty = p.tgt.y + (p.tgt.kind === 'bld' ? 1.5 : 0.8); }
     const k = Math.min(1, p.t); const x = lerp(p.ox, p.tx, k), z = lerp(p.oz, p.tz, k), y = lerp(p.oy, p.ty, k) + Math.sin(k * Math.PI) * p.arc;
     const px = p.m.position.x, py = p.m.position.y, pz = p.m.position.z;
-    p.m.position.set(x, y, z); if (p.w && p.w.plasma && Math.random() < 0.5) fx('spark', x, y, z, 0.6); if (p.kind === 'rocket' || (p.w && p.w.kind === 'salvo')) { p.m.lookAt(x + (x - px), y + (y - py), z + (z - pz)); p.smokeT -= dt; if (p.smokeT <= 0) { p.smokeT = 0.03; fx('smoke', x, y, z, 0.35); fx('fire', x, y, z, 0.3); } }
-    else if (p.kind === 'mortar' && !(p.w && p.w.plasma)) { p.smokeT -= dt; if (p.smokeT <= 0) { p.smokeT = 0.045; fx('smoke', x, y, z, p.w && p.w.big ? 0.42 : 0.3); if (Math.random() < 0.35) fx('fire', x, y, z, 0.22); } }
+    p.m.position.set(x, y, z); if (p.w && p.w.plasma && Math.random() < 0.5) fx('spark', x, y, z, 0.6); if (p.kind === 'rocket' || (p.w && p.w.kind === 'salvo')) { p.m.lookAt(x + (x - px), y + (y - py), z + (z - pz)); p.smokeT -= dt; if (p.smokeT <= 0) { const hv = p.w && p.w.heavy; p.smokeT = 0.035; fx('trail', x, y, z, hv ? 0.75 : 0.55); fx('fire', x, y, z, hv ? 0.45 : 0.32); } }
+    else if (p.kind === 'mortar' && !(p.w && p.w.plasma)) { p.smokeT -= dt; if (p.smokeT <= 0) { p.smokeT = 0.045; fx('trail', x, y, z, p.w && p.w.big ? 0.6 : 0.45); if (Math.random() < 0.35) fx('fire', x, y, z, 0.25); } }
     if (p.kind === 'mortar' && !p.wh && p.dur > 1.2 && (1 - p.t) * p.dur < 0.95 && !(p.w && (p.w.plasma || p.w.kind === 'salvo' || p.w.id === 'ballistic'))) { p.wh = 1; sfx('whistle', p.tx, p.tz); }
     if (k >= 1) {
       scene.remove(p.m); projs.splice(i, 1);
@@ -1262,14 +1302,14 @@ function fireWeapon(src, t, w, mx, my, mz, mul) {
   if (w.kind === 'mg') { const ty = t.y + (t.kind === 'bld' ? 1.5 : 0.7); tracer(mx, my, mz, t.x + rand(-0.4, 0.4), ty, t.z + rand(-0.4, 0.4)); if (Math.random() < 0.3) { fx('spark', t.x, ty, t.z, 1); if (Math.random() < 0.5) sfx('ric', t.x, t.z); } damage(t, dmg, src); sfx('mg', mx, mz); }
   else if (w.kind === 'shell') { spawnProj('shell', src, t, dmg, 0, mx, my, mz); fx('smoke', mx, my, mz, 0.6); sfx('shell', mx, mz); }
   else if (w.kind === 'mortar') { spawnProj('mortar', src, t, dmg, w.splash, mx, my, mz, w); fx('smoke', mx, my, mz, w.big ? 1.6 : 0.9); fx('flash', mx, my, mz, w.big ? 1.2 : 0.6); sfx(ART_SND[w.id] || 'art_mortar', mx, mz); }
-  else if (w.kind === 'salvo') { sfx(ART_SND[w.id], mx, mz); for (let i = 0; i < w.n; i++) later(i * 0.12, () => { if (src.alive && t.alive) spawnProj('mortar', src, { ...t, x: t.x + rand(-2.5, 2.5) * (w.n > 1 ? 1 : 0), z: t.z + rand(-2.5, 2.5) * (w.n > 1 ? 1 : 0), alive: false, kind: t.kind, y: t.y }, dmg, w.splash, mx, my, mz, w, t); }); }
+  else if (w.kind === 'salvo') { sfx(ART_SND[w.id], mx, mz); for (let i = 0; i < w.n; i++) later(i * 0.12, () => { if (src.alive && t.alive) { spawnProj('mortar', src, { ...t, x: t.x + rand(-2.5, 2.5) * (w.n > 1 ? 1 : 0), z: t.z + rand(-2.5, 2.5) * (w.n > 1 ? 1 : 0), alive: false, kind: t.kind, y: t.y }, dmg, w.splash, mx, my, mz, w, t); fx('fire', mx, my, mz, 0.55); fx('smoke', mx, my - 0.3, mz, 0.8); } }); }
   else if (w.kind === 'flame') { const ty = t.y + (t.kind === 'bld' ? 1.2 : 0.6);
     for (let k = 1; k <= 5; k++) { const f = k / 5; fx('flame', lerp(mx, t.x, f) + rand(-0.3, 0.3), lerp(my, ty, f) + rand(-0.2, 0.3), lerp(mz, t.z, f) + rand(-0.3, 0.3), 0.6 + f * 1.1); }
     if (Math.random() < 0.4) fx('smoke', t.x, ty + 1, t.z, 0.7); damage(t, dmg, src);
     for (const e of ents) if (e.alive && e !== t && e.team !== src.team && e.kind === 'unit' && Math.hypot(e.x - t.x, e.z - t.z) < 2.4) damage(e, dmg * 0.5, src);
     sfx('flame', mx, mz); }
   else if (w.kind === 'laser') { const ty = t.y + (t.kind === 'bld' ? 1.5 : 0.7); beam(mx, my, mz, t.x, ty, t.z); fx('spark', t.x, ty, t.z, 1.4); fx('flash', t.x, ty, t.z, 0.8); damage(t, dmg, src); sfx('laser', mx, mz); }
-  else if (w.kind === 'rocket') { for (let i = 0; i < 2; i++) later(i * 0.15, () => { if (src.alive && t.alive) spawnProj('rocket', src, t, dmg, w.splash, mx, my, mz); }); sfx('rocket', mx, mz); }
+  else if (w.kind === 'rocket') { for (let i = 0; i < 2; i++) later(i * 0.15, () => { if (src.alive && t.alive) { spawnProj('rocket', src, t, dmg, w.splash, mx, my, mz, w); if (w.heavy) { fx('fire', mx, my, mz, 0.7); fx('smoke', mx, my, mz, 1); } } }); sfx('rocket', mx, mz); }
 }
 
 // ================= MOVEMENT =================
@@ -1929,7 +1969,7 @@ function renderDesigner() {
     return `<button data-f="${field}" data-k="${k}" class="dcard ${dsg[field] === k ? 'on' : ''}" ${ok ? '' : 'disabled'}>${DICON[k] || ''}<span class="rn">${o.name}</span><span class="rm">${ok ? sub(o) : '🔒 cercetează'}</span></button>`; };
   $('dPr').innerHTML = Object.keys(PR).map(k => card(PR, 'pr', k, o => `${o.cost}⚡ · viteză ×${o.spd}`)).join('');
   $('dCh').innerHTML = Object.keys(CH).map(k => card(CH, 'ch', k, o => `${o.cost}⚡ · ${o.hp} viață`)).join('');
-  $('dWp').innerHTML = ['mg', 'cannon', 'flame', 'rockets', 'laser', 'mortar', ...ART_W.filter(k => k !== 'mortar' && T.tech.has(k)), 'radar', 'repair', 'truck'].map(k => card(WP, 'wp', k, o => o.kind === 'radar' ? `${o.cost}⚡ · +25% rază aliați` : o.kind === 'repair' ? `${o.cost}⚡ · repară ${o.heal}/s` : o.kind === 'truck' ? `${o.cost}⚡ · construiește` : `${o.cost}⚡ · rază ${o.range}`)).join('');
+  $('dWp').innerHTML = ['mg', 'cannon', 'flame', 'rockets', 'viper', 'laser', 'mortar', ...ART_W.filter(k => k !== 'mortar' && T.tech.has(k)), 'radar', 'repair', 'truck'].map(k => card(WP, 'wp', k, o => o.kind === 'radar' ? `${o.cost}⚡ · +25% rază aliați` : o.kind === 'repair' ? `${o.cost}⚡ · repară ${o.heal}/s` : o.kind === 'truck' ? `${o.cost}⚡ · construiește` : `${o.cost}⚡ · rază ${o.range}`)).join('');
   const st = unitStats(dsg, 0); const cur = dsgVals(dsg), base = dsgBase && designName(dsgBase) !== designName(dsg) ? dsgVals(dsgBase) : null;
   // bar with a marker for the previous design and a coloured difference
   const bar = (n, k, mx, fmt, lowGood) => { const v = cur[k], b = base ? base[k] : null; const d = b === null ? 0 : v - b; const good = lowGood ? d < 0 : d > 0;

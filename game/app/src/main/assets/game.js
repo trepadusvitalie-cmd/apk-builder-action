@@ -1185,7 +1185,7 @@ const glowTex = (() => { const c = document.createElement('canvas'); c.width = c
 // solid round fireball for gun flashes: white-hot core, yellow body, orange rim
 const ballTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d'); const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,250,210,1)'); gr.addColorStop(0.22, 'rgba(255,225,70,1)'); gr.addColorStop(0.6, 'rgba(255,165,25,1)'); gr.addColorStop(0.82, 'rgba(240,90,10,.75)'); gr.addColorStop(1, 'rgba(200,60,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })();
 function makePool(n, blend) { const arr = []; for (let i = 0; i < n; i++) { const m = new THREE.SpriteMaterial({ map: glowTex, transparent: true, depthWrite: false, blending: blend }); const s = new THREE.Sprite(m); s.visible = false; scene.add(s); arr.push({ s, life: 0, max: 1, vx: 0, vy: 0, vz: 0, s0: 1, s1: 2, a0: 1, g: 0, smoke: false }); } return arr; }
-const addPool = makePool(360, THREE.AdditiveBlending), normPool = makePool(560, THREE.NormalBlending);
+const addPool = makePool(420, THREE.AdditiveBlending), normPool = makePool(900, THREE.NormalBlending);
 let addIdx = 0, normIdx = 0;
 const FXT = {
   flash: { life: 0.14, s0: 1.6, s1: 4, a: 1, color: 0xfff0b0, v: 0, vy: 0 },
@@ -1249,10 +1249,19 @@ const RAY_GEO = [0, 1, 2].map(v => { const B = new Builder(), up = new THREE.Vec
   return B.build(); });
 const RAYS = []; for (let i = 0; i < 20; i++) { const m = new THREE.Mesh(RAY_GEO[i % 3], new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, toneMapped: false })); m.visible = false; m.renderOrder = 3; scene.add(m); RAYS.push({ m, t: 0, life: 0.32, r: 1 }); }
 let rayIdx = 0;
+// burning streamers: fly out along the rays, arc over and fall to the ground trailing black smoke
+const STREAM = [];
+function streamers(x, y, z, r) { const n = Math.max(4, Math.min(9, Math.round(r * 1.3))); const a0 = rand(0, TAU);
+  for (let i = 0; i < n; i++) { if (STREAM.length > 90) STREAM.shift(); const a = a0 + (i / n) * TAU + rand(-0.25, 0.25), el = rand(0.35, 1.1), sp = r * rand(3.2, 4.6) + 4;
+    STREAM.push({ x, y, z, vx: Math.cos(a) * Math.cos(el) * sp, vy: Math.sin(el) * sp, vz: Math.sin(a) * Math.cos(el) * sp, t: 0, life: rand(1.2, 1.9), tr: 0, s: Math.max(0.5, r * 0.16) }); } }
+function updStreamers(dt) { for (let i = STREAM.length - 1; i >= 0; i--) { const q = STREAM[i]; q.t += dt; q.vy -= 13 * dt; q.vx *= 1 - 0.6 * dt; q.vz *= 1 - 0.6 * dt;
+  q.x += q.vx * dt; q.y += q.vy * dt; q.z += q.vz * dt; const gy = heightAt(q.x, q.z);
+  q.tr -= dt; if (q.tr <= 0) { q.tr = 0.03; const k = q.t / q.life; fx('blacksmoke', q.x, q.y, q.z, q.s * (0.75 + k * 0.6)); if (k < 0.7) fx('fire', q.x, q.y, q.z, q.s * 0.55 * (1 - k)); }
+  if (q.y <= gy + 0.2 || q.t >= q.life) { fx('smoke', q.x, gy + 0.3, q.z, q.s * 1.2); fx('fire', q.x, gy + 0.2, q.z, q.s * 0.6); STREAM.splice(i, 1); } } }
 function rays3D(x, y, z, r, life) { const f = RAYS[rayIdx = (rayIdx + 1) % RAYS.length]; f.t = 0; f.r = r; f.life = life || 0.35; f.m.position.set(x, y, z); f.m.rotation.y = rand(0, TAU); f.m.visible = true; f.m.scale.setScalar(0.01); f.m.material.opacity = 1; }
 function updRays(dt) { for (const f of RAYS) { if (!f.m.visible) continue; f.t += dt; const k = f.t / f.life; if (k >= 1) { f.m.visible = false; continue; }
   f.m.scale.setScalar(f.r * (0.5 + 1.3 * (1 - Math.pow(1 - k, 3)))); f.m.material.opacity = k < 0.25 ? 1 : 1 - (k - 0.25) / 0.75; } }
-function fireball3D(x, y, z, r) { const f = FBALLS[fbIdx = (fbIdx + 1) % FBALLS.length]; f.t = 0; f.life = 0.45 + r * 0.04; f.r = r; f.m.position.set(x, y + r * 0.35, z); f.m.rotation.set(0, 0, 0); f.m.visible = true; f.m.scale.setScalar(r * 0.25); rays3D(x, y + r * 0.35, z, r * 1.5, f.life * 0.75); f.m.material.color.setRGB(1, 1, 1); f.m.material.opacity = 0.8; f.core.material.opacity = 1; f.m.material.depthWrite = false; f.core.visible = true; }
+function fireball3D(x, y, z, r) { const f = FBALLS[fbIdx = (fbIdx + 1) % FBALLS.length]; f.t = 0; f.life = 0.45 + r * 0.04; f.r = r; f.m.position.set(x, y + r * 0.35, z); f.m.rotation.set(0, 0, 0); f.m.visible = true; f.m.scale.setScalar(r * 0.25); rays3D(x, y + r * 0.35, z, r * 1.5, f.life * 0.75); if (Math.abs(x - cam.x) < 110 && Math.abs(z - cam.z) < 110) streamers(x, y + r * 0.35, z, r); f.m.material.color.setRGB(1, 1, 1); f.m.material.opacity = 0.8; f.core.material.opacity = 1; f.m.material.depthWrite = false; f.core.visible = true; }
 function updFireballs(dt) { for (const f of FBALLS) { if (!f.m.visible) continue; f.t += dt; const k = f.t / f.life; if (k >= 1) { f.m.visible = false; continue; }
   const grow = k < 0.3 ? 1 - Math.pow(1 - k / 0.3, 3) : 1; f.m.scale.setScalar(f.r * (0.25 + 0.75 * grow + 0.15 * k)); f.m.position.y += dt * f.r * 0.6;
   const dark = k < 0.45 ? 0 : (k - 0.45) / 0.55; f.m.material.color.setRGB(1, 1 - dark * 0.55, 1 - dark * 0.85); f.core.material.opacity = Math.max(0, 1 - k * 1.8); f.core.visible = k < 0.55;
@@ -1272,7 +1281,7 @@ function impactFx(x, y, z, sz, big) {
 const reloadVis = [];
 function updReload() { const t = performance.now(); for (let i = reloadVis.length - 1; i >= 0; i--) if (t >= reloadVis[i].t) { reloadVis[i].m.visible = true; reloadVis.splice(i, 1); } }
 function updBoomFx(dt) {
-  updReload(); updFireballs(dt); updRays(dt);
+  updReload(); updFireballs(dt); updRays(dt); updStreamers(dt);
   for (const s of shocks) if (s.m.visible) { s.t += dt; const k = s.t / s.max; if (k >= 1) { s.m.visible = false; continue; } const r = s.r * (0.6 + 2.4 * Math.sqrt(k)); s.m.scale.set(r, 1, r); s.m.material.opacity = 0.55 * (1 - k) * (1 - k); }
   for (const s of scorches) if (s.m.visible) { s.t -= dt; if (s.t < 8) s.m.material.opacity = 0.85 * Math.max(0, s.t / 8); if (s.t <= 0) s.m.visible = false; }
   for (const d of debris) if (d.m.visible) { d.t -= dt; const p = d.m.position; d.vy -= 18 * dt; p.x += d.vx * dt; p.y += d.vy * dt; p.z += d.vz * dt; d.m.rotation.x += d.rx * dt; d.m.rotation.z += d.rz * dt;

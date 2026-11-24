@@ -87,6 +87,30 @@
   </div>
 </div>
 
+<div id="mapEd" class="modal hidden">
+  <div class="mbox">
+    <h2>🗺️ Hartă nouă</h2>
+    <div class="me">
+      <div class="mef">
+        <label>Nume <input id="meName" maxlength="18" value="Harta mea"></label>
+        <label>Mărime: <b id="meSizeV"></b><input id="meSize" type="range" min="240" max="600" step="20" value="360"></label>
+        <label>Inele de forturi: <b id="meRingV"></b><input id="meRing" type="range" min="1" max="5" step="1" value="3"></label>
+        <div><div class="lbl">Forturi pe inel</div>
+        <div class="opts" id="meDens"><button data-v="0.6">Puține</button><button data-v="1" class="on">Normal</button><button data-v="1.4">Multe</button></div></div>
+        <div><div class="lbl">Petrol</div>
+        <div class="opts" id="meOil"><button data-v="0.6">Puțin</button><button data-v="1" class="on">Normal</button><button data-v="1.6">Mult</button></div></div>
+        <div class="mew"><div class="lbl">Teren</div>
+        <div class="opts" id="meSeedM"><button data-v="r" class="on">Nou la fiecare joc</button><button data-v="f">Mereu același</button></div></div>
+        <label id="meSeedL" class="hidden">Cod teren <input id="meSeed" inputmode="numeric" maxlength="6"></label>
+      </div>
+      <canvas id="mePrev" width="220" height="220"></canvas>
+    </div>
+    <div class="lbl">Sau lipește codul unei hărți primite de la un prieten</div>
+    <div class="mpb"><input id="meCode" placeholder="IF1-…" autocomplete="off"><button data-me="imp">Importă</button></div>
+    <div class="row"><button class="ok big" data-me="save">💾 Salvează harta</button><button data-me="close">Anulează</button></div>
+  </div>
+</div>
+
 <div id="intro" class="modal">
   <div class="mbox title">
     <div class="logo">IRONFALL <span>2200</span></div>
@@ -97,6 +121,14 @@
       <button data-v="1" class="on">Normal</button>
       <button data-v="2">Greu</button>
     </div>
+    <div class="lbl">Nivel de tehnologie la start</div>
+    <div class="opts" id="tlSel">
+      <button data-v="0" class="on">T1</button>
+      <button data-v="1">T2</button>
+      <button data-v="2">T3</button>
+      <button data-v="3">T4</button>
+    </div>
+    <div class="tiny" id="tlInfo"></div>
     <div class="lbl">Hartă</div>
     <div class="opts" id="mapSel"></div>
     <div class="row">

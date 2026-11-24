@@ -328,3 +328,31 @@ i.eu { font-style: normal; color: var(--amber); font-size: .9em; margin-left: 1p
 #techPop .tpi { width: 42px; height: 42px; } #techPop .tpi svg { width: 38px; height: 38px; }
 #techPop .tpt b { font-size: 14px; } #techPop .tpt small { font-size: 9px; }
 #netSt { top: 58px; font-size: 11px; padding: 3px 10px; }
+/* tech level + custom maps */
+#tlInfo { margin-top: 2px; font-size: 11px; }
+#mapSel .mapc { position: relative; }
+#mapSel .mapc.add { border-style: dashed; justify-content: center; }
+#mapSel .mapc.add b { font-size: 18px; }
+#mapSel .mapc i { position: absolute; top: 2px; font-style: normal; font-size: 12px; opacity: .8; padding: 0 3px; }
+#mapSel .mapc i.del { right: 3px; } #mapSel .mapc i.cp { left: 3px; }
+#mapEd { z-index: 13; }
+#mapEd .mbox { width: 560px; max-width: 96vw; }
+#mapEd h2 { margin: 0 0 6px; color: var(--amber); font-size: 18px; }
+.me { display: flex; gap: 12px; align-items: flex-start; }
+.mef { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.mef label { font-size: 12px; color: var(--dim); display: flex; flex-direction: column; gap: 2px; }
+.mef label b { color: var(--amber); }
+.mef input:not([type=range]), #meCode { background: #111; color: var(--amber); border: 1px solid #f0b44a80; border-radius: 6px; padding: 5px 7px; font-size: 13px; }
+#meCode { flex: 1; min-width: 160px; }
+.mef .opts { justify-content: flex-start; } .mef .opts button { min-width: 0; font-size: 12px; padding: 4px 7px; }
+#mePrev { width: 170px; height: 170px; border-radius: 8px; border: 1px solid #f0b44a50; background: #1b1a16; flex: none; }
+@media (max-height: 500px) { #mePrev { width: 130px; height: 130px; } #mapEd h2 { font-size: 15px; } }
+.mpset { font-size: 12px; color: var(--dim); background: #0005; border-radius: 8px; padding: 5px 8px; margin: 4px auto; }
+.mpset b { color: var(--amber); }
+.mef { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 12px; align-items: end; }
+.mef > label:first-child { grid-column: 1 / -1; flex-direction: row; align-items: center; gap: 8px; }
+.mef > label:first-child input { flex: 1; }
+.mef .lbl { margin: 2px 0 0; }
+.mef input[type=range] { accent-color: #f0b44a; width: 100%; margin: 0; }
+.mef label { font-size: 11px; } #mapEd .mpb { margin: 4px 0; } #mapEd .row { margin-top: 6px; }
+.mef .mew { grid-column: 1 / -1; } .mef .mew .opts { display: inline-flex; }

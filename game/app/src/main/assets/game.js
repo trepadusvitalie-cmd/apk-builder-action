@@ -12,11 +12,11 @@ function angDiff(a, b) { let d = (b - a) % TAU; if (d > Math.PI) d -= TAU; if (d
 
 // multiplayer: settings handed over from the lobby through a reload (same seed + map as the host)
 const NETCFG = (() => { try { const v = JSON.parse(sessionStorage.getItem('ironfall.net') || 'null'); sessionStorage.removeItem('ironfall.net'); return v; } catch (e) { return null; } })();
-const S = { running: false, paused: false, time: 0, diff: 1, over: false, stats: { built: 0, lost: 0, killed: 0 } };
+const S = { running: false, paused: false, time: 0, diff: 1, tl: 0, over: false, stats: { built: 0, lost: 0, killed: 0 } };
 const CAP = 40;
 
 // ================= NOISE / TERRAIN =================
-const SEED = NETCFG ? NETCFG.seed | 0 : (Math.random() * 100000) | 0;
+let SEED = NETCFG ? NETCFG.seed | 0 : (Math.random() * 100000) | 0;
 function hash2(x, y) { let h = (Math.imul(x | 0, 374761393) + Math.imul(y | 0, 668265263) + Math.imul(SEED, 982451653)) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); h ^= h >>> 16; return (h >>> 0) / 4294967296; }
 function vnoise(x, y) { const xi = Math.floor(x), yi = Math.floor(y); const xf = x - xi, yf = y - yi; const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf); const a = hash2(xi, yi), b = hash2(xi + 1, yi), c = hash2(xi, yi + 1), d = hash2(xi + 1, yi + 1); return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v; }
 function fbm(x, y) { let s = 0, a = 1, f = 1, n = 0; for (let i = 0; i < 4; i++) { s += vnoise(x * f + i * 17.3, y * f - i * 9.1) * a; n += a; a *= 0.5; f *= 2.03; } return s / n; }
@@ -29,9 +29,21 @@ const MAPS = [
   { name: 'Mare', size: 420, rings: [[165, 7, 0, 1.2], [128, 6, 1, 1.3], [90, 5, 1, 1.3], [52, 4, 2, 1.2]], gar: 0.85 },
   { name: 'Uriașă', size: 560, rings: [[228, 9, 0, 1.1], [185, 8, 0, 1.2], [140, 7, 1, 1.3], [98, 5, 2, 1.3], [56, 4, 2, 1.2]], gar: 0.7 },
 ];
+// player-made maps (saved on the phone, shareable as a short code)
+const BUILTIN_MAPS = MAPS.length;
+function genRings(size, nr, dens) { const out = []; const r0 = size * 0.38, r1 = size * 0.16;
+  for (let i = 0; i < nr; i++) { const r = Math.round(nr > 1 ? r0 - (r0 - r1) * i / (nr - 1) : (r0 + r1) / 2); const tier = Math.min(2, Math.floor(i * 3 / nr)); out.push([r, Math.max(2, Math.round(r / 22 * dens)), tier, 1.25]); } return out; }
+function cleanMap(m) { if (!m || typeof m !== 'object') return null; const size = clamp(Math.round(+m.size / 20) * 20 || 300, 240, 600), nr = clamp(+m.nr | 0 || 3, 1, 5), dens = clamp(+m.dens || 1, 0.5, 1.6), oil = clamp(+m.oil || 1, 0.5, 2);
+  const name = String(m.name || 'Harta mea').replace(/[<>&"]/g, '').slice(0, 18) || 'Harta mea'; const seed = m.seed === null || m.seed === undefined || m.seed === '' ? null : (Math.abs(+m.seed | 0) % 1000000);
+  return { name, size, nr, dens, oil, seed, rings: genRings(size, nr, dens), gar: clamp(1.15 - size / 1000, 0.6, 1), custom: true }; }
+let CUSTOM_MAPS = []; try { CUSTOM_MAPS = (JSON.parse(localStorage.getItem('ironfall.maps') || '[]') || []).map(cleanMap).filter(Boolean).slice(0, 12); } catch (e) {}
+MAPS.push(...CUSTOM_MAPS);
+const mapCode = m => 'IF1-' + btoa(unescape(encodeURIComponent(JSON.stringify({ name: m.name, size: m.size, nr: m.nr, dens: m.dens, oil: m.oil, seed: m.seed })))).replace(/=+$/, '');
+const mapFromCode = c => { try { c = String(c).trim().replace(/^IF1-/i, ''); return cleanMap(JSON.parse(decodeURIComponent(escape(atob(c))))); } catch (e) { return null; } };
 let MAPI = 0; try { MAPI = clamp(+(localStorage.getItem('ironfall.map') || 0) | 0, 0, MAPS.length - 1); } catch (e) {}
-if (NETCFG) MAPI = clamp(NETCFG.map | 0, 0, MAPS.length - 1);
+if (NETCFG) { const md = NETCFG.mdef && cleanMap(NETCFG.mdef); if (md) { MAPS.push(md); MAPI = MAPS.length - 1; } else MAPI = clamp(NETCFG.map | 0, 0, BUILTIN_MAPS - 1); }
 const MC = MAPS[MAPI];
+if (!NETCFG && MC.seed !== null && MC.seed !== undefined) SEED = MC.seed;
 const MAP = MC.size, HALF = MAP / 2, EDGE = HALF - 9, SC = MAP / 300;
 const PLAYER = { x: 0, z: HALF - 26 };
 const PLAYER2 = { x: Math.round(52 * Math.min(SC, 1.3)), z: HALF - 34 }; // second commander's base (co-op)
@@ -50,10 +62,11 @@ RINGS.forEach((R, ri) => {
 OUTPOSTS.push({ x: 0, z: 0, tier: 3, a: 0, prodT: 0, nextWave: 0, citadel: true });
 const FLAT = [{ x: PLAYER.x, z: PLAYER.z - 8, r: 44 }, { x: PLAYER2.x, z: PLAYER2.z, r: 28 }, { x: 0, z: 0, r: 34 }, ...OUTPOSTS.filter(o => !o.citadel).map(o => ({ x: o.x, z: o.z, r: 16 }))];
 const WELL_POS = [[-14, PLAYER.z + 12], [16, PLAYER.z + 10], [0, PLAYER.z - 16], [PLAYER2.x + 12, PLAYER2.z + 9], ...[[-40, 118], [42, 116], [-70, 95], [72, 92], [0, 70], [-95, 40], [96, 30], [-20, -96], [30, -120], [-110, -40], [110, -70], [-60, -130], [70, 60], [-60, 60]].map(([x, z]) => [x * SC, z * SC])];
-{ let k = 0; const extra = Math.round(16 * (SC * SC - 1)); for (let t = 0; k < extra && t < 4000; t++) { const x = (hash2(t, 7) - 0.5) * (MAP - 40), z = (hash2(t, 13) - 0.5) * (MAP - 40);
+{ let k = 0; const extra = Math.round(16 * (SC * SC - 1) + (MC.custom ? 14 * SC * SC * (MC.oil - 1) : 0)); for (let t = 0; k < extra && t < 4000; t++) { const x = (hash2(t, 7) - 0.5) * (MAP - 40), z = (hash2(t, 13) - 0.5) * (MAP - 40);
   if (Math.hypot(x, z) < 40 || Math.hypot(x - PLAYER.x, z - PLAYER.z) < 35 || Math.hypot(x - PLAYER2.x, z - PLAYER2.z) < 30 || OUTPOSTS.some(o => Math.hypot(o.x - x, o.z - z) < 24) || WELL_POS.some(w => Math.hypot(w[0] - x, w[1] - z) < 30)) continue; WELL_POS.push([x, z]); k++; } }
 for (const o of OUTPOSTS) if (!o.citadel) { const a = o.a + 0.18; const r = Math.hypot(o.x, o.z) + 9; WELL_POS.push([Math.sin(a) * r, Math.cos(a) * r]); }
 WELL_POS.push([14, 8], [-14, -8]);
+for (let i = WELL_POS.length - 1; i >= 4; i--) { const [x, z] = WELL_POS[i]; if (Math.abs(x) > EDGE - 6 || Math.abs(z) > EDGE - 6 || (MC.custom && MC.oil < 1 && hash2(i, 31) > MC.oil)) WELL_POS.splice(i, 1); }
 
 function biomeW(x, z) {
   const a = Math.atan2(x, z) + (fbm(x * 0.008 + 7, z * 0.008) - 0.5) * 1.6;
@@ -530,6 +543,12 @@ for (let m = 1; m <= 3; m++) {
   addUpg(`rspeed${m}`, `Analiză date Mk ${ROM[m - 1]}`, 'rspeed', [m > 1 ? `rspeed${m - 1}` : null], 100 + 70 * m, 20 + 10 * m, 'up', T => { T.rsMul += 0.25; }, 'Industrie');
   if (m < 3) addUpg(`prod${m + 1}`, `Producție automată Mk ${ROM[m]}`, 'prod', [m > 1 ? `prod${m}` : 'prod'], 200 + 80 * m, 38 + 8 * m, 'up', T => { T.prodMul += 0.3; }, 'Industrie');
 }
+// technology level at the start (T1 = from scratch … T4 = everything researched), for all sides
+const TL_DEPTH = [0, 2, 4, 99], TL_ENERGY = [500, 1000, 1600, 2500], TL_NAME = ['T1', 'T2', 'T3', 'T4'];
+const RS_DEPTH = {}; { const dep = id => { if (RS_DEPTH[id]) return RS_DEPTH[id]; const r = RS.find(x => x.id === id); return RS_DEPTH[id] = 1 + Math.max(0, ...(r ? r.req : []).map(dep)); }; RS.forEach(r => dep(r.id)); }
+function applyTechLevel(tl) { tl = clamp(tl | 0, 0, 3); if (!tl) return;
+  const ids = RS.filter(r => RS_DEPTH[r.id] <= TL_DEPTH[tl]).sort((a, b) => RS_DEPTH[a.id] - RS_DEPTH[b.id]).map(r => r.id);
+  for (let t = 0; t < TEAMS.length; t++) { TEAMS[t].energy = TL_ENERGY[tl]; for (const id of ids) finishResearch(t, id); } }
 function scaleHp(team, k, kind) { for (const e of ents) if (e.alive && e.team === team && e.kind === kind) { const r = e.hp / e.maxHp; e.maxHp = Math.round(e.maxHp * k); e.hp = e.maxHp * r; } if (kind === 'unit') TEAMS[team].hpMul *= k; }
 const RICON = {
   halftrack: SV(`<rect x="10" y="14" width="30" height="9" rx="4" fill="#71804e" stroke="#c9b48a" stroke-width="2"/><circle cx="12" cy="32" r="7" fill="#2a2823" stroke="#c9b48a" stroke-width="2"/><circle cx="12" cy="32" r="2.5" fill="#3f9fe0"/><rect x="22" y="24" width="22" height="14" rx="7" fill="#2a2823" stroke="#c9b48a" stroke-width="2"/><circle cx="29" cy="31" r="3.5" fill="#6b6658"/><circle cx="37" cy="31" r="3.5" fill="#6b6658"/>`),
@@ -2202,12 +2221,12 @@ function netRecv(m) {
   if (m.t === 'p') return;
   if (m.t === 'sdp' || m.t === 'ice') return rtcSignal(m);
   if (NET.host) {
-    if (m.t === 'hi') netSend({ t: 'cfg', seed: SEED, map: MAPI, diff: S.diff });
+    if (m.t === 'hi') netSend({ t: 'cfg', seed: SEED, map: MAPI, diff: S.diff, tl: S.tl, mdef: MC.custom ? MC : null });
     else if (m.t === 'ready') hostStart();
     else if (m.t === 'c' && Array.isArray(m.c)) execCmd(m.c, true);
     else if (m.t === 'cam') { NET.ccx = +m.x || 0; NET.ccz = +m.z || 0; }
   } else {
-    if (m.t === 'cfg') { if (NETCFG) return; try { sessionStorage.setItem('ironfall.net', JSON.stringify({ room: NET.room, seed: m.seed, map: m.map, diff: m.diff, after: NET.after })); } catch (e) {} location.reload(); }
+    if (m.t === 'cfg') { if (NETCFG) return; try { sessionStorage.setItem('ironfall.net', JSON.stringify({ room: NET.room, seed: m.seed, map: m.map, diff: m.diff, tl: m.tl | 0, mdef: m.mdef || null, after: NET.after })); } catch (e) {} location.reload(); }
     else if (m.t === 's') clientApply(m);
   }
 }
@@ -2329,17 +2348,21 @@ setInterval(netWatch, 1000);
 function netStatus(t) { const el = $('netSt'); if (!el) return; el.textContent = t; el.classList.toggle('hidden', !t); }
 // --- lobby
 function mpOpen() { $('mp').classList.remove('hidden'); mpView('menu'); }
+const mpSet = () => `🗺️ <b>${MC.name}</b> (${MC.size} m) · ${['Ușor', 'Normal', 'Greu'][S.diff]} · tehnologie <b>${TL_NAME[S.tl]}</b>`;
 function mpView(v, txt) {
   const box = $('mpBody');
-  if (v === 'menu') box.innerHTML = `<p class="mph">Joacă împreună cu un prieten, de oriunde. Amândoi comandați aceeași armată (energie și cercetare comune), fiecare cu baza lui, împotriva citadelei. Harta și dificultatea se aleg de cel care creează partida.</p>
+  if (v === 'menu') box.innerHTML = `<p class="mph">Joacă împreună cu un prieten, de oriunde. Amândoi comandați aceeași armată (energie și cercetare comune), fiecare cu baza lui, împotriva citadelei. Harta, dificultatea și nivelul de tehnologie le alege cel care creează partida.</p>
+    <div class="mpset">${mpSet()}</div>
+    <div class="mpb" id="mpTl">${TL_NAME.map((n, i) => `<button data-tl="${i}" class="${i === S.tl ? 'on' : ''}">${n}</button>`).join('')}</div>
     <div class="mpb"><button class="ok big" data-mp="create">➕ Creează partidă</button></div>
     <div class="mpb"><input id="mpCode" maxlength="5" placeholder="COD" autocomplete="off" autocapitalize="characters"><button class="ok big" data-mp="join">➜ Intră cu cod</button></div>
     <div class="mpb"><button data-mp="close">Înapoi</button></div>`;
   else if (v === 'wait') box.innerHTML = `<p class="mph">Spune-i prietenului codul camerei:</p><div class="mpcode">${NET.room}</div><p class="mph" id="mpMsg">${txt || 'Se așteaptă al doilea jucător…'}</p><div class="mpb"><button data-mp="cancel">Anulează</button></div>`;
   else if (v === 'msg') box.innerHTML = `<p class="mph">${txt}</p><div class="mpb"><button data-mp="cancel">Înapoi</button></div>`;
-  else if (v === 'guest') box.innerHTML = `<p class="mph">Conectat la camera <b>${NET.room}</b>.</p><div class="mpb"><button class="ok big" data-mp="go">▶ Intră în luptă</button></div><p class="mph" id="mpMsg"></p>`;
+  else if (v === 'guest') box.innerHTML = `<p class="mph">Conectat la camera <b>${NET.room}</b>.</p><div class="mpset">${mpSet()}</div><div class="mpb"><button class="ok big" data-mp="go">▶ Intră în luptă</button></div><p class="mph" id="mpMsg"></p>`;
 }
 async function mpClick(ev) {
+  const tb = ev.target.closest('[data-tl]'); if (tb && !NET.on) { S.tl = +tb.dataset.tl; try { localStorage.setItem('ironfall.tl', S.tl); } catch (e) {} tlRefresh(); mpView('menu'); sfx('click'); return; }
   const b = ev.target.closest('[data-mp]'); if (!b) return; const a = b.dataset.mp; sfx('click');
   if (a === 'close') { $('mp').classList.add('hidden'); return; }
   if (a === 'cancel') { if (NET.room) api('leave').catch(() => {}); location.reload(); return; }
@@ -2375,6 +2398,7 @@ function setupGame() {
     NET.ccx = P.x; NET.ccz = P.z; }
   for (const u of ents) if (u.kind === 'unit') u.heading = Math.PI;
   setupEnemy();
+  if (!NET.cl) applyTechLevel(S.tl);
 }
 let ecoT = 0, aiT = 0, uiT = 0, winT = 0;
 function update(dt) {
@@ -2432,7 +2456,7 @@ function startGame() { audioInit(); $('intro').classList.add('hidden'); $('hud')
 $('bPlay').addEventListener('click', startGame);
 $('bMp').addEventListener('click', () => { audioInit(); mpOpen(); });
 $('mp').addEventListener('click', mpClick);
-if (NETCFG) { NET.on = NET.cl = true; NET.room = NETCFG.room; NET.after = NETCFG.after | 0; S.diff = NETCFG.diff | 0; $('mp').classList.remove('hidden'); mpView('guest'); netPollLoop(); }
+if (NETCFG) { NET.on = NET.cl = true; NET.room = NETCFG.room; NET.after = NETCFG.after | 0; S.diff = NETCFG.diff | 0; S.tl = NETCFG.tl | 0; $('mp').classList.remove('hidden'); mpView('guest'); netPollLoop(); }
 $('bHelp').addEventListener('click', () => $('help').classList.remove('hidden'));
 $('pHelp').addEventListener('click', () => $('help').classList.remove('hidden'));
 $('hClose').addEventListener('click', () => $('help').classList.add('hidden'));
@@ -2442,8 +2466,50 @@ $('pMusic').addEventListener('click', e => { AU.music = !AU.music; e.target.text
 $('pSfx').addEventListener('click', e => { AU.sfx = !AU.sfx; e.target.textContent = '🔊 Sunete: ' + (AU.sfx ? 'DA' : 'NU'); });
 $('pRestart').addEventListener('click', () => location.reload());
 $('bAgain').addEventListener('click', () => location.reload());
-{ const mm = $('mapSel'); if (mm) { mm.innerHTML = MAPS.map((m, i) => { const n = m.rings.reduce((a, r) => a + r[1], 0) + 1; return `<button data-m="${i}" class="mapc ${i === MAPI ? 'on' : ''}"><b>${m.name}</b><small>${m.size}×${m.size} m · ${n} baze inamice</small><small>${m.rings.length} inele de forturi</small></button>`; }).join('');
-  mm.addEventListener('click', ev => { const b = ev.target.closest('[data-m]'); if (!b) return; const i = +b.dataset.m; if (i === MAPI) return; try { localStorage.setItem('ironfall.map', i); localStorage.setItem('ironfall.diff', S.diff); } catch (e) {} mm.classList.add('loading'); setTimeout(() => location.reload(), 50); }); } }
+// ---- tech level selector ----
+function tlRefresh() { document.querySelectorAll('#tlSel button').forEach(x => x.classList.toggle('on', +x.dataset.v === S.tl)); const n = RS.filter(r => RS_DEPTH[r.id] <= TL_DEPTH[S.tl]).length;
+  const el = $('tlInfo'); if (el) el.textContent = S.tl ? `${TL_NAME[S.tl]}: ${n} tehnologii deja cercetate · ${TL_ENERGY[S.tl]}⚡ la start (și pentru inamic)` : 'T1: pornești de la zero, cu 500⚡'; }
+try { const t0 = localStorage.getItem('ironfall.tl'); if (t0 !== null && !NETCFG) S.tl = clamp(+t0 | 0, 0, 3); } catch (e) {}
+document.querySelectorAll('#tlSel button').forEach(b => b.addEventListener('click', () => { S.tl = +b.dataset.v; try { localStorage.setItem('ironfall.tl', S.tl); } catch (e) {} tlRefresh(); sfx('click'); }));
+tlRefresh();
+// ---- map list + map maker ----
+function saveCustomMaps() { try { localStorage.setItem('ironfall.maps', JSON.stringify(CUSTOM_MAPS.map(m => ({ name: m.name, size: m.size, nr: m.nr, dens: m.dens, oil: m.oil, seed: m.seed })))); } catch (e) {} }
+function loadMap(i) { const mm = $('mapSel'); try { localStorage.setItem('ironfall.map', i); localStorage.setItem('ironfall.diff', S.diff); } catch (e) {} if (mm) mm.classList.add('loading'); setTimeout(() => location.reload(), 50); }
+{ const mm = $('mapSel'); if (mm) {
+  mm.innerHTML = MAPS.slice(0, BUILTIN_MAPS + CUSTOM_MAPS.length).map((m, i) => { const n = m.rings.reduce((a, r) => a + r[1], 0) + 1;
+    return `<button data-m="${i}" class="mapc ${i === MAPI ? 'on' : ''}">${m.custom ? `<i class="cp" data-cp="${i}" title="Cod pentru prieten">🔗</i><i class="del" data-del="${i}" title="Șterge">✕</i>` : ''}<b>${m.custom ? '★ ' : ''}${m.name}</b><small>${m.size}×${m.size} m · ${n} baze inamice</small><small>${m.rings.length} inele de forturi</small></button>`; }).join('')
+    + `<button class="mapc add" data-m="new"><b>＋</b><small>Hartă nouă</small></button>`;
+  mm.addEventListener('click', ev => {
+    const del = ev.target.closest('[data-del]'); if (del) { ev.stopPropagation(); const i = +del.dataset.del; const m = MAPS[i];
+      if (del.dataset.sure !== '1') { del.dataset.sure = '1'; del.textContent = 'șterge?'; setTimeout(() => { del.dataset.sure = ''; del.textContent = '✕'; }, 2500); return; }
+      CUSTOM_MAPS.splice(CUSTOM_MAPS.indexOf(m), 1); saveCustomMaps(); loadMap(MAPI === i ? 0 : MAPI > i ? MAPI - 1 : MAPI); return; }
+    const cp = ev.target.closest('[data-cp]'); if (cp) { ev.stopPropagation(); const code = mapCode(MAPS[+cp.dataset.cp]); mapEdOpen(); $('meCode').value = code; $('meCode').select();
+      try { navigator.clipboard.writeText(code).then(() => toast('Codul hărții a fost copiat — trimite-l prietenului')).catch(() => toast('Copiază codul de mai jos și trimite-l prietenului')); } catch (e) {} return; }
+    const b = ev.target.closest('[data-m]'); if (!b) return; sfx('click'); if (b.dataset.m === 'new') { mapEdOpen(); return; }
+    const i = +b.dataset.m; if (i !== MAPI) loadMap(i); }); } }
+const ME = { size: 360, nr: 3, dens: 1, oil: 1, fixed: false };
+function meRead() { ME.size = +$('meSize').value; ME.nr = +$('meRing').value; $('meSizeV').textContent = ME.size + ' m'; $('meRingV').textContent = ME.nr; mePreview(); }
+function mePreview() { const c = $('mePrev'); if (!c) return; const g = c.getContext('2d'), W = c.width, k = W / 600, cx = W / 2;
+  g.fillStyle = '#1b1a16'; g.fillRect(0, 0, W, W); const half = ME.size / 2 * k;
+  const gr = g.createLinearGradient(0, cx - half, 0, cx + half); gr.addColorStop(0, '#c9d2d6'); gr.addColorStop(0.5, '#8d7a52'); gr.addColorStop(1, '#5f7a3a');
+  g.fillStyle = gr; g.fillRect(cx - half, cx - half, half * 2, half * 2); g.strokeStyle = '#f0b44a'; g.lineWidth = 1; g.strokeRect(cx - half, cx - half, half * 2, half * 2);
+  const rings = genRings(ME.size, ME.nr, ME.dens); const col = ['#e0c060', '#e08a40', '#e05030'];
+  for (const [r, n, tier, gap] of rings) { g.strokeStyle = '#0006'; g.setLineDash([3, 3]); g.beginPath(); g.arc(cx, cx, r * k, 0, TAU); g.stroke(); g.setLineDash([]);
+    for (let i = 0; i < n; i++) { const a = gap / 2 + (TAU - gap) * (i + 0.5) / n; g.fillStyle = col[tier]; g.beginPath(); g.arc(cx + Math.sin(a) * r * k, cx + Math.cos(a) * r * k, 3.2, 0, TAU); g.fill(); } }
+  g.fillStyle = '#c02020'; g.beginPath(); g.arc(cx, cx, 6, 0, TAU); g.fill();
+  const pz = cx + (ME.size / 2 - 26) * k; g.fillStyle = '#4ad04a'; g.fillRect(cx - 5, pz - 5, 10, 10);
+  const wells = Math.round((19 + 14 * (ME.size / 300) ** 2 * ME.oil)); g.fillStyle = '#111'; for (let i = 0; i < wells; i++) { const x = (Math.sin(i * 91.7) * 0.5) * (ME.size - 40) * k, z = (Math.cos(i * 37.3) * 0.5) * (ME.size - 40) * k; g.fillRect(cx + x - 1.5, cx + z - 1.5, 3, 3); }
+  g.fillStyle = '#ddd'; g.font = '10px sans-serif'; g.fillText(`${rings.reduce((a, r) => a + r[1], 0) + 1} baze inamice`, 6, W - 6); }
+function meOpt(id, cb) { document.querySelectorAll(`#${id} button`).forEach(b => b.addEventListener('click', () => { document.querySelectorAll(`#${id} button`).forEach(x => x.classList.toggle('on', x === b)); cb(b.dataset.v); mePreview(); sfx('click'); })); }
+function mapEdOpen() { $('mapEd').classList.remove('hidden'); $('meCode').value = ''; meRead(); }
+meOpt('meDens', v => ME.dens = +v); meOpt('meOil', v => ME.oil = +v);
+meOpt('meSeedM', v => { ME.fixed = v === 'f'; $('meSeedL').classList.toggle('hidden', !ME.fixed); if (ME.fixed && !$('meSeed').value) $('meSeed').value = (Math.random() * 999999) | 0; });
+$('meSize').addEventListener('input', meRead); $('meRing').addEventListener('input', meRead);
+function meAdd(m) { if (!m) { toast('Cod de hartă greșit'); return; } if (CUSTOM_MAPS.length >= 12) CUSTOM_MAPS.shift(); CUSTOM_MAPS.push(m); saveCustomMaps(); loadMap(BUILTIN_MAPS + CUSTOM_MAPS.length - 1); }
+$('mapEd').addEventListener('click', ev => { const b = ev.target.closest('[data-me]'); if (!b) return; sfx('click'); const a = b.dataset.me;
+  if (a === 'close') $('mapEd').classList.add('hidden');
+  else if (a === 'imp') meAdd(mapFromCode($('meCode').value));
+  else if (a === 'save') meAdd(cleanMap({ name: $('meName').value, size: ME.size, nr: ME.nr, dens: ME.dens, oil: ME.oil, seed: ME.fixed ? +$('meSeed').value : null })); });
 $('bAll').innerHTML = UIC.army + '<span>Armata</span>'; $('bTrucks').innerHTML = UIC.truck + '<span>Constr.</span>';
 $('bBox').innerHTML = UIC.box + '<span>Selecție</span>'; $('bBase').innerHTML = UIC.base + '<span>Baza</span>'; $('bPause').innerHTML = UIC.pause;
 document.querySelectorAll('#top .ri').forEach(el => el.innerHTML = UIC[el.dataset.i]);

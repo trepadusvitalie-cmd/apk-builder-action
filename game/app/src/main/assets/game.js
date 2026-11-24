@@ -446,6 +446,8 @@ const WP = {
   repair: { name: 'Reparator', dmg: 0, range: 0, cost: 50, kind: 'repair', heal: 16, reach: 7 },
   truck: { name: 'Constructor', dmg: 0, range: 0, cost: 40, kind: 'truck' },
 };
+// longer attack range for every weapon (direct fire +40%, artillery +25%, flamer +25%)
+for (const k in WP) { const w = WP[k]; if (w.range) w.range = Math.round(w.range * (w.art ? 1.25 : w.kind === 'flame' ? 1.25 : 1.4)); }
 const wfam = w => w.art ? 'art' : w.fam || w.id;
 const BASE_SPEED = 5.4;
 const BD = {
@@ -1952,7 +1954,7 @@ let dsgBase = null;
 function openDesigner(f) { dsgFactory = f; dsgBase = { ...(lastDesigns[0] || dsg) }; $('designer').classList.remove('hidden'); renderDesigner(); }
 // numbers used by the comparison bars and the spider chart
 function dsgVals(d) { const st = unitStats(d, 0), w = st.w; return { hp: st.hp, spd: st.speed, atk: w.dmg > 0 ? w.dmg / w.rof : 0, rng: st.range, sup: w.kind === 'radar' ? w.aura : w.kind === 'repair' ? w.heal : 0, cost: st.cost, time: st.time }; }
-const DSG_AX = [['hp', 'Viață', 900], ['spd', 'Viteză', 9], ['atk', 'Atac', 45], ['rng', 'Rază', 26], ['cost', 'Ieftin', 420]];
+const DSG_AX = [['hp', 'Viață', 900], ['spd', 'Viteză', 9], ['atk', 'Atac', 45], ['rng', 'Rază', 36], ['cost', 'Ieftin', 420]];
 function drawRadar(cur, base) {
   const c = $('dRadar'); if (!c) return; const g = c.getContext('2d'), W = c.width, H = c.height, cx = W / 2, cy = H / 2 + 4, R = Math.min(W, H) * 0.36, n = DSG_AX.length;
   g.clearRect(0, 0, W, H); const pt = (i, k) => { const a = -Math.PI / 2 + i / n * TAU; return [cx + Math.cos(a) * R * k, cy + Math.sin(a) * R * k]; };
@@ -1976,7 +1978,7 @@ function renderDesigner() {
     const dl = b === null || Math.abs(d) < 1e-6 ? '' : `<em class="${good ? 'up' : 'dn'}">${d > 0 ? '+' : '−'}${fmt(Math.abs(d))}</em>`;
     return `<div class="st"><span>${n}</span><div class="bar cmp"><i style="width:${clamp(v / mx, 0, 1) * 100}%"></i>${b !== null ? `<b style="left:${clamp(b / mx, 0, 1) * 100}%"></b>` : ''}</div><span>${fmt(v)}${dl}</span></div>`; };
   const w = st.w; const R0 = v => String(Math.round(v)), R1 = v => v.toFixed(1);
-  const third = w.kind === 'radar' ? bar('Radar', 'sup', 30, v => R0(v) + 'm') : w.kind === 'repair' ? bar('Reparare', 'sup', 20, v => R0(v) + '/s') : w.kind === 'truck' ? '<div class="hint">Construiește și repară clădiri.</div>' : bar('Atac', 'atk', 45, R0) + bar('Rază', 'rng', 26, R0);
+  const third = w.kind === 'radar' ? bar('Radar', 'sup', 30, v => R0(v) + 'm') : w.kind === 'repair' ? bar('Reparare', 'sup', 20, v => R0(v) + '/s') : w.kind === 'truck' ? '<div class="hint">Construiește și repară clădiri.</div>' : bar('Atac', 'atk', 45, R0) + bar('Rază', 'rng', 36, R0);
   $('dName').innerHTML = `${designName(dsg)}<small>${PR[dsg.pr].name} · ${CH[dsg.ch].name} · ${WP[dsg.wp].name}</small>`;
   $('dStats').innerHTML = `${bar('Viață', 'hp', 900, R0)}${bar('Viteză', 'spd', 9, R1)}${third}${bar('Cost', 'cost', 420, v => R0(v) + '⚡', true)}${bar('Timp', 'time', 30, v => R0(v) + 's', true)}${base ? `<div class="cmpnote"><i></i> față de: ${designName(dsgBase)}</div>` : ''}`;
   drawRadar(cur, base);

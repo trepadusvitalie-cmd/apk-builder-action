@@ -1209,7 +1209,7 @@ function fx(type, x, y, z, size = 1) {
   const p = (normal || type === 'blacksmoke' || P.tex === 'ball') ? normPool[normIdx = (normIdx + 1) % normPool.length] : addPool[addIdx = (addIdx + 1) % addPool.length];
   p.life = p.max = P.life * rand(0.8, 1.2); p.s0 = P.s0 * size; p.s1 = P.s1 * size; p.a0 = P.a; p.smoke = normal || type === 'blacksmoke'; p.fast = type === 'trail'; p.ball = P.tex === 'ball';
   p.vx = rand(-P.v, P.v) + (P.wind || 0); p.vy = P.vy * rand(0.6, 1.2); p.vz = rand(-P.v, P.v); p.g = P.g || 0;
-  p.s.material.color.setHex(P.color); { const mp = P.tex === 'ball' ? ballTex : glowTex; if (p.s.material.map !== mp) p.s.material.map = mp; } p.s.position.set(x, y, z); p.s.visible = true; p.s.scale.setScalar(p.s0);
+  p.s.material.color.setHex(P.color); { const mp = P.tex === 'ball' ? ballTex : glowTex; if (p.s.material.map !== mp) p.s.material.map = mp; p.s.material.depthTest = P.tex !== 'ball'; } p.s.position.set(x, y, z); p.s.visible = true; p.s.scale.setScalar(p.s0);
 }
 function updFx(dt) {
   for (const pool of [addPool, normPool]) for (const p of pool) {
@@ -1234,14 +1234,14 @@ function scorch(x, z, r) { const s = scorches[scIdx = (scIdx + 1) % scorches.len
 function throwDebris(x, y, z, n, pw) { for (let i = 0; i < n; i++) { const d = debris[dbIdx = (dbIdx + 1) % debris.length]; const sz = rand(0.15, 0.4) * Math.min(2, pw); d.m.scale.set(sz, sz * rand(0.4, 1), sz * rand(0.6, 1.4)); d.m.position.set(x, y, z); const a = rand(0, TAU), v = rand(3, 7) * pw; d.vx = Math.sin(a) * v; d.vz = Math.cos(a) * v; d.vy = rand(5, 10) * pw; d.rx = rand(-12, 12); d.rz = rand(-12, 12); d.t = 3.5; d.smk = 0; d.burn = Math.random() < 0.5; d.m.visible = true; } }
 const EXPL = 3; // impact explosions are 3x their original size
 // solid 3D fireballs: opaque yellow-white core inside an orange shell, grows fast, darkens to red and fades
-const FB_GEO = (() => { const g = new THREE.IcosahedronGeometry(1, 2); const p = g.attributes.position; const c = new Float32Array(p.count * 3); const v = new THREE.Vector3();
-  for (let i = 0; i < p.count; i++) { v.fromBufferAttribute(p, i); const n = 1 + (Math.sin(v.x * 7.1) * Math.cos(v.y * 5.3) * Math.sin(v.z * 6.7)) * 0.13; v.multiplyScalar(n); p.setXYZ(i, v.x, v.y, v.z); const k = Math.random(); const hot = Math.max(0, Math.min(1, 0.5 + v.y * 0.35 + (k - 0.5) * 0.5)); c[i * 3] = 1; c[i * 3 + 1] = 0.38 + 0.45 * hot; c[i * 3 + 2] = 0.02 + 0.08 * hot * hot; }
+const FB_GEO = (() => { const g = new THREE.SphereGeometry(1, 40, 28); const p = g.attributes.position; const c = new Float32Array(p.count * 3); const v = new THREE.Vector3();
+  for (let i = 0; i < p.count; i++) { v.fromBufferAttribute(p, i); const hot = Math.max(0, Math.min(1, 0.55 + v.y * 0.45)); c[i * 3] = 1; c[i * 3 + 1] = 0.38 + 0.45 * hot; c[i * 3 + 2] = 0.02 + 0.08 * hot * hot; }
   g.setAttribute('color', new THREE.BufferAttribute(c, 3)); return g; })();
 const FBALLS = []; for (let i = 0; i < 28; i++) { const outer = new THREE.Mesh(FB_GEO, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, fog: false, toneMapped: false }));
   const core = new THREE.Mesh(FB_GEO, new THREE.MeshBasicMaterial({ color: 0xffe040, transparent: true, fog: false, toneMapped: false })); core.scale.setScalar(0.62); outer.add(core);
   outer.visible = false; outer.renderOrder = 2; scene.add(outer); FBALLS.push({ m: outer, core, t: 0, life: 0, r: 1 }); }
 let fbIdx = 0;
-function fireball3D(x, y, z, r) { const f = FBALLS[fbIdx = (fbIdx + 1) % FBALLS.length]; f.t = 0; f.life = 0.45 + r * 0.04; f.r = r; f.m.position.set(x, y + r * 0.35, z); f.m.rotation.set(rand(0, 6), rand(0, 6), rand(0, 6)); f.m.visible = true; f.m.scale.setScalar(r * 0.25); f.m.material.color.setRGB(1, 1, 1); f.m.material.opacity = 1; f.core.material.opacity = 1; f.core.visible = true; }
+function fireball3D(x, y, z, r) { const f = FBALLS[fbIdx = (fbIdx + 1) % FBALLS.length]; f.t = 0; f.life = 0.45 + r * 0.04; f.r = r; f.m.position.set(x, y + r * 0.35, z); f.m.rotation.set(0, 0, 0); f.m.visible = true; f.m.scale.setScalar(r * 0.25); f.m.material.color.setRGB(1, 1, 1); f.m.material.opacity = 1; f.core.material.opacity = 1; f.core.visible = true; }
 function updFireballs(dt) { for (const f of FBALLS) { if (!f.m.visible) continue; f.t += dt; const k = f.t / f.life; if (k >= 1) { f.m.visible = false; continue; }
   const grow = k < 0.3 ? 1 - Math.pow(1 - k / 0.3, 3) : 1; f.m.scale.setScalar(f.r * (0.25 + 0.75 * grow + 0.15 * k)); f.m.position.y += dt * f.r * 0.6;
   const dark = k < 0.45 ? 0 : (k - 0.45) / 0.55; f.m.material.color.setRGB(1, 1 - dark * 0.55, 1 - dark * 0.85); f.core.material.opacity = Math.max(0, 1 - k * 1.8); f.core.visible = k < 0.55;

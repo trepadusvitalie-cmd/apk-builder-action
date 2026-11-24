@@ -28,14 +28,15 @@ const MAPS = [
   { name: 'Normală', size: 300, rings: [[112, 5, 0, 1.3], [78, 4, 1, 1.7], [46, 3, 2, 1.2]], gar: 1 },
   { name: 'Mare', size: 420, rings: [[165, 7, 0, 1.2], [128, 6, 1, 1.3], [90, 5, 1, 1.3], [52, 4, 2, 1.2]], gar: 0.85 },
   { name: 'Uriașă', size: 560, rings: [[228, 9, 0, 1.1], [185, 8, 0, 1.2], [140, 7, 1, 1.3], [98, 5, 2, 1.3], [56, 4, 2, 1.2]], gar: 0.7 },
+  { name: 'Gigantică', size: 2000, rings: [[760, 12, 0, 1.0], [610, 11, 0, 1.1], [460, 10, 1, 1.2], [320, 8, 1, 1.3], [200, 6, 2, 1.2], [95, 4, 2, 1.2]], gar: 0.55 },
 ];
 // player-made maps (saved on the phone, shareable as a short code)
 const BUILTIN_MAPS = MAPS.length;
 function genRings(size, nr, dens) { const out = []; const r0 = size * 0.38, r1 = size * 0.16;
-  for (let i = 0; i < nr; i++) { const r = Math.round(nr > 1 ? r0 - (r0 - r1) * i / (nr - 1) : (r0 + r1) / 2); const tier = Math.min(2, Math.floor(i * 3 / nr)); out.push([r, Math.max(2, Math.round(r / 22 * dens)), tier, 1.25]); } return out; }
-function cleanMap(m) { if (!m || typeof m !== 'object') return null; const size = clamp(Math.round(+m.size / 20) * 20 || 300, 240, 600), nr = clamp(+m.nr | 0 || 3, 1, 5), dens = clamp(+m.dens || 1, 0.5, 1.6), oil = clamp(+m.oil || 1, 0.5, 2);
+  for (let i = 0; i < nr; i++) { const r = Math.round(nr > 1 ? r0 - (r0 - r1) * i / (nr - 1) : (r0 + r1) / 2); const tier = Math.min(2, Math.floor(i * 3 / nr)); out.push([r, Math.max(2, Math.round(Math.min(12, r / 22) * dens)), tier, 1.25]); } return out; }
+function cleanMap(m) { if (!m || typeof m !== 'object') return null; const size = clamp(Math.round(+m.size / 20) * 20 || 300, 240, 2000), nr = clamp(+m.nr | 0 || 3, 1, 5), dens = clamp(+m.dens || 1, 0.5, 1.6), oil = clamp(+m.oil || 1, 0.5, 2);
   const name = String(m.name || 'Harta mea').replace(/[<>&"]/g, '').slice(0, 18) || 'Harta mea'; const seed = m.seed === null || m.seed === undefined || m.seed === '' ? null : (Math.abs(+m.seed | 0) % 1000000);
-  return { name, size, nr, dens, oil, seed, rings: genRings(size, nr, dens), gar: clamp(1.15 - size / 1000, 0.6, 1), custom: true }; }
+  return { name, size, nr, dens, oil, seed, rings: genRings(size, nr, dens), gar: clamp(1.15 - size / 1000, 0.55, 1), custom: true }; }
 let CUSTOM_MAPS = []; try { CUSTOM_MAPS = (JSON.parse(localStorage.getItem('ironfall.maps') || '[]') || []).map(cleanMap).filter(Boolean).slice(0, 12); } catch (e) {}
 MAPS.push(...CUSTOM_MAPS);
 const mapCode = m => 'IF1-' + btoa(unescape(encodeURIComponent(JSON.stringify({ name: m.name, size: m.size, nr: m.nr, dens: m.dens, oil: m.oil, seed: m.seed })))).replace(/=+$/, '');
@@ -62,7 +63,7 @@ RINGS.forEach((R, ri) => {
 OUTPOSTS.push({ x: 0, z: 0, tier: 3, a: 0, prodT: 0, nextWave: 0, citadel: true });
 const FLAT = [{ x: PLAYER.x, z: PLAYER.z - 8, r: 44 }, { x: PLAYER2.x, z: PLAYER2.z, r: 28 }, { x: 0, z: 0, r: 34 }, ...OUTPOSTS.filter(o => !o.citadel).map(o => ({ x: o.x, z: o.z, r: 16 }))];
 const WELL_POS = [[-14, PLAYER.z + 12], [16, PLAYER.z + 10], [0, PLAYER.z - 16], [PLAYER2.x + 12, PLAYER2.z + 9], ...[[-40, 118], [42, 116], [-70, 95], [72, 92], [0, 70], [-95, 40], [96, 30], [-20, -96], [30, -120], [-110, -40], [110, -70], [-60, -130], [70, 60], [-60, 60]].map(([x, z]) => [x * SC, z * SC])];
-{ let k = 0; const extra = Math.round(16 * (SC * SC - 1) + (MC.custom ? 14 * SC * SC * (MC.oil - 1) : 0)); for (let t = 0; k < extra && t < 4000; t++) { const x = (hash2(t, 7) - 0.5) * (MAP - 40), z = (hash2(t, 13) - 0.5) * (MAP - 40);
+{ let k = 0; const extra = Math.min(170, Math.round(16 * (SC * SC - 1) + (MC.custom ? 14 * Math.min(SC * SC, 11) * (MC.oil - 1) : 0))); for (let t = 0; k < extra && t < 9000; t++) { const x = (hash2(t, 7) - 0.5) * (MAP - 40), z = (hash2(t, 13) - 0.5) * (MAP - 40);
   if (Math.hypot(x, z) < 40 || Math.hypot(x - PLAYER.x, z - PLAYER.z) < 35 || Math.hypot(x - PLAYER2.x, z - PLAYER2.z) < 30 || OUTPOSTS.some(o => Math.hypot(o.x - x, o.z - z) < 24) || WELL_POS.some(w => Math.hypot(w[0] - x, w[1] - z) < 30)) continue; WELL_POS.push([x, z]); k++; } }
 for (const o of OUTPOSTS) if (!o.citadel) { const a = o.a + 0.18; const r = Math.hypot(o.x, o.z) + 9; WELL_POS.push([Math.sin(a) * r, Math.cos(a) * r]); }
 WELL_POS.push([14, 8], [-14, -8]);
@@ -91,14 +92,14 @@ function heightFull(x, z) {
 }
 const WELLS = WELL_POS.map(p => ({ x: p[0], z: p[1], h: heightFull(p[0], p[1]), pump: null, fxT: Math.random() }));
 // height grid cache (1 unit resolution) for fast lookups
-const HN = MAP + 1; const HG = new Float32Array(HN * HN);
-for (let j = 0; j < HN; j++) for (let i = 0; i < HN; i++) {
-  const x = i - HALF, z = j - HALF; let h = heightFull(x, z);
-  for (const w of WELLS) { const dx = x - w.x, dz = z - w.z; const d2 = dx * dx + dz * dz; if (d2 < 36) { const t = smooth(clamp((Math.sqrt(d2) - 3) / 3, 0, 1)); h = w.h * (1 - t) + h * t; } }
-  HG[j * HN + i] = h;
-}
+// big maps use a coarser grid that matches the terrain mesh vertices exactly
+const TSEG = MAP > 600 ? 600 : Math.min(300, Math.round(MAP / 1.5));
+const HR = MAP > 600 ? MAP / TSEG : 1, HN = Math.round(MAP / HR) + 1; const HG = new Float32Array(HN * HN);
+for (let j = 0; j < HN; j++) for (let i = 0; i < HN; i++) HG[j * HN + i] = heightFull(i * HR - HALF, j * HR - HALF);
+for (const w of WELLS) { const i0 = Math.max(0, Math.floor((w.x - 6 + HALF) / HR)), i1 = Math.min(HN - 1, Math.ceil((w.x + 6 + HALF) / HR)), j0 = Math.max(0, Math.floor((w.z - 6 + HALF) / HR)), j1 = Math.min(HN - 1, Math.ceil((w.z + 6 + HALF) / HR));
+  for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) { const dx = i * HR - HALF - w.x, dz = j * HR - HALF - w.z; const d2 = dx * dx + dz * dz; if (d2 < 36) { const t = smooth(clamp((Math.sqrt(d2) - 3) / 3, 0, 1)); const k = j * HN + i; HG[k] = w.h * (1 - t) + HG[k] * t; } } }
 function heightAt(x, z) {
-  const fx = clamp(x + HALF, 0, HN - 1.001), fz = clamp(z + HALF, 0, HN - 1.001); const i = fx | 0, j = fz | 0; const u = fx - i, v = fz - j;
+  const fx = clamp((x + HALF) / HR, 0, HN - 1.001), fz = clamp((z + HALF) / HR, 0, HN - 1.001); const i = fx | 0, j = fz | 0; const u = fx - i, v = fz - j;
   const k = j * HN + i; return (HG[k] * (1 - u) + HG[k + 1] * u) * (1 - v) + (HG[k + HN] * (1 - u) + HG[k + HN + 1] * u) * v;
 }
 
@@ -113,7 +114,7 @@ const scene = new THREE.Scene();
 const FOG = 0xb09a78;
 scene.background = new THREE.Color(FOG);
 scene.fog = new THREE.Fog(FOG, 80, 200);
-const camera = new THREE.PerspectiveCamera(50, 1, 0.5, 500 * Math.max(1, SC * 0.85)); const tmpC = new THREE.Color();
+const camera = new THREE.PerspectiveCamera(50, 1, 0.5, 500 * clamp(SC * 0.85, 1, 2.2)); const tmpC = new THREE.Color();
 scene.add(new THREE.HemisphereLight(0xdfe8f5, 0x5a4832, 1.9));
 const sun = new THREE.DirectionalLight(0xfff0d6, 3.1);
 sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
@@ -159,7 +160,7 @@ const skyMat = new THREE.ShaderMaterial({
       #include <colorspace_fragment>
     }`
 });
-const sky = new THREE.Mesh(new THREE.SphereGeometry(420 * Math.max(1, SC * 0.85), 32, 16), skyMat); sky.renderOrder = -1; sky.frustumCulled = false;
+const sky = new THREE.Mesh(new THREE.SphereGeometry(420 * clamp(SC * 0.85, 1, 2.2), 32, 16), skyMat); sky.renderOrder = -1; sky.frustumCulled = false;
 const matVC = new THREE.MeshPhongMaterial({ vertexColors: true, flatShading: true, map: panelTex, shininess: 18, specular: 0x2a2a2a });
 const matUnit = new THREE.MeshPhongMaterial({ vertexColors: true, map: panelTex, shininess: 30, specular: 0x3a3a3a }); // metal sheen // smooth shading = rounder look
 const matPlain = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
@@ -274,7 +275,7 @@ function terrainMaterial() {
   return m;
 }
 function buildTerrain() {
-  const SEG = Math.min(300, Math.round(MAP / 1.5));
+  const SEG = TSEG;
   const g = new THREE.PlaneGeometry(MAP, MAP, SEG, SEG); g.rotateX(-Math.PI / 2);
   const pos = g.attributes.position;
   for (let i = 0; i < pos.count; i++) pos.setY(i, heightAt(pos.getX(i), pos.getZ(i)));
@@ -321,7 +322,7 @@ function buildDecor() {
   // impassable mountain peaks
   for (let z = -EDGE; z <= EDGE; z += 5) for (let x = -EDGE; x <= EDGE; x += 5) { if (heightAt(x, z) > 15 && ok(x, z, -6)) OBST.push({ x, z, r: 3.4, mtn: true }); }
   let tries = 0, clusters = 0;
-  while (clusters < Math.round(34 * SC * SC) && tries < 900 * SC * SC) {
+  while (clusters < Math.round(34 * Math.min(SC * SC, 9)) && tries < 900 * Math.min(SC * SC, 9)) {
     tries++; const cx = rand(-EDGE, EDGE), cz = rand(-EDGE, EDGE); if (!ok(cx, cz, 6)) continue;
     clusters++; const n = 3 + (Math.random() * 5 | 0);
     for (let i = 0; i < n; i++) {
@@ -365,7 +366,7 @@ function buildDecor() {
       B.add(G.cyl6, 0.07, h * 0.5, 0.07, x + 0.3, y + h * 0.75, z, 0x3b2e22, 0, 0, -0.8);
     }
   }
-  for (let i = 0; i < 320 * SC * SC; i++) {
+  for (let i = 0; i < 320 * Math.min(SC * SC, 9); i++) {
     const x = rand(-EDGE, EDGE), z = rand(-EDGE, EDGE); if (!ok(x, z, -10)) continue; const s = rand(0.4, 2.2); const w = biomeW(x, z);
     const col = w.snow > 0.5 ? pick([0xc8d0d8, 0x9aa4ad]) : w.sand > 0.5 ? pick([0xb08a5a, 0x9c7a50]) : pick([0x7b6f5f, 0x6a6052, 0x8a7d6a]);
     B.add(G.ico, s * rand(0.8, 1.3), s * rand(0.5, 0.9), s * rand(0.8, 1.3), x, heightAt(x, z) + s * 0.2, z, col, rand(0, 3), rand(0, 3), rand(0, 3));
@@ -2531,7 +2532,7 @@ function loadMap(i) { const mm = $('mapSel'); try { localStorage.setItem('ironfa
     const i = +b.dataset.m; if (i !== MAPI) loadMap(i); }); } }
 const ME = { size: 360, nr: 3, dens: 1, oil: 1, fixed: false };
 function meRead() { ME.size = +$('meSize').value; ME.nr = +$('meRing').value; $('meSizeV').textContent = ME.size + ' m'; $('meRingV').textContent = ME.nr; mePreview(); }
-function mePreview() { const c = $('mePrev'); if (!c) return; const g = c.getContext('2d'), W = c.width, k = W / 600, cx = W / 2;
+function mePreview() { const c = $('mePrev'); if (!c) return; const g = c.getContext('2d'), W = c.width, k = W / Math.max(600, ME.size * 1.05), cx = W / 2;
   g.fillStyle = '#1b1a16'; g.fillRect(0, 0, W, W); const half = ME.size / 2 * k;
   const gr = g.createLinearGradient(0, cx - half, 0, cx + half); gr.addColorStop(0, '#c9d2d6'); gr.addColorStop(0.5, '#8d7a52'); gr.addColorStop(1, '#5f7a3a');
   g.fillStyle = gr; g.fillRect(cx - half, cx - half, half * 2, half * 2); g.strokeStyle = '#f0b44a'; g.lineWidth = 1; g.strokeRect(cx - half, cx - half, half * 2, half * 2);
@@ -2540,7 +2541,7 @@ function mePreview() { const c = $('mePrev'); if (!c) return; const g = c.getCon
     for (let i = 0; i < n; i++) { const a = gap / 2 + (TAU - gap) * (i + 0.5) / n; g.fillStyle = col[tier]; g.beginPath(); g.arc(cx + Math.sin(a) * r * k, cx + Math.cos(a) * r * k, 3.2, 0, TAU); g.fill(); } }
   g.fillStyle = '#c02020'; g.beginPath(); g.arc(cx, cx, 6, 0, TAU); g.fill();
   const pz = cx + (ME.size / 2 - 26) * k; g.fillStyle = '#4ad04a'; g.fillRect(cx - 5, pz - 5, 10, 10);
-  const wells = Math.round((19 + 14 * (ME.size / 300) ** 2 * ME.oil)); g.fillStyle = '#111'; for (let i = 0; i < wells; i++) { const x = (Math.sin(i * 91.7) * 0.5) * (ME.size - 40) * k, z = (Math.cos(i * 37.3) * 0.5) * (ME.size - 40) * k; g.fillRect(cx + x - 1.5, cx + z - 1.5, 3, 3); }
+  const wells = Math.round(Math.min(190, 19 + 14 * (ME.size / 300) ** 2 * ME.oil)); g.fillStyle = '#111'; for (let i = 0; i < wells; i++) { const x = (Math.sin(i * 91.7) * 0.5) * (ME.size - 40) * k, z = (Math.cos(i * 37.3) * 0.5) * (ME.size - 40) * k; g.fillRect(cx + x - 1.5, cx + z - 1.5, 3, 3); }
   g.fillStyle = '#ddd'; g.font = '10px sans-serif'; g.fillText(`${rings.reduce((a, r) => a + r[1], 0) + 1} baze inamice`, 6, W - 6); }
 function meOpt(id, cb) { document.querySelectorAll(`#${id} button`).forEach(b => b.addEventListener('click', () => { document.querySelectorAll(`#${id} button`).forEach(x => x.classList.toggle('on', x === b)); cb(b.dataset.v); mePreview(); sfx('click'); })); }
 function mapEdOpen() { $('mapEd').classList.remove('hidden'); $('meCode').value = ''; meRead(); }

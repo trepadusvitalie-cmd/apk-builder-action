@@ -13,7 +13,7 @@ function angDiff(a, b) { let d = (b - a) % TAU; if (d > Math.PI) d -= TAU; if (d
 // multiplayer: settings handed over from the lobby through a reload (same seed + map as the host)
 const NETCFG = (() => { try { const v = JSON.parse(sessionStorage.getItem('ironfall.net') || 'null'); sessionStorage.removeItem('ironfall.net'); return v; } catch (e) { return null; } })();
 const S = { running: false, paused: false, time: 0, diff: 1, tl: 0, over: false, stats: { built: 0, lost: 0, killed: 0 } };
-const CAP = 40;
+const CAP = 500;
 
 // ================= NOISE / TERRAIN =================
 let SEED = NETCFG ? NETCFG.seed | 0 : (Math.random() * 100000) | 0;
@@ -451,7 +451,7 @@ const WP = {
   truck: { name: 'Constructor', dmg: 0, range: 0, cost: 40, kind: 'truck' },
 };
 // longer attack range for every weapon (direct fire +40%, artillery +25%, flamer +25%)
-for (const k in WP) { const w = WP[k]; if (w.range) w.range = Math.round(w.range * (w.art ? 1.25 : w.kind === 'flame' ? 1.25 : 1.4)); }
+for (const k in WP) { const w = WP[k]; if (w.range) w.range = Math.round(w.range * (w.art ? 1.25 : w.kind === 'flame' ? 1.25 : 1.4)); if (w.art) w.rof = +(w.rof * 0.55).toFixed(2); } // artillery reloads ~45% faster
 const wfam = w => w.art ? 'art' : w.fam || w.id;
 const BASE_SPEED = 5.4;
 const BD = {
@@ -1254,7 +1254,7 @@ const exhMat = new THREE.MeshBasicMaterial({ color: 0xff7a1a, transparent: true,
 const projs = [];
 function spawnProj(kind, src, tgt, dmg, splash, ox, oy, oz, w, realT) {
   const rk = kind === 'rocket' || (w && w.kind === 'salvo'); const m = new THREE.Mesh(rk ? rocketGeo : shellGeo, w && w.plasma ? plasmaMat : rk ? rocketMat : shellMat); scene.add(m); if (rk && !(w && w.plasma)) { m.add(new THREE.Mesh(exhGeo, exhMat)); m.add(new THREE.Mesh(exhCoreGeo, exhCoreMat)); } if (kind === 'rocket') m.scale.setScalar(w && w.heavy ? 2.2 : 1.5); if (kind === 'mortar') m.scale.setScalar(w && w.big ? 2.6 : w && w.plasma ? 2.4 : w && w.kind === 'salvo' ? 1.7 : 1.6);
-  const tx = tgt.x, tz = tgt.z, ty = tgt.y + (tgt.kind === 'bld' ? 1.5 : 0.8); const d = Math.hypot(tx - ox, tz - oz); const spd = kind === 'shell' ? 34 : kind === 'mortar' ? 15 : 22;
+  const tx = tgt.x, tz = tgt.z, ty = tgt.y + (tgt.kind === 'bld' ? 1.5 : 0.8); const d = Math.hypot(tx - ox, tz - oz); const spd = kind === 'shell' ? 34 : kind === 'mortar' ? 26 : 22;
   projs.push({ kind, m, team: src.team, src, tgt, ox, oy, oz, tx, ty, tz, t: 0, dur: Math.max(0.12, d / spd), arc: kind === 'shell' ? d * 0.05 : kind === 'mortar' ? d * 0.55 : d * 0.13, dmg, splash, smokeT: 0, w, realT });
 }
 const fireZones = [];
@@ -1382,9 +1382,12 @@ function collide(u) {
   for (const e of ents) { if (e.kind !== 'bld' || !e.alive) continue; const dx = u.x - e.x, dz = u.z - e.z; const m = e.r + u.r; const d2 = dx * dx + dz * dz; if (d2 < m * m && d2 > 1e-6) { const d = Math.sqrt(d2); u.x = e.x + dx / d * m; u.z = e.z + dz / d * m; } }
   u.x = clamp(u.x, -EDGE, EDGE); u.z = clamp(u.z, -EDGE, EDGE);
 }
-function separate() {
-  const us = ents.filter(e => e.alive && e.kind === 'unit');
-  for (let i = 0; i < us.length; i++) { const a = us[i]; for (let j = i + 1; j < us.length; j++) { const b = us[j]; const dx = b.x - a.x, dz = b.z - a.z; const m = a.r + b.r + 0.15; const d2 = dx * dx + dz * dz; if (d2 < m * m && d2 > 1e-6) { const d = Math.sqrt(d2); const o = (m - d) * 0.3; const nx = dx / d, nz = dz / d; a.x -= nx * o; a.z -= nz * o; b.x += nx * o; b.z += nz * o; } } }
+function separate() { // spatial grid so hundreds of units stay cheap
+  const C = 4, grid = new Map(), us = [];
+  for (const e of ents) if (e.alive && e.kind === 'unit') { us.push(e); const k = Math.floor(e.x / C) * 4096 + Math.floor(e.z / C); let c = grid.get(k); if (!c) grid.set(k, c = []); c.push(e); }
+  for (const a of us) { const gx = Math.floor(a.x / C), gz = Math.floor(a.z / C);
+    for (let ox = -1; ox <= 1; ox++) for (let oz = -1; oz <= 1; oz++) { const c = grid.get((gx + ox) * 4096 + gz + oz); if (!c) continue;
+      for (const b of c) { if (b.id <= a.id) continue; const dx = b.x - a.x, dz = b.z - a.z; const m = a.r + b.r + 0.15; const d2 = dx * dx + dz * dz; if (d2 < m * m && d2 > 1e-6) { const d = Math.sqrt(d2); const o = (m - d) * 0.3; const nx = dx / d, nz = dz / d; a.x -= nx * o; a.z -= nz * o; b.x += nx * o; b.z += nz * o; } } } }
 }
 
 // ================= UNIT / BUILDING UPDATE =================

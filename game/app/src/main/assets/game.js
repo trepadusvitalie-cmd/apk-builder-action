@@ -1233,9 +1233,22 @@ function shockwave(x, z, r) { const s = shocks.find(q => !q.m.visible) || shocks
 function scorch(x, z, r) { const s = scorches[scIdx = (scIdx + 1) % scorches.length]; s.m.position.set(x, heightAt(x, z) + 0.08, z); s.m.rotation.y = rand(0, TAU); s.m.scale.set(r * 2, 1, r * 2); s.t = 40; s.m.visible = true; s.m.material.opacity = 0.85; }
 function throwDebris(x, y, z, n, pw) { for (let i = 0; i < n; i++) { const d = debris[dbIdx = (dbIdx + 1) % debris.length]; const sz = rand(0.15, 0.4) * Math.min(2, pw); d.m.scale.set(sz, sz * rand(0.4, 1), sz * rand(0.6, 1.4)); d.m.position.set(x, y, z); const a = rand(0, TAU), v = rand(3, 7) * pw; d.vx = Math.sin(a) * v; d.vz = Math.cos(a) * v; d.vy = rand(5, 10) * pw; d.rx = rand(-12, 12); d.rz = rand(-12, 12); d.t = 3.5; d.smk = 0; d.burn = Math.random() < 0.5; d.m.visible = true; } }
 const EXPL = 3; // impact explosions are 3x their original size
+// solid 3D fireballs: opaque yellow-white core inside an orange shell, grows fast, darkens to red and fades
+const FB_GEO = (() => { const g = new THREE.IcosahedronGeometry(1, 2); const p = g.attributes.position; const c = new Float32Array(p.count * 3); const v = new THREE.Vector3();
+  for (let i = 0; i < p.count; i++) { v.fromBufferAttribute(p, i); const n = 1 + (Math.sin(v.x * 7.1) * Math.cos(v.y * 5.3) * Math.sin(v.z * 6.7)) * 0.13; v.multiplyScalar(n); p.setXYZ(i, v.x, v.y, v.z); const k = Math.random(); const hot = Math.max(0, Math.min(1, 0.5 + v.y * 0.35 + (k - 0.5) * 0.5)); c[i * 3] = 1; c[i * 3 + 1] = 0.38 + 0.45 * hot; c[i * 3 + 2] = 0.02 + 0.08 * hot * hot; }
+  g.setAttribute('color', new THREE.BufferAttribute(c, 3)); return g; })();
+const FBALLS = []; for (let i = 0; i < 28; i++) { const outer = new THREE.Mesh(FB_GEO, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, fog: false, toneMapped: false }));
+  const core = new THREE.Mesh(FB_GEO, new THREE.MeshBasicMaterial({ color: 0xffe040, transparent: true, fog: false, toneMapped: false })); core.scale.setScalar(0.62); outer.add(core);
+  outer.visible = false; outer.renderOrder = 2; scene.add(outer); FBALLS.push({ m: outer, core, t: 0, life: 0, r: 1 }); }
+let fbIdx = 0;
+function fireball3D(x, y, z, r) { const f = FBALLS[fbIdx = (fbIdx + 1) % FBALLS.length]; f.t = 0; f.life = 0.45 + r * 0.04; f.r = r; f.m.position.set(x, y + r * 0.35, z); f.m.rotation.set(rand(0, 6), rand(0, 6), rand(0, 6)); f.m.visible = true; f.m.scale.setScalar(r * 0.25); f.m.material.color.setRGB(1, 1, 1); f.m.material.opacity = 1; f.core.material.opacity = 1; f.core.visible = true; }
+function updFireballs(dt) { for (const f of FBALLS) { if (!f.m.visible) continue; f.t += dt; const k = f.t / f.life; if (k >= 1) { f.m.visible = false; continue; }
+  const grow = k < 0.3 ? 1 - Math.pow(1 - k / 0.3, 3) : 1; f.m.scale.setScalar(f.r * (0.25 + 0.75 * grow + 0.15 * k)); f.m.position.y += dt * f.r * 0.6;
+  const dark = k < 0.45 ? 0 : (k - 0.45) / 0.55; f.m.material.color.setRGB(1, 1 - dark * 0.55, 1 - dark * 0.85); f.core.material.opacity = Math.max(0, 1 - k * 1.8); f.core.visible = k < 0.55;
+  f.m.material.opacity = k < 0.6 ? 1 : 1 - (k - 0.6) / 0.4; } }
 function impactFx(x, y, z, sz, big) {
   const near = Math.abs(x - cam.x) < 110 && Math.abs(z - cam.z) < 110;
-  fx('flash', x, y, z, sz * 1.2); fx('blastball', x, y + 0.35 * sz, z, sz); fx('fire', x, y, z, sz * 0.5);
+  fx('flash', x, y, z, sz * 1.2); fireball3D(x, y, z, sz * 1.1); fx('blastball', x, y + 0.35 * sz, z, sz * 0.8); fx('fire', x, y, z, sz * 0.5);
   if (!near) { fx('smoke', x, y + 0.5, z, sz * 0.9); return; }
   for (let i = 0; i < 2; i++) fx('fireball', x + rand(-0.4, 0.4) * sz, y + rand(0.1, 0.5) * sz, z + rand(-0.4, 0.4) * sz, sz * 0.7);
   fx('smoke', x, y + 0.5 * sz, z, sz * 0.9); fx('smoke', x + rand(-1, 1) * sz * 0.4, y + 0.9 * sz, z + rand(-1, 1) * sz * 0.4, sz * 0.7); fx('blacksmoke', x, y + 0.4 * sz, z, sz * 0.55);
@@ -1248,7 +1261,7 @@ function impactFx(x, y, z, sz, big) {
 const reloadVis = [];
 function updReload() { const t = performance.now(); for (let i = reloadVis.length - 1; i >= 0; i--) if (t >= reloadVis[i].t) { reloadVis[i].m.visible = true; reloadVis.splice(i, 1); } }
 function updBoomFx(dt) {
-  updReload();
+  updReload(); updFireballs(dt);
   for (const s of shocks) if (s.m.visible) { s.t += dt; const k = s.t / s.max; if (k >= 1) { s.m.visible = false; continue; } const r = s.r * (0.6 + 2.4 * Math.sqrt(k)); s.m.scale.set(r, 1, r); s.m.material.opacity = 0.55 * (1 - k) * (1 - k); }
   for (const s of scorches) if (s.m.visible) { s.t -= dt; if (s.t < 8) s.m.material.opacity = 0.85 * Math.max(0, s.t / 8); if (s.t <= 0) s.m.visible = false; }
   for (const d of debris) if (d.m.visible) { d.t -= dt; const p = d.m.position; d.vy -= 18 * dt; p.x += d.vx * dt; p.y += d.vy * dt; p.z += d.vz * dt; d.m.rotation.x += d.rx * dt; d.m.rotation.z += d.rz * dt;
@@ -1258,7 +1271,7 @@ function updBoomFx(dt) {
 }
 function explosion(x, y, z, size) {
   const near = Math.abs(x - cam.x) < 90 && Math.abs(z - cam.z) < 90; // keep effects cheap off-screen
-  fx('flash', x, y, z, size * 1.3); fx('blastball', x, y + 0.4 * size, z, size * 1.1);
+  fx('flash', x, y, z, size * 1.3); fireball3D(x, y, z, size * 1.6); fx('blastball', x, y + 0.4 * size, z, size * 1.1);
   if (near) {
     for (let i = 0; i < 2 + size * 2; i++) fx('fireball', x + rand(-0.6, 0.6) * size, y + rand(0, 0.6) * size, z + rand(-0.6, 0.6) * size, size * 0.75);
     for (let i = 0; i < 3 + size * 3; i++) fx('fire', x + rand(-0.5, 0.5) * size, y + rand(0, 0.5) * size, z + rand(-0.5, 0.5) * size, size * 0.8);

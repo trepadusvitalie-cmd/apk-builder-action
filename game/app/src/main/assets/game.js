@@ -426,12 +426,18 @@ const CH = {
   heavy: { name: 'Greu', hp: 360, cost: 105, spd: 0.74, size: 1.3 },
   titan: { name: 'Titan', hp: 560, cost: 170, spd: 0.6, size: 1.55, hue: 0x50565e },
   nova: { name: 'Nova', hp: 420, cost: 150, spd: 0.95, size: 1.25, gold: true },
+  drone: { name: 'Dronă', hp: 70, cost: 30, spd: 1.25, size: 0.85, only: 'rotor' },
+  cyborg: { name: 'Cyborg', hp: 150, cost: 35, spd: 1, size: 0.62, only: 'legs' },
+  hcyborg: { name: 'Cyborg greu', hp: 270, cost: 65, spd: 0.85, size: 0.74, only: 'legs' },
 };
 const PR = {
   wheels: { name: 'Roți', hp: 1, spd: 1, cost: 10 },
   tracks: { name: 'Șenile', hp: 1.35, spd: 0.78, cost: 30 },
   halftrack: { name: 'Semi-șenile', hp: 1.18, spd: 0.9, cost: 20 },
   hover: { name: 'Hover', hp: 0.85, spd: 1.5, cost: 25 },
+  legs: { name: 'Picioare', hp: 1, spd: 0.62, cost: 0 },
+  rotor: { name: 'Rotoare', hp: 0.8, spd: 1.55, cost: 20, air: 'rotor' },
+  vtol: { name: 'Reactor VTOL', hp: 0.8, spd: 2.4, cost: 70, air: 'vtol' },
 };
 const WP = {
   mg: { name: 'Mitralieră', dmg: 7, rof: 0.22, range: 12, cost: 20, kind: 'mg' },
@@ -454,6 +460,9 @@ const WP = {
   laser: { name: 'Laser', dmg: 22, rof: 0.55, range: 17, cost: 80, kind: 'laser' },
   rockets: { name: 'Rachete', dmg: 30, rof: 2.4, range: 18, cost: 60, kind: 'rocket', splash: 2.8 },
   viper: { name: 'Rachete Viperă', dmg: 62, rof: 3.4, range: 22, cost: 115, kind: 'rocket', splash: 2.4, heavy: true, fam: 'rockets' },
+  bomb: { name: 'Bombe aeriene', dmg: 150, rof: 0.45, range: 5, cost: 45, kind: 'bomb', splash: 4.5 },
+  fbomb: { name: 'Bombe incendiare', dmg: 70, rof: 0.45, range: 5, cost: 60, kind: 'bomb', splash: 5.5, fire: 30 },
+  hbomb: { name: 'Bombă grea', dmg: 420, rof: 0.6, range: 5, cost: 90, kind: 'bomb', splash: 6.5, big: true },
   radar: { name: 'Radar', dmg: 0, range: 0, cost: 40, kind: 'radar', aura: 24 },
   repair: { name: 'Reparator', dmg: 0, range: 0, cost: 50, kind: 'repair', heal: 16, reach: 7 },
   truck: { name: 'Constructor', dmg: 0, range: 0, cost: 40, kind: 'truck' },
@@ -473,6 +482,9 @@ const BD = {
   pwall: { name: 'Zid beton', icon: '', hp: 1400, cost: 40, size: 5, time: 10, h: 3, r: 2.7, req: 'traps' },
   repairbay: { name: 'Atelier reparații', icon: '', hp: 800, cost: 160, size: 5.5, time: 24, h: 4, req: 'repair' },
   silo: { name: 'Siloz rachetă balistică', short: 'Siloz', icon: '', hp: 3200, cost: 900, size: 8, time: 60, h: 0.8, req: 'icbm' },
+  airfactory: { name: 'Fabrică de aeronave', short: 'Fabr. aeronave', icon: '', hp: 1000, cost: 280, size: 8, time: 40, h: 5, req: 'drone' },
+  cybfactory: { name: 'Fabrică de cyborgi', short: 'Fabr. cyborgi', icon: '', hp: 900, cost: 180, size: 6, time: 30, h: 4.5, req: 'cyborg' },
+  vpad: { name: 'Platformă de realimentare', short: 'Platformă VTOL', icon: '', hp: 450, cost: 70, size: 4, time: 12, h: 0.5, req: 'vtol', flat: 1 },
   radartower: { name: 'Turn radar', icon: '', hp: 600, cost: 140, size: 3.5, time: 20, h: 7, req: null },
   citadel: { name: 'CETATEA', icon: '🏰', hp: 6000, cost: 0, size: 10, time: 1, h: 9 },
   wall: { name: 'Zid', icon: '🧱', hp: 1400, cost: 0, size: 5, time: 1, h: 3, r: 2.7 },
@@ -515,6 +527,13 @@ const RS = [
   { id: 'assault', name: 'Șasiu de Asalt', cost: 170, time: 34, req: ['medium'] },
   { id: 'titan', name: 'Șasiu Titan', cost: 260, time: 48, req: ['heavy', 'armor'] },
   { id: 'traps', name: 'Arici și ziduri', cost: 60, time: 14, req: [] },
+  { id: 'cyborg', name: 'Cyborgi', cost: 120, time: 26, req: [] },
+  { id: 'hcyborg', name: 'Cyborg greu', cost: 210, time: 40, req: ['cyborg', 'armor'] },
+  { id: 'drone', name: 'Drone', cost: 150, time: 30, req: ['radar'] },
+  { id: 'vtol', name: 'Aeronave VTOL', cost: 260, time: 46, req: ['drone', 'hover'] },
+  { id: 'bomb', name: 'Bombe aeriene', cost: 200, time: 38, req: ['vtol', 'mortar'] },
+  { id: 'fbomb', name: 'Bombe incendiare', cost: 240, time: 42, req: ['bomb', 'flame'] },
+  { id: 'hbomb', name: 'Bombă grea', cost: 320, time: 55, req: ['bomb', 'heavy'] },
   { id: 'bunker', name: 'Buncăre', cost: 110, time: 24, req: [] },
   { id: 'hardpoint', name: 'Fortificații', cost: 200, time: 36, req: ['bunker', 'armor'] },
   { id: 'fortress', name: 'Fortărețe', cost: 380, time: 60, req: ['hardpoint', 'heavy'] },
@@ -549,6 +568,7 @@ const BRANCHES = [
   { name: 'Artilerie', ids: ['rbattery', 'smissile', 'omissile', 'icbm', 'mortar', 'imortar', 'empmortar', 'salvo', 'howitzer', 'ihowitzer', 'rhowitzer', 'hhowitzer', 'plasma', 'ballistic'] },
   { name: 'Sprijin', ids: ['radar', 'radar2', 'repair', 'repair2'] },
   { name: 'Apărare', ids: ['traps', 'tower2', 'bunker', 'hardpoint', 'fortress'] },
+  { name: 'Aviație și cyborgi', ids: ['cyborg', 'hcyborg', 'drone', 'vtol', 'bomb', 'fbomb', 'hbomb'] },
   { name: 'Industrie', ids: ['prod'] },
 ];
 // ---- upgrade lines Mk I-III (generated) ----
@@ -577,6 +597,13 @@ function applyTechLevel(tl) { tl = clamp(tl | 0, 0, 3); if (!tl) return;
   for (let t = 0; t < TEAMS.length; t++) { TEAMS[t].energy = TL_ENERGY[tl]; for (const id of ids) finishResearch(t, id); } }
 function scaleHp(team, k, kind) { for (const e of ents) if (e.alive && e.team === team && e.kind === kind) { const r = e.hp / e.maxHp; e.maxHp = Math.round(e.maxHp * k); e.hp = e.maxHp * r; } if (kind === 'unit') TEAMS[team].hpMul *= k; }
 const RICON = {
+  cyborg: SV(`<circle cx="24" cy="9" r="5" fill="#71804e" stroke="#c9b48a" stroke-width="2"/><rect x="20" y="9" width="8" height="3" fill="#3f9fe0"/><path d="M16 16h16l-2 14H18z" fill="#71804e" stroke="#c9b48a" stroke-width="2"/><path d="M19 30l-3 14M29 30l3 14" stroke="#c9b48a" stroke-width="4"/><path d="M32 18l6 8h6" stroke="#3a3a36" stroke-width="3"/><path d="M16 18l-5 9" stroke="#c9b48a" stroke-width="3"/>`),
+  hcyborg: SV(`<circle cx="24" cy="9" r="5" fill="#3d432f" stroke="#c9b48a" stroke-width="2"/><rect x="20" y="9" width="8" height="3" fill="#e0402a"/><path d="M12 15h24l-3 16H15z" fill="#71804e" stroke="#c9b48a" stroke-width="2"/><rect x="9" y="14" width="8" height="7" rx="2" fill="#f0b44a"/><rect x="31" y="14" width="8" height="7" rx="2" fill="#f0b44a"/><path d="M18 31l-3 13M30 31l3 13" stroke="#c9b48a" stroke-width="5"/><path d="M36 22l6 6h5" stroke="#3a3a36" stroke-width="4"/>`),
+  drone: SV(`<path d="M12 12l24 24M36 12L12 36" stroke="#c9b48a" stroke-width="3"/><ellipse cx="24" cy="24" rx="7" ry="5" fill="#71804e" stroke="#c9b48a" stroke-width="2"/><circle cx="24" cy="28" r="2" fill="#3f9fe0"/>${[[10, 10], [38, 10], [10, 38], [38, 38]].map(([x, y]) => `<ellipse cx="${x}" cy="${y}" rx="8" ry="2.5" fill="#3a3a36" opacity=".7"/><circle cx="${x}" cy="${y}" r="2" fill="#f0b44a"/>`).join('')}`),
+  vtol: SV(`<path d="M24 4l4 12 16 10v4l-16-4-1 10 6 5v3l-9-3-9 3v-3l6-5-1-10-16 4v-4l16-10z" fill="#71804e" stroke="#c9b48a" stroke-width="2"/><rect x="21" y="10" width="6" height="6" rx="2" fill="#3f9fe0"/><path d="M16 46l2-6M32 46l-2-6" stroke="#f0b44a" stroke-width="3"/>`),
+  fbomb: SV(`<path d="M24 46c-9 0-13-6-11-12 2 3 4 3 5 1-1-5 2-9 6-11-1 4 2 6 4 7 1-2 1-4 0-6 5 3 8 8 7 13 0 5-4 8-11 8z" fill="#e0602a" stroke="#f0b44a" stroke-width="1.5"/><ellipse cx="24" cy="14" rx="6" ry="10" fill="#a83a26" stroke="#c9b48a" stroke-width="2"/><rect x="18" y="10" width="12" height="3" fill="#f0b44a"/>`),
+  hbomb: SV(`<ellipse cx="24" cy="22" rx="11" ry="16" fill="#2e3236" stroke="#c9b48a" stroke-width="2"/><path d="M24 38v7M15 45l9-7 9 7" stroke="#c9b48a" stroke-width="3"/><rect x="13" y="14" width="22" height="4" fill="#e0402a"/><rect x="13" y="24" width="22" height="2" fill="#f0b44a"/>`),
+  bomb: SV(`<ellipse cx="24" cy="22" rx="8" ry="14" fill="#3d432f" stroke="#c9b48a" stroke-width="2"/><path d="M24 36v8M17 42l7-6 7 6" stroke="#c9b48a" stroke-width="2.5"/><rect x="16" y="16" width="16" height="3" fill="#f0b44a"/><path d="M24 2v4" stroke="#e0402a" stroke-width="3"/>`),
   halftrack: SV(`<rect x="10" y="14" width="30" height="9" rx="4" fill="#71804e" stroke="#c9b48a" stroke-width="2"/><circle cx="12" cy="32" r="7" fill="#2a2823" stroke="#c9b48a" stroke-width="2"/><circle cx="12" cy="32" r="2.5" fill="#3f9fe0"/><rect x="22" y="24" width="22" height="14" rx="7" fill="#2a2823" stroke="#c9b48a" stroke-width="2"/><circle cx="29" cy="31" r="3.5" fill="#6b6658"/><circle cx="37" cy="31" r="3.5" fill="#6b6658"/>`),
   tracks: SV(`<rect x="5" y="22" width="38" height="16" rx="8" fill="#2a2823" stroke="#c9b48a" stroke-width="2"/><circle cx="13" cy="30" r="4" fill="#6b6658"/><circle cx="24" cy="30" r="4" fill="#6b6658"/><circle cx="35" cy="30" r="4" fill="#6b6658"/><path d="M9 22h30" stroke="#8a826e" stroke-width="2" stroke-dasharray="3 3"/><rect x="12" y="12" width="24" height="9" rx="4" fill="#71804e"/>`),
   cannon: SV(`<path d="M10 34a14 10 0 0 1 28 0z" fill="#71804e" stroke="#c9b48a" stroke-width="2"/><rect x="22" y="20" width="22" height="5" rx="2" fill="#3a3a36" stroke="#c9b48a" stroke-width="1.5" transform="rotate(-18 22 22)"/><rect x="8" y="34" width="32" height="6" rx="3" fill="#3d432f"/><circle cx="44" cy="12" r="3" fill="#ffcf5a"/>`),
@@ -626,6 +653,9 @@ const RICON = {
 const SI = (inner, cls = 'ui') => `<svg class="${cls}" viewBox="0 0 48 48" fill="none" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
 const K = '#c9b48a', OL = '#71804e', OD = '#3d432f', AM = '#f0b44a', BL = '#3f9fe0';
 const UIC = {
+  airfactory: SI(`<path d="M3 42V24a21 16 0 0 1 42 0v18z" fill="${OL}" stroke="${K}" stroke-width="2"/><path d="M14 42V30h20v12" fill="#2c2a26" stroke="${K}" stroke-width="1.5"/><path d="M24 26l2 6 8 4v2l-8-2-1 4 3 2v1l-4-1-4 1v-1l3-2-1-4-8 2v-2l8-4z" fill="${AM}"/>`),
+  cybfactory: SI(`<rect x="4" y="18" width="40" height="24" fill="${OL}" stroke="${K}" stroke-width="2"/><rect x="8" y="10" width="6" height="10" fill="${BL}" stroke="${K}" stroke-width="1.5"/><rect x="34" y="10" width="6" height="10" fill="${BL}" stroke="${K}" stroke-width="1.5"/><circle cx="24" cy="25" r="3" fill="${AM}"/><path d="M20 29h8l-1 7h-6zM21 36l-1 5M27 36l1 5" stroke="${AM}" stroke-width="2" fill="${AM}"/>`),
+  vpad: SI(`<ellipse cx="24" cy="30" rx="20" ry="11" fill="#6f6a61" stroke="${K}" stroke-width="2"/><ellipse cx="24" cy="30" rx="14" ry="7.5" fill="none" stroke="${AM}" stroke-width="2"/><path d="M18 26v8M30 26v8M18 30h12" stroke="#fff" stroke-width="2.5"/><path d="M24 4l3 8 9 5v2l-9-2-1 5 3 2v1l-5-1-5 1v-1l3-2-1-5-9 2v-2l9-5z" fill="${OL}" stroke="${K}" stroke-width="1"/>`),
   silo: SI(`<rect x="3" y="30" width="42" height="12" fill="#8c867a" stroke="${K}" stroke-width="2"/><ellipse cx="24" cy="31" rx="13" ry="4" fill="#222"/><rect x="6" y="27" width="14" height="5" fill="#6f7a52" stroke="${K}"/><rect x="28" y="27" width="14" height="5" fill="#6f7a52" stroke="${K}"/><rect x="21" y="6" width="6" height="23" rx="2" fill="#dfe3e6" stroke="${K}"/><path d="M21 8l3-6 3 6z" fill="#2e3236"/><path d="M4 42h40" stroke="#e0b020" stroke-width="2" stroke-dasharray="3 3"/>`),
   generator: SI(`<path d="M7 42c3-9 3-18 0-27h14c-3 9-3 18 0 27z" fill="#8c867a" stroke="${K}" stroke-width="2"/><path d="M24 42c3-9 3-18 0-27h14c-3 9-3 18 0 27z" fill="#a39d90" stroke="${K}" stroke-width="2"/><path d="M12 12q2-5 6-4M29 12q2-5 6-4" stroke="#ddd" stroke-width="2.5" opacity=".8"/><path d="M42 18l-6 10h5l-4 10" stroke="${AM}" stroke-width="3"/>`),
   factory: SI(`<path d="M4 42V24l10 6v-6l10 6v-6l10 6V10h8v32z" fill="${OL}" stroke="${K}" stroke-width="2"/><rect x="8" y="34" width="5" height="4" fill="${AM}"/><rect x="17" y="34" width="5" height="4" fill="${AM}"/><rect x="26" y="34" width="5" height="4" fill="${AM}"/><path d="M36 6q3-3 6-1" stroke="#ccc" stroke-width="2"/>`),
@@ -660,6 +690,17 @@ for (const [k, r] of [['repairbay', 'repair'], ['radartower', 'radar'], ['ptrap'
 for (const k in BD) if (BD[k].cls) UIC[k] = RICON[BD[k].tw] ? RICON[BD[k].tw].replace('class="ric"', 'class="ui"') : UIC.tower;
 for (const k in BD) if (BD[k].cls) BD[k].cost = DCLASS[BD[k].cls].cost + WP[BD[k].tw].cost * 2;
 for (const k in WP) WP[k].id = k;
+// air & cyborg rules
+const FACT_TYPES = new Set(['factory', 'airfactory', 'cybfactory']);
+const CYB_WP = ['mg', 'cannon', 'flame', 'rockets', 'laser'], DRONE_WP = ['mg', 'rockets', 'laser'], VTOL_WP = ['mg', 'cannon', 'rockets', 'viper', 'laser', 'bomb', 'fbomb', 'hbomb'];
+const VAMMO = { mg: 10, cannon: 4, rockets: 4, viper: 2, laser: 6, bomb: 2, fbomb: 2, hbomb: 1 }; // VTOL attack runs before it must return to a rearming pad
+const VTOL_ALT = 11, DRONE_ALT = 5.5;
+const facFor = d => d.pr === 'legs' ? 'cybfactory' : PR[d.pr] && PR[d.pr].air ? 'airfactory' : 'factory';
+function validDesign(d) { const c = CH[d.ch], p = PR[d.pr]; if (!c || !p || !WP[d.wp]) return false;
+  if (c.only ? c.only !== d.pr : (d.pr === 'legs' || d.pr === 'rotor')) return false;
+  if (d.pr === 'legs') return CYB_WP.includes(d.wp); if (d.pr === 'rotor') return DRONE_WP.includes(d.wp); if (d.pr === 'vtol') return VTOL_WP.includes(d.wp); return WP[d.wp].kind !== 'bomb'; }
+const canHitAir = w => !w.art && ['mg', 'rocket', 'laser'].includes(w.kind); // like classic RTS: cannons, flamers and artillery cannot hit aircraft in flight
+const flying = e => !!(e.air && e.alt > 1.5);
 function mkTeam(i) { return { i, energy: 500, tech: new Set(['light', 'wheels', 'mg', 'truck']), researching: new Set(), hpMul: 1, spdMul: 1, prodMul: 1, shpMul: 1, powMul: 1, rsMul: 1, dmg: {}, rof: {}, units: 0, inc: 0 }; }
 const TEAMS = [mkTeam(0), mkTeam(1)];
 
@@ -686,10 +727,50 @@ function missileGeo(kind) {
   if (kind === 'orizont' || kind === 'ballistic') for (let f = 0; f < 4; f++) { const a = f * Math.PI / 2 + Math.PI / 4; B.box(0.008, 0.08, r * 1.6, Math.sin(a) * r * 1.2, 0.05, Math.cos(a) * r * 1.2, fin, 0, a, 0); }
   const g = B.build(); g.rotateX(Math.PI / 2); return MSL_GEO[kind] = g;
 }
+function wpMini(tb, wp, s, T, x, y, z) { // compact weapon for cyborgs and drones, barrel along +z
+  const P2 = Math.PI / 2;
+  if (wp === 'mg') { tb.box(0.16 * s, 0.18 * s, 0.55 * s, x, y, z, 0x2a2a2a); for (const sx of [-1, 1]) tb.add(G.cyl6, 0.035 * s, 0.6 * s, 0.035 * s, x + sx * 0.05 * s, y, z + 0.55 * s, 0x111111, P2, 0, 0); tb.box(0.08 * s, 0.2 * s, 0.12 * s, x, y - 0.17 * s, z + 0.05 * s, 0x3a3a36); }
+  else if (wp === 'cannon') { tb.box(0.22 * s, 0.22 * s, 0.6 * s, x, y, z, T.dark); tb.add(G.cyl16, 0.07 * s, 0.95 * s, 0.07 * s, x, y, z + 0.75 * s, 0x2e3128, P2, 0, 0); tb.add(G.cyl16, 0.09 * s, 0.14 * s, 0.09 * s, x, y, z + 1.2 * s, 0x1a1a1a, P2, 0, 0); }
+  else if (wp === 'flame') { tb.add(G.cyl16, 0.12 * s, 0.5 * s, 0.12 * s, x, y, z, 0xa83a26, P2, 0, 0); tb.add(G.cyl10, 0.05 * s, 0.5 * s, 0.05 * s, x, y, z + 0.45 * s, 0x3a3a36, P2, 0, 0); tb.add(G.cone, 0.08 * s, 0.14 * s, 0.08 * s, x, y, z + 0.75 * s, 0x1a1a1a, -P2, 0, 0); tb.box(0.04 * s, 0.04 * s, 0.04 * s, x, y - 0.06 * s, z + 0.78 * s, 0x66ccff); }
+  else if (wp === 'rockets') { tb.box(0.34 * s, 0.3 * s, 0.7 * s, x, y, z + 0.1 * s, T.body); tb.box(0.36 * s, 0.06 * s, 0.72 * s, x, y + 0.12 * s, z + 0.1 * s, T.acc); for (const ox of [-0.08, 0.08]) for (const oy of [-0.07, 0.07]) { tb.add(G.cyl6, 0.055 * s, 0.06 * s, 0.055 * s, x + ox * s, y + oy * s, z + 0.47 * s, 0x111111, P2, 0, 0); tb.add(G.cone, 0.045 * s, 0.08 * s, 0.045 * s, x + ox * s, y + oy * s, z + 0.5 * s, 0xc8321e, P2, 0, 0); } }
+  else { tb.box(0.18 * s, 0.2 * s, 0.55 * s, x, y, z, 0x3a3a36); tb.add(G.cyl16, 0.05 * s, 0.75 * s, 0.05 * s, x, y, z + 0.6 * s, 0x9adfff, P2, 0, 0); tb.add(G.sph, 0.08 * s, 0.08 * s, 0.08 * s, x, y, z + 0.98 * s, 0x66e0ff); for (let k = 0; k < 3; k++) tb.add(G.cyl16, 0.08 * s, 0.03 * s, 0.08 * s, x, y, z + (0.35 + k * 0.15) * s, T.acc, P2, 0, 0); }
+}
+function smallUnitGeo(d, T, s, B, tb) {
+  if (d.pr === 'legs') { // armoured cyborg infantry: pelvis on the body, legs animated separately, torso turns with the weapon
+    const hy = 1.25 * s, heavy = d.ch === 'hcyborg';
+    B.box(0.6 * s, 0.26 * s, 0.38 * s, 0, hy, 0, T.dark); B.box(0.62 * s, 0.06 * s, 0.4 * s, 0, hy + 0.1 * s, 0, T.acc);
+    const lg = new Builder(); lg.uvScale = 1.1; const lw = heavy ? 1.25 : 1;
+    lg.box(0.22 * s * lw, 0.62 * s, 0.26 * s * lw, 0, -0.32 * s, 0, T.body); lg.add(G.sph, 0.15 * s * lw, 0.15 * s, 0.15 * s, 0, -0.64 * s, 0.06 * s, T.acc);
+    lg.box(0.19 * s * lw, 0.58 * s, 0.24 * s * lw, 0, -0.93 * s, -0.02 * s, T.dark); lg.box(0.26 * s * lw, 0.12 * s, 0.42 * s, 0, -1.2 * s, 0.07 * s, 0x2a2a26);
+    const tb2 = tb; const ty = hy + 0.1 * s;
+    tb2.box(0.72 * s, 0.72 * s, 0.46 * s, 0, 0.38 * s, 0, T.body); tb2.camo(0.74 * s, 0.6 * s, 0.48 * s, 0, 0.36 * s, 0, 0, 4);
+    tb2.box(0.6 * s, 0.32 * s, 0.1 * s, 0, 0.5 * s, 0.24 * s, T.dark); tb2.box(0.62 * s, 0.07 * s, 0.11 * s, 0, 0.34 * s, 0.25 * s, T.acc);
+    tb2.box(0.5 * s, 0.55 * s, 0.26 * s, 0, 0.42 * s, -0.34 * s, 0x3a3f2c); tb2.add(G.cyl6, 0.02 * s, 0.6 * s, 0.02 * s, -0.18 * s, 0.95 * s, -0.4 * s, 0x222222);
+    tb2.add(G.sph, 0.2 * s, 0.22 * s, 0.22 * s, 0, 0.92 * s, 0.02 * s, T.dark); tb2.box(0.28 * s, 0.07 * s, 0.1 * s, 0, 0.94 * s, 0.19 * s, 0x3fb0ff);
+    for (const sx of [-1, 1]) { tb2.add(G.sph, (heavy ? 0.24 : 0.17) * s, 0.15 * s, (heavy ? 0.24 : 0.17) * s, sx * 0.44 * s, 0.7 * s, 0, heavy ? T.acc : T.dark);
+      tb2.box(0.15 * s, 0.5 * s, 0.16 * s, sx * 0.44 * s, 0.4 * s, 0.1 * s, T.body, -0.6, 0, 0); }
+    wpMini(tb2, d.wp, s * (heavy ? 1.25 : 1), T, 0.42 * s, 0.32 * s, 0.38 * s);
+    return { body: B.build(), tur: tb2.build(), turY: ty, msl: null, legGeo: lg.build(), hips: [[-0.17 * s, hy, 0], [0.17 * s, hy, 0]] };
+  }
+  // quad-rotor drone
+  const by = 0.45 * s;
+  B.add(G.sph, 0.5 * s, 0.28 * s, 0.75 * s, 0, by, 0, T.body); B.add(G.sph, 0.42 * s, 0.1 * s, 0.6 * s, 0, by + 0.2 * s, -0.05 * s, T.dark);
+  B.box(0.52 * s, 0.05 * s, 0.1 * s, 0, by + 0.05 * s, 0.68 * s, T.acc); B.box(0.2 * s, 0.06 * s, 0.05 * s, 0, by + 0.1 * s, 0.74 * s, 0x3fb0ff);
+  const rot = []; for (const sx of [-1, 1]) for (const sz of [-1, 1]) { const x = sx * 0.95 * s, z = sz * 0.95 * s; const a = Math.atan2(x, z);
+    B.box(0.09 * s, 0.07 * s, 1.25 * s, x / 2, by + 0.05 * s, z / 2, T.dark, 0, a, 0); B.add(G.cyl16, 0.12 * s, 0.2 * s, 0.12 * s, x, by + 0.1 * s, z, 0x2a2a2a);
+    B.add(G.cyl16, 0.48 * s, 0.03 * s, 0.48 * s, x, by + 0.02 * s, z, T.acc); B.box(0.05 * s, 0.05 * s, 0.05 * s, x, by - 0.02 * s, z, sz > 0 ? 0x40ff60 : 0xff3020);
+    rot.push([x, by + 0.24 * s, z]); }
+  for (const sx of [-1, 1]) { B.box(0.04 * s, 0.35 * s, 0.04 * s, sx * 0.3 * s, by - 0.25 * s, 0, 0x333333); B.box(0.05 * s, 0.04 * s, 0.8 * s, sx * 0.3 * s, by - 0.42 * s, 0, 0x2a2a2a); }
+  const bl = new Builder(); bl.box(0.95 * s, 0.015 * s, 0.09 * s, 0, 0, 0, 0x1a1a1a); bl.box(0.09 * s, 0.015 * s, 0.95 * s, 0, 0, 0, 0x1a1a1a); bl.add(G.cyl16, 0.06 * s, 0.05 * s, 0.06 * s, 0, 0.01 * s, 0, 0x8e8e88);
+  tb.add(G.sph, 0.18 * s, 0.18 * s, 0.18 * s, 0, 0, 0.2 * s, 0x2a2a2a); tb.add(G.sph, 0.07 * s, 0.07 * s, 0.07 * s, 0, 0, 0.36 * s, 0x3fb0ff);
+  wpMini(tb, d.wp, s, T, 0, -0.08 * s, 0.1 * s);
+  return { body: B.build(), tur: tb.build(), turY: by - 0.22 * s, msl: null, rotors: rot, bladeGeo: bl.build() };
+}
 function unitGeo(d, team) {
   const key = d.ch + d.pr + d.wp + team; if (geoCache[key]) return geoCache[key];
   const hu = CH[d.ch].hue; const tn = (c, k) => new THREE.Color(c).lerp(new THREE.Color(hu), 0.65).multiplyScalar(k).getHex(); const tk = hu ? 1 : 1;
   const T = CH[d.ch].gold ? { ...TEAMC[team], body: 0xd4a832, dark: 0x5e4c1c } : hu ? { ...TEAMC[team], body: tn(TEAMC[team].body, 1), dark: tn(TEAMC[team].dark, 0.55) } : TEAMC[team], s = CH[d.ch].size, B = new Builder(), tb = new Builder(); B.uvScale = tb.uvScale = 1.1;
+  if (d.pr === 'rotor' || d.pr === 'legs') return geoCache[key] = smallUnitGeo(d, T, s, B, tb);
   const L = 2.4 * s, W = 1.65 * s, H = (d.pr === 'tracks' || d.pr === 'halftrack' ? 0.6 : 0.72) * s; const PI2 = Math.PI / 2;
   let by, msl = null;
   const wheel = (r, wd, x, y, z, sx) => { // chunky off-road tyre: tread rings, deep rim, coloured hub
@@ -725,6 +806,18 @@ function unitGeo(d, team) {
       for (let k = 0; k < 5; k++) B.add(G.cyl16, tr * 0.62, 0.53 * s, tr * 0.62, x, tr * 0.9, -L * 0.36 + k * L * 0.18, 0x4a473f, 0, 0, PI2);
       B.add(G.cyl16, 0.3 * s, L * 0.98, 0.14 * s, x, th + 0.02, 0, T.dark, PI2, 0, 0); // rounded track guard
     }
+  } else if (d.pr === 'vtol') { // gunship: swept wings, twin lift-jet nacelles, twin tail fins, landing struts
+    by = 0.75 + H / 2;
+    for (const sx of [-1, 1]) {
+      B.box(W * 1.25, 0.09 * s, L * 0.36, sx * W * 0.95, by + H * 0.05, -L * 0.04, T.body, 0, sx * 0.18, 0); B.box(0.16 * s, 0.1 * s, L * 0.3, sx * W * 1.55, by + H * 0.05, -L * 0.1, T.acc);
+      B.add(G.cyl16, 0.24 * s, L * 0.55, 0.24 * s, sx * W * 0.78, by - H * 0.05, -L * 0.04, T.dark, Math.PI / 2, 0, 0);
+      B.add(G.cyl16, 0.26 * s, 0.08 * s, 0.26 * s, sx * W * 0.78, by - H * 0.05, L * 0.24, 0x8e8e88, Math.PI / 2, 0, 0);
+      B.add(G.cyl16, 0.17 * s, 0.1 * s, 0.17 * s, sx * W * 0.78, by - H * 0.05, -L * 0.32, 0x1a1a1a, Math.PI / 2, 0, 0);
+      B.box(0.07 * s, 0.6 * s, 0.45 * s, sx * W * 0.32, by + H * 0.6, -L * 0.42, T.dark, 0, 0, sx * 0.3);
+      B.box(0.1 * s, 0.05 * s, 0.4 * s, sx * W * 0.34, by + H * 0.9, -L * 0.44, T.acc, 0, 0, sx * 0.3);
+      B.add(G.cyl6, 0.04 * s, 0.7 * s, 0.04 * s, sx * W * 0.35, by - H / 2 - 0.3 * s, L * 0.2, 0x333333); B.add(G.cyl6, 0.04 * s, 0.7 * s, 0.04 * s, sx * W * 0.35, by - H / 2 - 0.3 * s, -L * 0.25, 0x333333);
+      B.box(0.08 * s, 0.05 * s, L * 0.6, sx * W * 0.35, by - H / 2 - 0.62 * s, 0, 0x2a2a2a); }
+    B.box(W * 0.5, 0.25 * s, L * 0.25, 0, by + H * 0.55, L * 0.22, 0x9fd3e6); // cockpit canopy
   } else {
     by = 0.6 + H / 2; B.add(G.cyl16, W * 0.78, 0.4, L * 0.6, 0, 0.32, 0, T.dark); B.add(G.cyl16, W * 0.82, 0.12, L * 0.63, 0, 0.14, 0, 0x2a2622);
   }
@@ -761,7 +854,14 @@ function unitGeo(d, team) {
   for (const sx of [-1, 1]) B.box(0.16 * s, 0.1 * s, 0.05 * s, sx * W * 0.36, by + H * 0.08, L * 0.5, 0xfff2c0); // LED headlights
   for (const sx of [-1, 1]) B.box(0.1 * s, 0.06 * s, 0.03 * s, sx * W * 0.38, by + H * 0.1, -L * 0.5, 0xff3020); // tail lights
   const top = by + H / 2 + 0.05;
-  if (d.wp === 'mg') {
+  if (WP[d.wp].kind === 'bomb') { // bombs hung under the belly on a pylon
+    const w = WP[d.wp], by2 = -H - 0.3 * s, n = w.big ? 1 : 3, r = (w.big ? 0.32 : 0.17) * s, len = (w.big ? 1.9 : 0.95) * s, col = w.fire ? 0xa83a26 : w.big ? 0x2e3236 : 0x3d432f;
+    tb.box(W * 0.5, 0.12 * s, L * 0.5, 0, by2 + r + 0.08 * s, 0, T.dark);
+    for (let i = 0; i < n; i++) { const x = n === 1 ? 0 : (i - 1) * 0.42 * s;
+      tb.add(G.cyl16, r, len, r, x, by2, 0, col, Math.PI / 2, 0, 0); tb.add(G.sph, r, r, r * 1.6, x, by2, len / 2, col); tb.add(G.cone, r * 0.8, r * 1.6, r * 0.8, x, by2, -len / 2 - r * 0.7, col, -Math.PI / 2, 0, 0);
+      for (const a of [0, Math.PI / 2]) tb.box(a ? 0.02 * s : r * 2.6, a ? r * 2.6 : 0.02 * s, 0.3 * s, x, by2, -len / 2 - r * 0.9, 0x3a3a36);
+      tb.add(G.cyl16, r * 1.04, 0.08 * s, r * 1.04, x, by2, len * 0.2, w.fire ? 0xf0b44a : 0xc8321e, Math.PI / 2, 0, 0); }
+  } else if (d.wp === 'mg') {
     tb.add(G.dome, 0.5 * s, 0.45 * s, 0.55 * s, 0, 0.02, 0, T.body); tb.add(G.cyl16, 0.52 * s, 0.08, 0.57 * s, 0, 0.05, 0, T.acc);
     tb.add(G.sph, 0.18 * s, 0.18 * s, 0.18 * s, 0, 0.3 * s, 0.45 * s, T.dark);
     for (const sx of [-1, 1]) tb.add(G.cyl16, 0.06 * s, 1.1 * s, 0.06 * s, sx * 0.12 * s, 0.28 * s, 0.95 * s, 0x1a1a1a, PI2, 0, 0);
@@ -1060,6 +1160,31 @@ function bldGeo(type, team) {
       for (const [lx, lz] of [[-4.1, 0], [4.1, 0], [0, -4.1], [0, 4.1]]) B.box(0.18, 0.12, 0.18, lx, 0.24, lz, 0xff4020);
       { const d = new Builder(); d.box(2.9, 0.3, 5.4, 0, 0, 0, 0x6f7a52); d.camo(2.9, 0.32, 5.4, 0, 0, 0, 0, 6); d.box(0.3, 0.36, 5.4, 1.3, 0.02, 0, T.acc); d.hazard(2.9, 0.1, 0, 0.0, 2.72, 'z', 1); d.hazard(2.9, 0.1, 0, 0.0, -2.72, 'z', -1); anim.lid = d.build(); }
       break; }
+    case 'airfactory': { // arched hangar, control tower, apron with markings, windsock
+      B.box(9.6, 2, 9.4, 0, -0.5, 0, conc); B.box(9.4, 0.1, 9.2, 0, 0.52, 0, 0x7a746a);
+      B.add(G.cyl16, 3.7, 7.2, 3.3, 0, 0.55, -0.6, T.body, Math.PI / 2, 0, 0); B.box(7.6, 1.2, 7.4, 0, 0, -0.6, conc2);
+      for (let k = 0; k < 5; k++) B.add(G.cyl16, 3.78, 0.16, 3.38, 0, 0.55, -4 + k * 1.7, T.dark, Math.PI / 2, 0, 0);
+      B.add(G.cyl16, 3.74, 0.4, 3.34, 0, 0.55, 2.85, T.acc, Math.PI / 2, 0, 0);
+      B.box(5.0, 3.2, 0.12, 0, 2.0, 3.0, 0x2c2a26); for (let k = 0; k < 6; k++) B.box(0.06, 3.1, 0.14, -2.1 + k * 0.84, 2.0, 3.02, 0x3a3833);
+      for (let k = 0; k < 6; k++) B.box(0.8, 0.22, 0.14, -2.1 + k * 0.84, 3.7, 3.04, k % 2 ? 0x1a1a1a : 0xf0b44a);
+      B.box(1.3, 4.6, 1.3, 3.9, 2.3, -3.6, conc2); B.box(1.9, 1.0, 1.9, 3.9, 5.0, -3.6, 0x9fd3e6); B.box(2.1, 0.2, 2.1, 3.9, 5.6, -3.6, T.acc); B.add(G.cyl6, 0.04, 1.4, 0.04, 3.9, 6.4, -3.6, 0x333333); B.box(0.2, 0.2, 0.2, 3.9, 7.1, -3.6, 0xff3020);
+      B.box(7.0, 0.06, 2.6, 0, 0.58, 4.4, 0x55524b); for (let k = 0; k < 3; k++) B.box(1.0, 0.08, 0.22, -2.4 + k * 2.4, 0.6, 4.4, 0xf0f0e8); for (const sx of [-1, 1]) B.box(0.12, 0.08, 2.4, sx * 3.4, 0.6, 4.4, 0xf0b44a);
+      B.add(G.cyl6, 0.05, 3, 0.05, -4.3, 1.9, 3.9, 0x6a6a64); B.add(G.cone, 0.22, 0.9, 0.22, -4.3, 3.2, 4.3, 0xff7a20, Math.PI / 2, 0, 0);
+      break; }
+    case 'cybfactory': { // armoured block with growth vats and pipes
+      B.box(7.2, 2, 6.8, 0, -0.5, 0, conc); B.box(5.8, 3.0, 4.8, 0, 2.0, -0.3, T.body); B.box(5.9, 0.3, 4.9, 0, 3.6, -0.3, T.acc); B.box(4.6, 0.5, 3.6, 0, 3.95, -0.6, T.dark);
+      for (const sx of [-1, 1]) { B.add(G.cyl16, 0.55, 2.6, 0.55, sx * 2.0, 1.8, 2.35, 0x9fd3e6); B.add(G.cyl16, 0.4, 2.3, 0.4, sx * 2.0, 1.7, 2.35, 0x4fd08a); B.add(G.cyl16, 0.62, 0.25, 0.62, sx * 2.0, 3.15, 2.35, T.dark); B.add(G.cyl16, 0.62, 0.25, 0.62, sx * 2.0, 0.55, 2.35, T.dark); }
+      B.box(1.8, 2.2, 0.12, 0, 1.6, 2.13, 0x2c2a26); B.box(1.9, 0.18, 0.14, 0, 2.8, 2.15, 0xf0b44a);
+      for (let k = 0; k < 3; k++) B.add(G.cyl10, 0.1, 4.6, 0.1, -2.7, 2.6, -2.4 + k * 0.5, 0x8e8e88, Math.PI / 2, 0, 0.05 * k);
+      B.add(G.cyl16, 0.4, 2.2, 0.4, 2.2, 4.8, -2.0, 0x55524b); B.add(G.cyl16, 0.48, 0.2, 0.48, 2.2, 5.9, -2.0, T.acc);
+      B.box(0.6, 0.6, 0.6, -1.4, 4.4, -1.4, 0x3a3833); for (let k = 0; k < 3; k++) B.box(0.05, 0.5, 0.55, -1.65 + k * 0.25, 4.5, -1.4, 0x22201d);
+      break; }
+    case 'vpad': { // rearming pad: concrete disc, amber ring, H marking, edge lights, fuel bowser
+      B.add(G.cyl16, 2.2, 0.5, 2.2, 0, 0.0, 0, 0x6f6a61); B.add(G.cyl16, 1.9, 0.04, 1.9, 0, 0.27, 0, 0xf0b44a); B.add(G.cyl16, 1.72, 0.05, 1.72, 0, 0.28, 0, 0x55524b);
+      B.box(0.18, 0.04, 1.3, -0.45, 0.31, 0, 0xf0f0e8); B.box(0.18, 0.04, 1.3, 0.45, 0.31, 0, 0xf0f0e8); B.box(0.9, 0.04, 0.18, 0, 0.31, 0, 0xf0f0e8);
+      for (let k = 0; k < 8; k++) { const a = k / 8 * TAU; B.box(0.14, 0.12, 0.14, Math.sin(a) * 2.1, 0.3, Math.cos(a) * 2.1, k % 2 ? 0x40ff60 : 0xfff2c0); }
+      B.box(0.7, 0.55, 1.1, 2.3, 0.3, -1.4, T.dark); B.add(G.cyl16, 0.3, 0.9, 0.3, 2.3, 0.62, -1.4, 0xc8321e, Math.PI / 2, 0, 0); B.add(G.cyl6, 0.04, 1.2, 0.04, 1.9, 0.4, -0.8, 0x222222, 0, 0, 1.2);
+      break; }
     case 'radartower':
       B.box(3.6, 1.2, 3.6, 0, -0.3, 0, conc); B.box(2.4, 1.6, 2.4, 0, 0.9, 0, T.body); B.box(2.5, 0.25, 2.5, 0, 1.75, 0, T.acc);
       for (const sx of [-1, 1]) for (const sz of [-1, 1]) B.box(0.18, 5.2, 0.18, sx * 0.8, 4.3, sz * 0.8, 0x6a6a64, sz * 0.08, 0, -sx * 0.08);
@@ -1156,6 +1281,9 @@ function createUnit(team, d, x, z, tier, pal) {
   if (d.pr === 'hover') { const gl = new THREE.Mesh(glowDisc, glowMat[pal]); gl.scale.set(CH[d.ch].size * 1.3, 1, CH[d.ch].size * 1.7); gl.position.y = 0.05; grp.add(gl); }
   scene.add(grp);
   const u = { kind: 'unit', team, d, st, x, z, y: heightAt(x, z), hp: st.hp, maxHp: st.hp, r: 1.0 * CH[d.ch].size, h: g.turY + 0.6, heading: team === 0 ? Math.PI * 0.75 : -Math.PI * 0.25, vx: 0, vz: 0, mesh: grp, tur, mslMesh, turYaw: 0, state: 'idle', tx: x, tz: z, target: null, cd: rand(0, 0.5), acq: rand(0, 0.3), isTruck: d.wp === 'truck', bob: Math.random() * 6, smokeT: 0, alive: true, id: uid++, lastHit: -99, amove: false, lx: x, lz: z, tier, post: null, pal };
+  u.air = PR[d.pr].air || null; u.alt = u.air === 'rotor' ? DRONE_ALT : 0; u.maxAmmo = u.air === 'vtol' ? (VAMMO[d.wp] || 4) : 0; u.ammo = u.maxAmmo;
+  if (g.legGeo) { u.legs = g.hips.map(h => { const l = new THREE.Mesh(g.legGeo, matUnit); l.position.set(h[0], h[1], h[2]); l.castShadow = true; grp.add(l); return l; }); u.walk = 0; }
+  if (g.rotors) u.rotors = g.rotors.map(r => { const b = new THREE.Mesh(g.bladeGeo, matUnit); b.position.set(r[0], r[1], r[2]); grp.add(b); return b; });
   ents.push(u); EID.set(u.id, u); T.units++; return u;
 }
 
@@ -1375,13 +1503,13 @@ function spawnProj(kind, src, tgt, dmg, splash, ox, oy, oz, w, realT, mlen, lift
   else { m = new THREE.Mesh(shellGeo, w && w.plasma ? plasmaMat : shellMat); if (kind === 'mortar') m.scale.setScalar(w && w.big ? 2.6 : w && w.plasma ? 2.4 : 1.6); }
   scene.add(m); if (lift) m.position.set(ox, oy, oz);
   const tx = tgt.x, tz = tgt.z, ty = tgt.y + (tgt.kind === 'bld' ? 1.5 : 0.8); const d = Math.hypot(tx - ox, tz - oz); const spd = kind === 'shell' ? 34 : kind === 'mortar' ? 26 : 22;
-  projs.push({ kind, m, team: src.team, src, tgt, ox, oy, oz, tx, ty, tz, t: 0, dur: Math.max(0.12, kind === 'mortar' ? Math.min(d / spd, 3 + d / 120) : d / spd), arc: kind === 'shell' ? d * 0.05 : kind === 'mortar' ? Math.min(d * 0.55, 60 + d * 0.1) : d * 0.13, dmg, splash, smokeT: 0, w, realT, lift: !!lift, big: !!(w && w.big) });
+  projs.push({ kind, m, team: src.team, src, tgt, ox, oy, oz, tx, ty, tz, t: 0, dur: w && w.kind === 'bomb' ? 0.75 : Math.max(0.12, kind === 'mortar' ? Math.min(d / spd, 3 + d / 120) : d / spd), arc: w && w.kind === 'bomb' ? 0 : kind === 'shell' ? d * 0.05 : kind === 'mortar' ? Math.min(d * 0.55, 60 + d * 0.1) : d * 0.13, dmg, splash, smokeT: 0, w, realT, lift: !!lift, big: !!(w && w.big) });
 }
 const fireZones = [];
 function updFireZones(dt) {
   for (let i = fireZones.length - 1; i >= 0; i--) { const f = fireZones[i]; f.t -= dt; f.fxT -= dt;
     if (f.fxT <= 0) { f.fxT = 0.12; fx('flame', f.x + rand(-f.r, f.r) * 0.7, heightAt(f.x, f.z) + 0.4, f.z + rand(-f.r, f.r) * 0.7, 1.2); }
-    for (const e of ents) if (e.alive && e.team !== f.team && Math.hypot(e.x - f.x, e.z - f.z) < f.r + e.r * 0.5) damage(e, f.dps * dt, f.src);
+    for (const e of ents) if (e.alive && e.team !== f.team && !flying(e) && Math.hypot(e.x - f.x, e.z - f.z) < f.r + e.r * 0.5) damage(e, f.dps * dt, f.src);
     if (f.t <= 0) fireZones.splice(i, 1); }
 }
 function updProjs(dt) {
@@ -1402,7 +1530,7 @@ function updProjs(dt) {
       if (p.w && p.w.emp) { sfx('art_emp', x, z); for (const e of ents) if (e.alive && e.kind === 'unit' && e.team !== p.team && Math.hypot(e.x - x, e.z - z) < p.splash) e.stun = p.w.emp; for (let s = 0; s < 6; s++) fx('spark', x + rand(-2, 2), y + rand(0, 2), z + rand(-2, 2), 1.2); }
       if (p.realT && p.realT.alive && Math.hypot(p.realT.x - x, p.realT.z - z) < p.splash + p.realT.r) damage(p.realT, p.dmg, p.src);
       if (p.tgt.alive) damage(p.tgt, p.dmg, p.src);
-      if (p.splash) for (const e of ents) if (e.alive && e.team !== p.team && e !== p.tgt && Math.hypot(e.x - x, e.z - z) < p.splash + e.r * 0.5) damage(e, p.dmg * 0.5, p.src);
+      if (p.splash) for (const e of ents) if (e.alive && e.team !== p.team && e !== p.tgt && !flying(e) && Math.hypot(e.x - x, e.z - z) < p.splash + e.r * 0.5) damage(e, p.dmg * 0.5, p.src);
     }
   }
   for (const t of tracers) if (t.m.visible) { t.life -= dt; if (t.life <= 0) t.m.visible = false; }
@@ -1417,6 +1545,9 @@ function addWreck(e) {
   if (e.kind === 'unit') { m = new THREE.Mesh(unitGeo(e.d, e.pal).body, matWreck); m.position.set(e.x, e.y - 0.15, e.z); m.rotation.set(rand(-0.2, 0.2), e.heading, rand(-0.2, 0.2)); }
   else { const B = new Builder(); for (let i = 0; i < 9; i++) B.add(G.ico, rand(0.6, 1.6), rand(0.3, 0.9), rand(0.6, 1.6), rand(-e.r, e.r) * 0.7, 0, rand(-e.r, e.r) * 0.7, pick([0x3a3530, 0x2a2622, 0x4a443c]), rand(0, 3), rand(0, 3), 0); m = new THREE.Mesh(B.build(), matVC); m.position.set(e.x, e.y, e.z); }
   let fly = null;
+  if (e.kind === 'unit' && e.legs) { m.geometry = e.tur.geometry; m.position.set(e.x, heightAt(e.x, e.z) + 0.25, e.z); m.rotation.set(-Math.PI / 2 + rand(-0.2, 0.2), e.heading, rand(-0.3, 0.3)); scene.add(m); wrecks.push({ m, fly: null, life: 14, smokeT: 0, x: e.x, y: e.y, z: e.z }); return; }
+  if (e.kind === 'unit' && flying(e)) { const t = new THREE.Mesh(e.tur.geometry, matWreck); t.position.y = unitGeo(e.d, e.pal).turY; m.add(t); m.position.set(e.x, e.y, e.z);
+    fly = { m, vx: e.vx * 0.8, vy: 1, vz: e.vz * 0.8, sx: rand(-2, 2), sz: rand(-4, 4), rest: false, trail: 0, crash: true }; scene.add(m); wrecks.push({ m: new THREE.Object3D(), fly, life: 25, smokeT: 0, x: e.x, y: e.y, z: e.z }); return; }
   if (e.kind === 'unit' && e.tur) { const tm = new THREE.Mesh(e.tur.geometry, matWreck); const ty = e.heading + (e.turYaw || 0); tm.position.set(e.x, e.y + (e.h || 1.5) - 0.4, e.z); tm.rotation.set(0, ty, 0); scene.add(tm);
     if (Math.random() < 0.65 && Math.abs(e.x - cam.x) < 140 && Math.abs(e.z - cam.z) < 140) { const a = rand(0, TAU), hs = rand(1.5, 4.5); fly = { m: tm, vx: Math.sin(a) * hs, vy: rand(8, 14), vz: Math.cos(a) * hs, sx: rand(-6, 6), sz: rand(-6, 6), rest: false, trail: 0 }; }
     else { tm.rotation.set(rand(-0.15, 0.15), ty + rand(-0.4, 0.4), rand(-0.15, 0.15)); fly = { m: tm, rest: true }; } }
@@ -1428,7 +1559,7 @@ function updWrecks(dt) {
     if (w.smokeT <= 0 && w.life > 8) { w.smokeT = w.big ? 0.25 : 0.6; fx('smoke', w.x + rand(-1, 1), w.y + 1, w.z + rand(-1, 1), w.big ? 1.2 : 0.6); }
     const f = w.fly; if (f && !f.rest) { f.vy -= 24 * dt; const P = f.m.position; P.x += f.vx * dt; P.y += f.vy * dt; P.z += f.vz * dt; f.m.rotation.x += f.sx * dt; f.m.rotation.z += f.sz * dt;
       f.trail -= dt; if (f.trail <= 0) { f.trail = 0.04; fx('blacksmoke', P.x, P.y, P.z, 0.5); if (Math.random() < 0.5) fx('fire', P.x, P.y, P.z, 0.4); }
-      const gy = heightAt(P.x, P.z) + 0.25; if (P.y < gy && f.vy < 0) { P.y = gy; if (f.vy < -4) { f.vy *= -0.32; f.vx *= 0.55; f.vz *= 0.55; f.sx *= 0.4; f.sz *= 0.4; fx('dust', P.x, gy, P.z, 1); if (Math.random() < 0.6) sfx('debris', P.x, P.z); } else { f.rest = true; f.m.rotation.x = rand(-0.5, 0.5) + (Math.random() < 0.3 ? Math.PI : 0); f.m.rotation.z = rand(-0.4, 0.4); } } }
+      const gy = heightAt(P.x, P.z) + 0.25; if (P.y < gy && f.vy < 0) { P.y = gy; if (f.crash) { f.crash = false; explosion(P.x, gy + 0.5, P.z, 1); w.x = P.x; w.z = P.z; w.y = gy; f.vy = -2; f.vx *= 0.3; f.vz *= 0.3; } if (f.vy < -4) { f.vy *= -0.32; f.vx *= 0.55; f.vz *= 0.55; f.sx *= 0.4; f.sz *= 0.4; fx('dust', P.x, gy, P.z, 1); if (Math.random() < 0.6) sfx('debris', P.x, P.z); } else { f.rest = true; f.m.rotation.x = rand(-0.5, 0.5) + (Math.random() < 0.3 ? Math.PI : 0); f.m.rotation.z = rand(-0.4, 0.4); } } }
     if (w.life < 3) { w.m.position.y -= dt * 0.4; if (f) f.m.position.y -= dt * 0.4; }
     if (w.life <= 0) { scene.remove(w.m); if (f) scene.remove(f.m); wrecks.splice(i, 1); }
   }
@@ -1465,10 +1596,10 @@ function updSpot(dt) { spotT -= dt; if (spotT > 0) return; spotT = 0.5;
     for (const e of ents) if (e.alive && e.team === t && ((e.type === 'radartower' && e.complete) || (e.kind === 'unit' && e.st.w.kind === 'radar'))) src.push([e.x, e.z, e.kind === 'bld' ? (adv ? 80 : 60) : (adv ? 52 : 40)]);
     const out = []; if (src.length) for (const e of ents) { if (!e.alive || e.team === t || (e.team !== 0 && e.team !== 1)) continue; for (const [x, z, r] of src) if (Math.hypot(e.x - x, e.z - z) < r) { out.push(e); break; } }
     SPOT[t] = out; } }
-function nearestSpotted(team, x, z, range) { let best = null, bd = 1e9; for (const e of SPOT[team] || []) { if (!e.alive) continue; const d = Math.hypot(e.x - x, e.z - z) - e.r; if (d < range && d < bd) { bd = d; best = e; } } return best; }
-function nearestEnemy(team, x, z, range) {
-  let best = null, bd = 1e9;
-  for (const e of ents) { if (!e.alive || e.team === team) continue; const d = Math.hypot(e.x - x, e.z - z) - e.r; if (d > range) continue; const s = d + (e.kind === 'bld' ? 5 : 0); if (s < bd) { bd = s; best = e; } }
+function nearestSpotted(team, x, z, range) { let best = null, bd = 1e9; for (const e of SPOT[team] || []) { if (!e.alive || flying(e)) continue; const d = Math.hypot(e.x - x, e.z - z) - e.r; if (d < range && d < bd) { bd = d; best = e; } } return best; }
+function nearestEnemy(team, x, z, range, w) {
+  let best = null, bd = 1e9; const na = w && !canHitAir(w);
+  for (const e of ents) { if (!e.alive || e.team === team || (na && flying(e))) continue; const d = Math.hypot(e.x - x, e.z - z) - e.r; if (d > range) continue; const s = d + (e.kind === 'bld' ? 5 : 0); if (s < bd) { bd = s; best = e; } }
   return best;
 }
 function inRange(u, t, extra) { return Math.hypot(t.x - u.x, t.z - u.z) - t.r <= u.st.range * (u.rb || 1) + (extra || 0); }
@@ -1492,9 +1623,10 @@ function fireWeapon(src, t, w, mx, my, mz, mul) {
   else if (w.kind === 'flame') { const ty = t.y + (t.kind === 'bld' ? 1.2 : 0.6);
     for (let k = 1; k <= 5; k++) { const f = k / 5; fx('flame', lerp(mx, t.x, f) + rand(-0.3, 0.3), lerp(my, ty, f) + rand(-0.2, 0.3), lerp(mz, t.z, f) + rand(-0.3, 0.3), 0.6 + f * 1.1); }
     if (Math.random() < 0.4) fx('smoke', t.x, ty + 1, t.z, 0.7); damage(t, dmg, src);
-    for (const e of ents) if (e.alive && e !== t && e.team !== src.team && e.kind === 'unit' && Math.hypot(e.x - t.x, e.z - t.z) < 2.4) damage(e, dmg * 0.5, src);
+    for (const e of ents) if (e.alive && e !== t && e.team !== src.team && e.kind === 'unit' && !flying(e) && Math.hypot(e.x - t.x, e.z - t.z) < 2.4) damage(e, dmg * 0.5, src);
     sfx('flame', mx, mz); }
   else if (w.kind === 'laser') { const ty = t.y + (t.kind === 'bld' ? 1.5 : 0.7); beam(mx, my, mz, t.x, ty, t.z); fx('spark', t.x, ty, t.z, 1.4); fx('flash', t.x, ty, t.z, 0.8); damage(t, dmg, src); sfx('laser', mx, mz); }
+  else if (w.kind === 'bomb') { const n = w.big ? 1 : 3, sp = w.big ? 0.3 : 2; for (let i = 0; i < n; i++) later(i * 0.14, () => { if (src.alive) spawnProj('mortar', src, { x: t.x + rand(-sp, sp), z: t.z + rand(-sp, sp), y: heightAt(t.x, t.z) - 0.8, kind: 'unit', alive: false }, dmg, w.splash, src.x, src.y - 0.4, src.z, w, t); }); sfx('whistle', t.x, t.z); }
   else if (w.kind === 'rocket') { for (let i = 0; i < 2; i++) later(i * 0.15, () => { if (src.alive && t.alive) { spawnProj('rocket', src, t, dmg, w.splash, mx, my, mz, w); if (w.heavy) { fx('fire', mx, my, mz, 0.7); fx('smoke', mx, my, mz, 1); } } }); sfx('rocket', mx, mz); }
 }
 
@@ -1510,15 +1642,16 @@ function steer(u, tx, tz, dt, arrive) {
       const perp = rx * sz - rz * sx; const need = or + u.r + 0.6; if (Math.abs(perp) >= need) return;
       const wgt = (1 - proj / look) * 2.2; if (perp > 0) { ax -= sz * wgt; az += sx * wgt; } else { ax += sz * wgt; az -= sx * wgt; }
     };
-    for (const o of obstNear(u.x, u.z)) check(o.x, o.z, o.r);
-    for (const e of ents) if (e.kind === 'bld' && e.alive && e !== u.buildTarget && e !== u.target && Math.abs(e.x - u.x) < 16 && Math.abs(e.z - u.z) < 16) check(e.x, e.z, e.r);
+    if (!u.air) for (const o of obstNear(u.x, u.z)) check(o.x, o.z, o.r);
+    if (!u.air) for (const e of ents) if (e.kind === 'bld' && e.alive && !e.def.flat && e !== u.buildTarget && e !== u.target && Math.abs(e.x - u.x) < 16 && Math.abs(e.z - u.z) < 16) check(e.x, e.z, e.r);
     sx += ax; sz += az; const l = Math.hypot(sx, sz) || 1; dvx = sx / l * spd; dvz = sz / l * spd;
   }
   const k = Math.min(1, dt * 5); u.vx = lerp(u.vx, dvx, k); u.vz = lerp(u.vz, dvz, k);
 }
 function collide(u) {
+  if (u.air) { u.x = clamp(u.x, -EDGE, EDGE); u.z = clamp(u.z, -EDGE, EDGE); return; }
   for (const o of obstNear(u.x, u.z)) { const dx = u.x - o.x, dz = u.z - o.z; const m = o.r + u.r; const d2 = dx * dx + dz * dz; if (d2 < m * m && d2 > 1e-6) { const d = Math.sqrt(d2); u.x = o.x + dx / d * m; u.z = o.z + dz / d * m; } }
-  for (const e of ents) { if (e.kind !== 'bld' || !e.alive) continue; const dx = u.x - e.x, dz = u.z - e.z; const m = e.r + u.r; const d2 = dx * dx + dz * dz; if (d2 < m * m && d2 > 1e-6) { const d = Math.sqrt(d2); u.x = e.x + dx / d * m; u.z = e.z + dz / d * m; } }
+  for (const e of ents) { if (e.kind !== 'bld' || !e.alive || e.def.flat) continue; const dx = u.x - e.x, dz = u.z - e.z; const m = e.r + u.r; const d2 = dx * dx + dz * dz; if (d2 < m * m && d2 > 1e-6) { const d = Math.sqrt(d2); u.x = e.x + dx / d * m; u.z = e.z + dz / d * m; } }
   u.x = clamp(u.x, -EDGE, EDGE); u.z = clamp(u.z, -EDGE, EDGE);
 }
 function separate() { // spatial grid so hundreds of units stay cheap
@@ -1526,7 +1659,7 @@ function separate() { // spatial grid so hundreds of units stay cheap
   for (const e of ents) if (e.alive && e.kind === 'unit') { us.push(e); const k = Math.floor(e.x / C) * 4096 + Math.floor(e.z / C); let c = grid.get(k); if (!c) grid.set(k, c = []); c.push(e); }
   for (const a of us) { const gx = Math.floor(a.x / C), gz = Math.floor(a.z / C);
     for (let ox = -1; ox <= 1; ox++) for (let oz = -1; oz <= 1; oz++) { const c = grid.get((gx + ox) * 4096 + gz + oz); if (!c) continue;
-      for (const b of c) { if (b.id <= a.id) continue; const dx = b.x - a.x, dz = b.z - a.z; const m = a.r + b.r + 0.15; const d2 = dx * dx + dz * dz; if (d2 < m * m && d2 > 1e-6) { const d = Math.sqrt(d2); const o = (m - d) * 0.3; const nx = dx / d, nz = dz / d; a.x -= nx * o; a.z -= nz * o; b.x += nx * o; b.z += nz * o; } } } }
+      for (const b of c) { if (b.id <= a.id || flying(a) !== flying(b)) continue; const dx = b.x - a.x, dz = b.z - a.z; const m = a.r + b.r + 0.15; const d2 = dx * dx + dz * dz; if (d2 < m * m && d2 > 1e-6) { const d = Math.sqrt(d2); const o = (m - d) * 0.3; const nx = dx / d, nz = dz / d; a.x -= nx * o; a.z -= nz * o; b.x += nx * o; b.z += nz * o; } } } }
 }
 
 // ================= UNIT / BUILDING UPDATE =================
@@ -1553,8 +1686,68 @@ function supportTick(u, dt) {
     }
   }
 }
+// ---- VTOL: attack runs with limited ammunition, then return to a rearming pad (one aircraft per pad) ----
+function padFor(u) {
+  let best = null, bs = 1e9;
+  for (const e of ents) { if (!e.alive || e.team !== u.team || e.type !== 'vpad' || !e.complete) continue;
+    let load = 0; for (const o of ents) if (o.alive && o !== u && o.pad === e && o.kind === 'unit') load++;
+    const sc = Math.hypot(e.x - u.x, e.z - u.z) + load * 60; if (sc < bs) { bs = sc; best = e; } }
+  return best;
+}
+function vtolTick(u, dt) {
+  const w = u.st.w, s = CH[u.d.ch].size;
+  if (u.target && !u.target.alive) { u.target = null; if (u.state === 'attack' || u.state === 'engage') u.state = 'rearm'; }
+  if (u.state === 'engage') u.state = 'attack';
+  if (u.state === 'amove' && u.ammo > 0) { u.acq -= dt; if (u.acq <= 0) { u.acq = 0.4; const t = nearestEnemy(u.team, u.x, u.z, 34, w); if (t) { u.target = t; u.state = 'attack'; } } }
+  if (u.state === 'attack' && u.ammo <= 0) { u.state = 'rearm'; u.target = null; }
+  if (u.state === 'rearm' && (!u.pad || !u.pad.alive)) u.pad = padFor(u);
+  let tx = null, tz = null, land = false, fast = false, landY = 0;
+  if (u.state === 'attack' && u.target) { tx = u.target.x; tz = u.target.z; fast = true; u.atPad = false; }
+  else if (u.state === 'move' || u.state === 'amove') { tx = u.tx; tz = u.tz; u.atPad = false; if (Math.hypot(tx - u.x, tz - u.z) < 1.5) { u.state = 'idle'; u.amove = false; } }
+  else if (u.state === 'rearm') {
+    if (u.pad) { const p = u.pad; const busy = ents.some(o => o.alive && o !== u && o.atPad === p);
+      if (busy && Math.random() < dt) { const q = padFor(u); if (q && !ents.some(o => o.alive && o !== u && o.atPad === q)) u.pad = q; }
+      if (busy) { const a = S.time * 0.6 + u.id; tx = p.x + Math.sin(a) * 9; tz = p.z + Math.cos(a) * 9; } // wait in a holding circle
+      else { tx = p.x; tz = p.z; land = true; landY = 0.35;
+        if (Math.hypot(tx - u.x, tz - u.z) < 1.2 && u.alt < 0.5) { u.atPad = p; u.rt = (u.rt || 0) + dt; const per = 4.5 / u.maxAmmo;
+          while (u.rt > per && u.ammo < u.maxAmmo) { u.rt -= per; u.ammo++; fx('spark', u.x + rand(-1, 1), u.y + 0.8, u.z + rand(-1, 1), 0.8); if (u.team === 0 && Math.random() < 0.5) sfx('weld', u.x, u.z); }
+          u.hp = Math.min(u.maxHp, u.hp + 30 * dt);
+          if (u.ammo >= u.maxAmmo && u.hp >= u.maxHp) { u.rt = 0; u.atPad = false; u.pad = null; const a = (u.id * 2.39) % TAU; u.state = 'move'; u.tx = clamp(p.x + Math.sin(a) * 7, -EDGE, EDGE); u.tz = clamp(p.z + Math.cos(a) * 7, -EDGE, EDGE); } } } }
+    else { // no pad: wait beside the aircraft factory, unarmed
+      const f = ents.find(e => e.alive && e.team === u.team && e.type === 'airfactory');
+      if (f) { tx = f.x + Math.sin(f.rot) * (f.r + 6); tz = f.z + Math.cos(f.rot) * (f.r + 6); land = true; }
+      if (u.team === 0 && !u.warned) { u.warned = true; teamToast('✈ Construiește o Platformă de realimentare — aeronavele fără muniție așteaptă'); } }
+  }
+  if (u.state === 'idle') land = true;
+  if (u.state !== 'rearm') u.warned = false;
+  const spd = u.st.speed;
+  const dist = tx === null ? 0 : Math.hypot(tx - u.x, tz - u.z);
+  if (tx !== null && !(land && dist < 1.2)) {
+    const want = Math.atan2(tx - u.x, tz - u.z), turn = fast ? 1.8 : 2.6;
+    if (fast && dist < 5 && !(u.egress > 0)) u.egress = 1.4; // attack run: fly straight past the target, then turn back for the next pass
+    if (u.egress > 0) u.egress -= dt; else u.heading += clamp(angDiff(u.heading, want), -turn * dt, turn * dt);
+    let v = spd * clamp(u.alt / (VTOL_ALT * 0.6), 0.15, 1); if (!fast) { if (dist < 10) v *= Math.max(0.2, dist / 10); v *= Math.max(0.2, Math.cos(Math.min(Math.PI / 2, Math.abs(angDiff(u.heading, want))))); }
+    const k = Math.min(1, dt * 2.2); u.vx = lerp(u.vx, Math.sin(u.heading) * v, k); u.vz = lerp(u.vz, Math.cos(u.heading) * v, k);
+    u.alt = Math.min(VTOL_ALT, u.alt + dt * 7);
+  } else {
+    const k = Math.min(1, dt * 2.5); u.vx = lerp(u.vx, 0, k); u.vz = lerp(u.vz, 0, k);
+    if (tx !== null) { u.x = lerp(u.x, tx, Math.min(1, dt * 3)); u.z = lerp(u.z, tz, Math.min(1, dt * 3)); }
+    if (land) u.alt = Math.max(landY, u.alt - dt * 4.5);
+  }
+  u.x += u.vx * dt; u.z += u.vz * dt; u.x = clamp(u.x, -EDGE, EDGE); u.z = clamp(u.z, -EDGE, EDGE);
+  u.turYaw = 0; u.tur.rotation.y = 0;
+  const t = u.target;
+  if (u.state === 'attack' && t && t.alive && u.ammo > 0 && u.alt > VTOL_ALT * 0.6) { u.cd -= dt;
+    const d = Math.hypot(t.x - u.x, t.z - u.z) - t.r, a = Math.atan2(t.x - u.x, t.z - u.z);
+    if (d <= u.st.range && Math.abs(angDiff(u.heading, a)) < (w.kind === 'bomb' ? 1.0 : 0.38) && u.cd <= 0) {
+      fireWeapon(u, t, w, u.x + Math.sin(u.heading) * 1.8 * s, u.y + 0.5, u.z + Math.cos(u.heading) * 1.8 * s, 1); u.ammo--;
+      u.cd = w.rof * (w.kind === 'mg' ? 1 : 1.6) * (TEAMS[u.team].rof[wfam(w)] || 1); } }
+  else u.cd = Math.max(0, u.cd - dt);
+}
 function updUnit(u, dt) {
   const w = u.st.w;
+  if (u.air === 'vtol' && !(u.stun > 0)) { vtolTick(u, dt); unitVisual(u, dt); return; }
+  if (u.air === 'rotor') u.alt = Math.min(DRONE_ALT, (u.alt || 0) + dt * 4);
   if (u.stun > 0) { u.stun -= dt; u.vx *= 0.8; u.vz *= 0.8; if (Math.random() < dt * 6) fx('spark', u.x + rand(-0.6, 0.6), u.y + u.h * 0.7, u.z + rand(-0.6, 0.6), 0.8); return; }
   if (u.rbT > 0) { u.rbT -= dt; if (u.rbT <= 0) u.rb = 1; }
   if (w.kind === 'radar' || w.kind === 'repair') supportTick(u, dt);
@@ -1564,7 +1757,7 @@ function updUnit(u, dt) {
     u.acq = 0.35 + Math.random() * 0.15;
     const passive = u.state === 'move'; const vis = (w.art ? w.sight : u.st.range) + (passive ? 0 : 9);
     if (!u.target || !inRange(u, u.target)) {
-      const t = nearestEnemy(u.team, u.x, u.z, vis) || (w.art && !passive ? nearestSpotted(u.team, u.x, u.z, u.st.range) : null);
+      const t = nearestEnemy(u.team, u.x, u.z, vis, w) || (w.art && !passive ? nearestSpotted(u.team, u.x, u.z, u.st.range) : null);
       if (t) { u.target = t; if (u.state === 'idle' || u.state === 'amove') { if (u.state === 'idle') { u.lx = u.x; u.lz = u.z; } u.state = 'engage'; } }
       else if (passive && u.target && !inRange(u, u.target, 4)) u.target = null;
     }
@@ -1601,7 +1794,8 @@ function updUnit(u, dt) {
 
   // aim & fire
   const t = u.target;
-  if (t && t.alive && w.dmg > 0) {
+  if (t && flying(t) && !canHitAir(w)) { u.target = null; if (u.state === 'engage' || u.state === 'attack') u.state = u.amove ? 'amove' : 'idle'; }
+  else if (t && t.alive && w.dmg > 0) {
     const a = Math.atan2(t.x - u.x, t.z - u.z); const local = angDiff(u.heading, a);
     u.turYaw += clamp(angDiff(u.turYaw, local), -5 * dt, 5 * dt);
     u.cd -= dt;
@@ -1617,22 +1811,27 @@ function updUnit(u, dt) {
   unitVisual(u, dt);
 }
 function unitVisual(u, dt) {
-  u.y = heightAt(u.x, u.z); let yy = u.y;
+  if (NET.cl && u.nalt !== undefined) u.alt = lerp(u.alt || 0, u.nalt, Math.min(1, dt * 4));
+  u.y = heightAt(u.x, u.z) + (u.alt || 0); let yy = u.y;
+  if (u.air === 'rotor') { u.bob += dt * 2.2; yy += Math.sin(u.bob) * 0.18; }
+  if (u.rotors) for (let i = 0; i < u.rotors.length; i++) u.rotors[i].rotation.y += dt * (i % 2 ? 38 : -38);
+  if (u.legs) { const v = Math.hypot(u.vx, u.vz); u.walk += dt * v * 3.4; const a = Math.sin(u.walk) * 0.6 * Math.min(1, v / 1.2); u.legs[0].rotation.x = a; u.legs[1].rotation.x = -a; yy += Math.abs(Math.cos(u.walk)) * 0.06 * Math.min(1, v); }
+  if (u.air === 'vtol' && u.alt > 0.3) { if (Math.random() < dt * 14) { const sh = Math.sin(u.heading), ch = Math.cos(u.heading); for (const sx of [-1, 1]) fx('trail', u.x - ch * sx * 1.6 - sh * 1.4, yy + 0.6, u.z + sh * sx * 1.6 - ch * 1.4, 0.35); } if (u.alt < 4 && Math.random() < dt * 10) fx('dust', u.x + rand(-1.5, 1.5), heightAt(u.x, u.z) + 0.2, u.z + rand(-1.5, 1.5), 1.2); }
   if (u.d.pr === 'hover') { u.bob += dt * 3; yy += 0.2 + Math.sin(u.bob) * 0.08; }
   const sp = Math.hypot(u.vx, u.vz);
   const sh = Math.sin(u.heading), ch = Math.cos(u.heading);
   const hf = heightAt(u.x + sh, u.z + ch), hb = heightAt(u.x - sh, u.z - ch), hr = heightAt(u.x + ch, u.z - sh), hl = heightAt(u.x - ch, u.z + sh);
-  let pitch = u.d.pr === 'hover' ? 0 : -Math.atan2(hf - hb, 2), roll = u.d.pr === 'hover' ? 0 : Math.atan2(hr - hl, 2);
+  const flat = u.d.pr === 'hover' || (u.air && u.alt > 0.5) || u.legs; let pitch = flat ? 0 : -Math.atan2(hf - hb, 2), roll = flat ? 0 : Math.atan2(hr - hl, 2);
   if (dt > 0) { // suspension physics: recoil spring + lean from acceleration and turning
     u.kk = u.kk || 0; u.kv = u.kv || 0; u.kv += (-60 * u.kk - 7 * u.kv) * dt; u.kk += u.kv * dt;
     const fwd = u.vx * sh + u.vz * ch, acc = clamp((fwd - (u.pf || 0)) / dt, -40, 40), turn = angDiff(u.ph === undefined ? u.heading : u.ph, u.heading) / dt; u.pf = fwd; u.ph = u.heading;
-    const hv = u.d.pr === 'hover' ? 2 : 1, tp = clamp(-acc * 0.006 * hv, -0.09, 0.09), tr = clamp(-turn * fwd * 0.012 * hv, -0.1, 0.1), kf = Math.min(1, dt * 5);
+    const hv = u.air ? 3 : u.d.pr === 'hover' ? 2 : u.legs ? 0.3 : 1, tp = clamp(-acc * 0.006 * hv, -0.09, 0.09), tr = clamp(-turn * fwd * 0.012 * hv, -0.1, 0.1), kf = Math.min(1, dt * 5);
     u.lp = lerp(u.lp || 0, tp, kf); u.lr = lerp(u.lr || 0, tr, kf);
     const ty = u.turYaw || 0, k = u.kk * 0.25; pitch += u.lp - k * Math.cos(ty); roll += u.lr + k * Math.sin(ty);
     const rc = Math.max(0, u.kk) * 0.9; u.tur.position.x = -Math.sin(ty) * rc; u.tur.position.z = -Math.cos(ty) * rc; }
   u.mesh.position.set(u.x, yy, u.z); u.mesh.rotation.set(pitch, u.heading, roll);
-  if (sp > 1 && Math.abs(u.x - cam.x) < 60 && Math.abs(u.z - cam.z) < 60 && Math.random() < dt * 4) fx('smoke', u.x - sh * 1.4 * CH[u.d.ch].size, yy + 0.6, u.z - ch * 1.4 * CH[u.d.ch].size, 0.22);
-  if (sp > 2 && Math.random() < dt * (u.d.pr === 'hover' ? 8 : 4)) fx('dust', u.x - sh * 1.2, u.y + 0.3, u.z - ch * 1.2, u.d.pr === 'hover' ? 0.9 : 0.6);
+  if (sp > 1 && !u.air && !u.legs && Math.abs(u.x - cam.x) < 60 && Math.abs(u.z - cam.z) < 60 && Math.random() < dt * 4) fx('smoke', u.x - sh * 1.4 * CH[u.d.ch].size, yy + 0.6, u.z - ch * 1.4 * CH[u.d.ch].size, 0.22);
+  if (sp > 2 && !u.air && Math.random() < dt * (u.d.pr === 'hover' ? 8 : u.legs ? 1 : 4)) fx('dust', u.x - sh * 1.2, u.y + 0.3, u.z - ch * 1.2, u.d.pr === 'hover' ? 0.9 : 0.6);
   if (u.hp < u.maxHp * 0.5) { u.smokeT -= dt; if (u.smokeT <= 0) { u.smokeT = 0.25; fx('smoke', u.x, yy + 1.2, u.z, 0.5); if (u.hp < u.maxHp * 0.25) fx('fire', u.x, yy + 1, u.z, 0.45); } }
 }
 
@@ -1667,7 +1866,7 @@ function updBld(b, dt) {
     if (Math.random() < dt * 3) { for (const [lx, lz] of [[1.6, -1.4], [-1.7, -1.7]]) { const [wx, wz] = localToWorld(b, lx, lz); fx('steam', wx, b.y + 4.8, wz, 1); } }
     if (Math.random() < dt * 1.5) { const [wx, wz] = localToWorld(b, 2.1, 1.5); fx('spark', wx, b.y + 3, wz, 1); }
   }
-  if (b.type === 'factory') {
+  if (FACT_TYPES.has(b.type)) {
     if (b.queue.length) {
       if (Math.random() < dt * 4) { const [wx, wz] = localToWorld(b, -2.6, -1.9); fx('smoke', wx, b.y + 7, wz, 0.9); }
       const d = b.queue[0]; const st = unitStats(d, b.team); b.prod += dt * T.prodMul;
@@ -1688,7 +1887,7 @@ function updBld(b, dt) {
     const wk = b.def.tw || (b.tier !== undefined ? TIERS[b.tier].tower : (T.tech.has('tower2') ? 'cannon' : 'mg'));
     for (const k of b.parts.wl) b.parts[k].visible = k === wk; const w = WP[wk]; const range = w.range + (b.def.rb !== undefined ? b.def.rb : 2);
     if (NET.cl) { b.parts.tur.rotation.y = b.turYaw = b.turYaw + angDiff(b.turYaw, b.nYaw || 0) * Math.min(1, dt * 8); } else {
-    b.acq -= dt; if (b.acq <= 0) { b.acq = 0.4; if (!b.target || !b.target.alive || Math.hypot(b.target.x - b.x, b.target.z - b.z) - b.target.r > (b.tgtR || range)) { const own = w.art ? w.sight + (b.def.rb || 0) : range; b.target = nearestEnemy(b.team, b.x, b.z, own); b.tgtR = own;
+    b.acq -= dt; if (b.acq <= 0) { b.acq = 0.4; if (!b.target || !b.target.alive || Math.hypot(b.target.x - b.x, b.target.z - b.z) - b.target.r > (b.tgtR || range)) { const own = w.art ? w.sight + (b.def.rb || 0) : range; b.target = nearestEnemy(b.team, b.x, b.z, own, w); b.tgtR = own;
       if (!b.target && w.art) { const er = w.id === 'omissile' ? 1e9 : range; b.target = nearestSpotted(b.team, b.x, b.z, er); if (b.target) b.tgtR = er; } } }
     b.cd -= dt;
     if (b.target && b.target.alive) {
@@ -1704,6 +1903,7 @@ function spawnFromFactory(b, d) {
   const u = createUnit(b.team, d, b.x + fxv * (b.r + 1.6), b.z + fz * (b.r + 1.6), undefined, b.pal); u.heading = b.rot;
   if (b.team === 0) S.stats.built++;
   if (u.isTruck && b.team === 0) { truckAuto(u); if (u.state === 'build') return; }
+  if (u.air === 'vtol' && padFor(u)) { u.state = 'rearm'; return; }
   const rx = b.rally ? b.rally.x : b.x + fxv * (b.r + 7) + rand(-3, 3), rz = b.rally ? b.rally.z : b.z + fz * (b.r + 7) + rand(-3, 3);
   orderMove([u], rx + rand(-1.5, 1.5), rz + rand(-1.5, 1.5), false, true);
 }
@@ -1713,6 +1913,7 @@ function finishResearch(team, id) {
   if (id === 'armor') { T.hpMul *= 1.25; for (const e of ents) if (e.alive && e.team === team) { const r = e.hp / e.maxHp; e.maxHp = Math.round(e.maxHp * 1.25); e.hp = e.maxHp * r; } }
   if (id === 'engine') { T.spdMul *= 1.2; for (const e of ents) if (e.alive && e.team === team && e.kind === 'unit') e.st.speed *= 1.2; }
   if (id === 'prod') T.prodMul = 1.4;
+  if (id === 'cyborg') T.tech.add('legs'); if (id === 'drone') T.tech.add('rotor');
   panelSig = '';
 }
 
@@ -1747,7 +1948,7 @@ function execCmd(c, remote) {
   const say = m => { if (remote) NET.ev.push(['t', m]); else toast(m); };
   switch (c[0]) {
     case 'mv': applyMove(c[1].filter(x => { const u = byId(x[0]); return u && u.team === 0; }), c[2]); break;
-    case 'at': { const t = byId(c[2]); if (!t || !t.alive) break; for (const u of U(c[1])) if (u.kind === 'unit' && u.st.w.dmg > 0) { u.state = 'attack'; u.target = t; u.amove = false; } break; }
+    case 'at': { const t = byId(c[2]); if (!t || !t.alive) break; for (const u of U(c[1])) if (u.kind === 'unit' && u.st.w.dmg > 0 && !(flying(t) && !canHitAir(u.st.w))) { u.state = 'attack'; u.target = t; u.amove = false; } break; }
     case 'bd': { const b = byId(c[2]); if (!b || !b.alive || b.kind !== 'bld') break; for (const u of U(c[1])) if (u.isTruck) { u.state = 'build'; u.buildTarget = b; u.target = null; } break; }
     case 'st': for (const u of U(c[1])) if (u.kind === 'unit') { u.state = 'idle'; u.target = null; u.amove = false; u.vx = u.vz = 0; } break;
     case 'pl': { const [, type, x, z, ids] = c; const def = BD[type]; if (!def) break;
@@ -1756,7 +1957,7 @@ function execCmd(c, remote) {
       if (T.energy < def.cost) { say('Energie insuficientă'); break; }
       T.energy -= def.cost; const b = createBuilding(0, type, x, z, false, undefined, undefined, remote ? 2 : 0); for (const u of U(ids)) if (u.isTruck) { u.state = 'build'; u.buildTarget = b; u.target = null; } break; }
     case 'ra': { const f = byId(c[1]); if (f && f.team === 0) f.rally = { x: c[2], z: c[3] }; break; }
-    case 'q': { const f = byId(c[1]); if (!f || !f.alive || f.team !== 0 || f.type !== 'factory') break; const d = c[2]; if (!CH[d.ch] || !PR[d.pr] || !WP[d.wp]) break;
+    case 'q': { const f = byId(c[1]); if (!f || !f.alive || f.team !== 0 || !FACT_TYPES.has(f.type)) break; const d = c[2]; if (!validDesign(d) || facFor(d) !== f.type) break;
       let k = 0; for (let i = 0; i < Math.min(5, c[3] | 0); i++) { const cost = unitStats(d, 0).cost; if (T.energy < cost || f.queue.length >= 8) break; T.energy -= cost; f.queue.push({ ch: d.ch, pr: d.pr, wp: d.wp }); k++; }
       if (!k) say('Energie insuficientă sau coadă plină'); panelSig = ''; break; }
     case 'uq': { const f = byId(c[1]); if (!f || f.team !== 0 || !f.queue) break; const i = c[2] | 0; const d = f.queue[i]; if (d) { T.energy += unitStats(d, 0).cost; f.queue.splice(i, 1); if (i === 0) f.prod = 0; panelSig = ''; } break; }
@@ -2002,7 +2203,7 @@ function handleTap(sx, sy) {
   if (!g) return;
   if (trucks.length) { const w = WELLS.find(w => !w.pump && Math.hypot(w.x - g.x, w.z - g.z) < 4); if (w && TEAMS[0].energy >= BD.generator.cost) { doCmd(['pl', 'generator', w.x, w.z, trucks.map(u => u.id)]); sfx('ack'); marker(w.x, w.z, 0xffd040); return; } }
   if (units.length) { orderMove(units, g.x, g.z, amoveNext); amoveNext = false; panelSig = ''; return; }
-  const f = sel.length === 1 && sel[0].kind === 'bld' && sel[0].team === 0 && sel[0].type === 'factory' ? sel[0] : null;
+  const f = sel.length === 1 && sel[0].kind === 'bld' && sel[0].team === 0 && FACT_TYPES.has(sel[0].type) ? sel[0] : null;
   if (f) { doCmd(['ra', f.id, r1(g.x), r1(g.z)]); f.rally = { x: g.x, z: g.z }; marker(g.x, g.z, 0x60c0ff); toast('📍 Punct de adunare setat'); return; }
   if (sel.length) setSel([]);
 }
@@ -2047,7 +2248,7 @@ let buildTab = 'base', defCls = 'tower', labBr = 0;
 function buildMenu(T) {
   let h = `<div class="tabs"><button data-act="btab" data-v="base" class="${buildTab === 'base' ? 'on' : ''}">${UIC.factory}Bază</button><button data-act="btab" data-v="def" class="${buildTab === 'def' ? 'on' : ''}">${UIC.tower}Apărare</button></div>`;
   if (buildTab === 'base') {
-    h += `<div class="grid">${bdBtn('generator')}${bdBtn('factory')}${bdBtn('lab')}${['repairbay', 'radartower', 'silo'].filter(k => !BD[k].req || T.tech.has(BD[k].req)).map(bdBtn).join('')}${ents.some(e => e.alive && e.team === 0 && e.type === 'hq') ? '' : bdBtn('hq')}</div>`;
+    h += `<div class="grid">${bdBtn('generator')}${bdBtn('factory')}${bdBtn('lab')}${['repairbay', 'radartower', 'cybfactory', 'airfactory', 'vpad', 'silo'].filter(k => !BD[k].req || T.tech.has(BD[k].req)).map(bdBtn).join('')}${ents.some(e => e.alive && e.team === 0 && e.type === 'hq') ? '' : bdBtn('hq')}</div>`;
   } else {
     const cls = Object.keys(DCLASS).filter(c => !DCLASS[c].req || T.tech.has(DCLASS[c].req)); if (!cls.includes(defCls)) defCls = 'tower';
     h += `<div class="chips">${cls.map(c => `<button data-act="dcls" data-v="${c}" class="${defCls === c ? 'on' : ''}">${DCLASS[c].name}</button>`).join('')}</div>`;
@@ -2081,12 +2282,13 @@ function renderPanel() {
     const b = sel[0];
     h = `<div class="ph"><span>${BIC(b.type)}${b.def.name}</span><span id="pHpT"></span></div><div class="bar"><i id="pHp"></i></div>`;
     if (!b.complete) h += `<div class="hint">În construcție…</div><div class="bar b"><i id="pBuild"></i></div><div class="hint">Selectează constructori și atinge clădirea ca să ajute.</div>`;
-    else if (b.type === 'factory') {
+    else if (FACT_TYPES.has(b.type)) {
       h += `<div class="lbl">Producție</div><div class="queue">${b.queue.map((d, i) => `<button data-act="unq" data-v="${i}">${d.wp === 'truck' ? UIC.truck : UIC.tank}${i === 0 ? '<span id="pProdT"></span>' : ''} ✖</button>`).join('') || '<span class="hint">Coada e goală</span>'}</div><div class="bar o"><i id="pProd"></i></div>`;
       const truck = { ch: 'light', pr: 'wheels', wp: 'truck' };
-      h += `<div class="grid"><button data-act="produce" data-v='${JSON.stringify(truck)}' ${T.energy < unitStats(truck, 0).cost || b.queue.length >= 8 ? 'disabled' : ''}>${UIC.truck}<span class="bn">Constructor</span><small>${unitStats(truck, 0).cost}<i class="eu">⚡</i></small></button>`;
-      const quick = lastDesigns.length ? lastDesigns : [{ ch: 'light', pr: 'wheels', wp: 'mg' }];
-      for (const d of quick) { const c = unitStats(d, 0).cost; h += `<button data-act="produce" data-v='${JSON.stringify(d)}' ${T.energy < c || b.queue.length >= 8 ? 'disabled' : ''}>${d.wp === 'radar' || d.wp === 'repair' || d.wp === 'truck' ? RICON[d.wp].replace('class="ric"', 'class="ui"') : UIC.tank}<span class="bn">${designName(d)}</span><small>${c}<i class="eu">⚡</i></small></button>`; }
+      h += `<div class="grid">` + (b.type === 'factory' ? `<button data-act="produce" data-v='${JSON.stringify(truck)}' ${T.energy < unitStats(truck, 0).cost || b.queue.length >= 8 ? 'disabled' : ''}>${UIC.truck}<span class="bn">Constructor</span><small>${unitStats(truck, 0).cost}<i class="eu">⚡</i></small></button>` : '');
+      const mine = lastDesigns.filter(d => facFor(d) === b.type); const quick = mine.length ? mine : [defDesign(b.type)];
+      if (b.type === 'airfactory') { const pads = ents.filter(e => e.alive && e.team === 0 && e.type === 'vpad').length, vt = ents.filter(e => e.alive && e.team === 0 && e.air === 'vtol').length; h += `<div class="hint" style="grid-column:1/-1">Platforme de realimentare: <b>${pads}</b> · aeronave VTOL: <b>${vt}</b>. Fiecare VTOL are muniție pentru câteva atacuri, apoi se întoarce singur pe platformă.</div>`; }
+      for (const d of quick) { const c = unitStats(d, 0).cost; h += `<button data-act="produce" data-v='${JSON.stringify(d)}' ${T.energy < c || b.queue.length >= 8 || !validDesign(d) || !T.tech.has(d.ch) || !T.tech.has(d.pr) ? 'disabled' : ''}>${d.wp === 'radar' || d.wp === 'repair' || d.wp === 'truck' ? RICON[d.wp].replace('class="ric"', 'class="ui"') : d.pr === 'legs' ? RICON.cyborg.replace('class="ric"', 'class="ui"') : d.pr === 'rotor' ? RICON.drone.replace('class="ric"', 'class="ui"') : d.pr === 'vtol' ? RICON.vtol.replace('class="ric"', 'class="ui"') : UIC.tank}<span class="bn">${designName(d)}</span><small>${c}<i class="eu">⚡</i></small></button>`; }
       h += `<button data-act="designer" class="ok">${UIC.design}<span class="bn">Proiectant</span></button></div><div class="hint">Atinge harta pentru punctul de adunare.</div>`;
     } else if (b.type === 'lab') {
       h += `<div class="lbl">Cercetare</div>`;
@@ -2160,8 +2362,18 @@ function queueUnit(f, d, n) {
 
 // designer
 let dsg = { ch: 'light', pr: 'wheels', wp: 'mg' }, dsgFactory = null;
+function defDesign(ft) { return ft === 'cybfactory' ? { ch: 'cyborg', pr: 'legs', wp: 'mg' } : ft === 'airfactory' ? (TEAMS[0].tech.has('vtol') ? { ch: 'light', pr: 'vtol', wp: 'mg' } : { ch: 'drone', pr: 'rotor', wp: 'mg' }) : { ch: 'light', pr: 'wheels', wp: 'mg' }; }
+function dsgLists(ft) { const std = Object.keys(CH).filter(k => !CH[k].only);
+  if (ft === 'cybfactory') return { pr: ['legs'], ch: ['cyborg', 'hcyborg'], wp: CYB_WP };
+  if (ft === 'airfactory') return { pr: ['rotor', 'vtol'], ch: dsg.pr === 'rotor' ? ['drone'] : std, wp: dsg.pr === 'rotor' ? DRONE_WP : VTOL_WP };
+  return { pr: Object.keys(PR).filter(k => !PR[k].air && k !== 'legs'), ch: std, wp: null }; }
+function fixDesign(ft, f) { const T = TEAMS[0]; const D = defDesign(ft);
+  if (facFor(dsg) !== ft) Object.assign(dsg, D);
+  if (ft === 'airfactory') { if (f === 'ch') dsg.pr = dsg.ch === 'drone' ? 'rotor' : 'vtol'; if (dsg.pr === 'rotor') dsg.ch = 'drone'; else if (dsg.ch === 'drone') dsg.ch = 'light'; }
+  if (ft === 'cybfactory' && !CH[dsg.ch].only) dsg.ch = 'cyborg';
+  if (!validDesign(dsg)) dsg.wp = 'mg'; if (!validDesign(dsg)) Object.assign(dsg, D); }
 let dsgBase = null;
-function openDesigner(f) { dsgFactory = f; dsgBase = { ...(lastDesigns[0] || dsg) }; $('designer').classList.remove('hidden'); renderDesigner(); }
+function openDesigner(f) { dsgFactory = f; const mine = lastDesigns.filter(d => facFor(d) === f.type); if (mine[0]) dsg = { ...mine[0] }; fixDesign(f.type); dsgBase = { ...(mine[0] || dsg) }; $('designer').classList.remove('hidden'); renderDesigner(); }
 // numbers used by the comparison bars and the spider chart
 function dsgVals(d) { const st = unitStats(d, 0), w = st.w; return { hp: st.hp, spd: st.speed, atk: w.dmg > 0 ? w.dmg / w.rof : 0, rng: st.range, sup: w.kind === 'radar' ? w.aura : w.kind === 'repair' ? w.heal : 0, cost: st.cost, time: st.time }; }
 const DSG_AX = [['hp', 'Viață', 900], ['spd', 'Viteză', 9], ['atk', 'Atac', 45], ['rng', 'Rază', 36], ['cost', 'Ieftin', 420]];
@@ -2174,14 +2386,15 @@ function drawRadar(cur, base) {
   const poly = (v, fill, line) => { g.beginPath(); DSG_AX.forEach((ax, i) => { const [x, y] = pt(i, norm(v, ax)); i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.closePath(); g.fillStyle = fill; g.fill(); g.strokeStyle = line; g.lineWidth = 1.5; g.stroke(); };
   if (base) poly(base, 'rgba(160,160,170,.18)', 'rgba(200,200,210,.7)'); poly(cur, 'rgba(110,210,70,.35)', '#8be05a');
 }
-const DICON = { ...RICON };
+const DICON = { ...RICON, rotor: RICON.drone, legs: RICON.cyborg };
 function renderDesigner() {
   const T = TEAMS[0];
   const card = (obj, field, k, sub) => { const ok = T.tech.has(k); const o = obj[k];
     return `<button data-f="${field}" data-k="${k}" class="dcard ${dsg[field] === k ? 'on' : ''}" ${ok ? '' : 'disabled'}>${DICON[k] || ''}<span class="rn">${o.name}</span><span class="rm">${ok ? sub(o) : '🔒 cercetează'}</span></button>`; };
-  $('dPr').innerHTML = Object.keys(PR).map(k => card(PR, 'pr', k, o => `${o.cost}⚡ · viteză ×${o.spd}`)).join('');
-  $('dCh').innerHTML = Object.keys(CH).map(k => card(CH, 'ch', k, o => `${o.cost}⚡ · ${o.hp} viață`)).join('');
-  $('dWp').innerHTML = ['mg', 'cannon', 'flame', 'rockets', 'viper', 'laser', 'mortar', ...ART_W.filter(k => k !== 'mortar' && T.tech.has(k)), 'radar', 'repair', 'truck'].map(k => card(WP, 'wp', k, o => o.kind === 'radar' ? `${o.cost}⚡ · +25% rază aliați` : o.kind === 'repair' ? `${o.cost}⚡ · repară ${o.heal}/s` : o.kind === 'truck' ? `${o.cost}⚡ · construiește` : `${o.cost}⚡ · rază ${o.range}`)).join('');
+  const ft = dsgFactory ? dsgFactory.type : 'factory', LS = dsgLists(ft);
+  $('dPr').innerHTML = LS.pr.map(k => card(PR, 'pr', k, o => `${o.cost}⚡ · viteză ×${o.spd}`)).join('');
+  $('dCh').innerHTML = LS.ch.map(k => card(CH, 'ch', k, o => `${o.cost}⚡ · ${o.hp} viață`)).join('');
+  $('dWp').innerHTML = (LS.wp || ['mg', 'cannon', 'flame', 'rockets', 'viper', 'laser', 'mortar', ...ART_W.filter(k => k !== 'mortar' && T.tech.has(k)), 'radar', 'repair', 'truck']).map(k => card(WP, 'wp', k, o => o.kind === 'radar' ? `${o.cost}⚡ · +25% rază aliați` : o.kind === 'repair' ? `${o.cost}⚡ · repară ${o.heal}/s` : o.kind === 'truck' ? `${o.cost}⚡ · construiește` : `${o.cost}⚡ · rază ${o.range}`)).join('');
   const st = unitStats(dsg, 0); const cur = dsgVals(dsg), base = dsgBase && designName(dsgBase) !== designName(dsg) ? dsgVals(dsgBase) : null;
   // bar with a marker for the previous design and a coloured difference
   const bar = (n, k, mx, fmt, lowGood) => { const v = cur[k], b = base ? base[k] : null; const d = b === null ? 0 : v - b; const good = lowGood ? d < 0 : d > 0;
@@ -2196,7 +2409,7 @@ function renderDesigner() {
 }
 $('designer').addEventListener('click', ev => {
   const b = ev.target.closest('button'); if (!b || b.disabled) return; sfx('click');
-  if (b.dataset.f) { dsg[b.dataset.f] = b.dataset.k; renderDesigner(); return; }
+  if (b.dataset.f) { dsg[b.dataset.f] = b.dataset.k; fixDesign(dsgFactory ? dsgFactory.type : 'factory', b.dataset.f); renderDesigner(); return; }
   const a = b.dataset.d; if (a === 'close') $('designer').classList.add('hidden');
   if ((a === 'q1' || a === 'q5') && dsgFactory && dsgFactory.alive) { queueUnit(dsgFactory, { ...dsg }, a === 'q1' ? 1 : 5); $('designer').classList.add('hidden'); }
 });
@@ -2204,7 +2417,7 @@ let prevR = null, prevScene, prevCam, prevGrp;
 function updatePreview() {
   try {
     if (!prevR) { prevR = new THREE.WebGLRenderer({ canvas: $('prev'), antialias: true, alpha: true }); prevR.setPixelRatio(Math.min(devicePixelRatio, 2)); prevR.setSize(260, $('prev').clientHeight || 150, false); prevScene = new THREE.Scene(); prevScene.add(new THREE.HemisphereLight(0xffffff, 0x444033, 2)); const dl = new THREE.DirectionalLight(0xffffff, 2); dl.position.set(3, 5, 4); prevScene.add(dl); prevCam = new THREE.PerspectiveCamera(35, 260 / 150, 0.1, 50); prevCam.position.set(4.5, 3.2, 5.5); prevCam.lookAt(0, 0.8, 0); }
-    if (prevGrp) prevScene.remove(prevGrp); prevGrp = new THREE.Group(); const g = unitGeo(dsg, NET.cl ? 2 : 0); prevGrp.add(new THREE.Mesh(g.body, matUnit)); const t = new THREE.Mesh(g.tur, matUnit); t.position.y = g.turY; prevGrp.add(t); prevGrp.position.x = -1.6; prevScene.add(prevGrp);
+    if (prevGrp) prevScene.remove(prevGrp); prevGrp = new THREE.Group(); const g = unitGeo(dsg, NET.cl ? 2 : 0); prevGrp.add(new THREE.Mesh(g.body, matUnit)); const t = new THREE.Mesh(g.tur, matUnit); t.position.y = g.turY; prevGrp.add(t); if (g.legGeo) for (const h of g.hips) { const l = new THREE.Mesh(g.legGeo, matUnit); l.position.set(h[0], h[1], h[2]); prevGrp.add(l); } if (g.rotors) for (const r of g.rotors) { const bl = new THREE.Mesh(g.bladeGeo, matUnit); bl.position.set(r[0], r[1], r[2]); prevGrp.add(bl); } if (CH[dsg.ch].only) prevGrp.scale.setScalar(1.8); prevGrp.position.x = -1.6; prevScene.add(prevGrp);
   } catch (e) { prevR = null; }
 }
 
@@ -2529,12 +2742,12 @@ function hostTick(dt) {
     if (!NET.known.has(e.id)) { NET.known.add(e.id);
       if (e.kind === 'unit') rel.nu.push([e.id, e.team, e.d.ch, e.d.pr, e.d.wp, e.tier === undefined ? -1 : e.tier, r1(e.x), r1(e.z), Math.round(e.maxHp), e.pal]);
       else rel.nb.push([e.id, e.team, e.type, r1(e.x), r1(e.z), r1(e.rot * 10) / 10, e.tier === undefined ? -1 : e.tier, e.complete ? 1 : 0, Math.round(e.maxHp), e.pal]); }
-    if (e.kind === 'unit') m.u.push(e.id, Math.round(e.x * 10), Math.round(e.z * 10), Math.round(e.heading * 100), Math.round(e.turYaw * 100), Math.ceil(e.hp), (e.state === 'build' && e.buildTarget && Math.hypot(e.buildTarget.x - e.x, e.buildTarget.z - e.z) < e.buildTarget.r + 3 ? 1 : 0) | (e.stun > 0 ? 2 : 0) | ((e.rank || 0) << 2), Math.round(e.maxHp));
+    if (e.kind === 'unit') m.u.push(e.id, Math.round(e.x * 10), Math.round(e.z * 10), Math.round(e.heading * 100), Math.round(e.turYaw * 100), Math.ceil(e.hp), (e.state === 'build' && e.buildTarget && Math.hypot(e.buildTarget.x - e.x, e.buildTarget.z - e.z) < e.buildTarget.r + 3 ? 1 : 0) | (e.stun > 0 ? 2 : 0) | ((e.rank || 0) << 2) | ((Math.round(e.alt || 0) & 31) << 4), Math.round(e.maxHp));
     else { const key = Math.ceil(e.hp) + ':' + Math.round(e.built * 100) + ':' + Math.round(e.turYaw * 20) + ':' + Math.round(e.maxHp);
       if (NET.lastBld.get(e.id) !== key) { NET.lastBld.set(e.id, key); NET.bTime.set(e.id, now); }
       // direct link: only what changed; via server: everything changed in the last 3 s (a dropped state is covered by the next one)
       const tch = NET.bTime.get(e.id) || 0; if (direct ? tch === now : now - tch < 3000) m.b.push([e.id, Math.ceil(e.hp), Math.round(e.built * 1000), Math.round(e.turYaw * 100), Math.round(e.maxHp)]);
-      if (e.team === 0 && (e.type === 'lab' || e.type === 'factory')) m.L.push([e.id, e.res ? e.res.id : '', r1(e.resProg), e.queue.map(d => [d.ch, d.pr, d.wp]), r1(e.prod), e.lastRes || '']); }
+      if (e.team === 0 && (e.type === 'lab' || FACT_TYPES.has(e.type))) m.L.push([e.id, e.res ? e.res.id : '', r1(e.resProg), e.queue.map(d => [d.ch, d.pr, d.wp]), r1(e.prod), e.lastRes || '']); }
   }
   for (const id of NET.lastBld.keys()) { const e = byId(id); if (!e || !e.alive) { NET.lastBld.delete(id); NET.bTime.delete(id); } }
   const hasRel = rel.nu.length || rel.nb.length || rel.ev.length;
@@ -2554,7 +2767,7 @@ function clientApply(m) {
   if (m.nu) for (const [id, team, ch, pr, wp, tier, x, z, mhp, pal] of m.nu) { if (byId(id) || NET.dead.has(id) || !CH[ch] || !PR[pr] || !WP[wp]) continue;
     const u = createUnit(team, { ch, pr, wp }, x, z, tier < 0 ? undefined : tier, pal); adopt(u, id); u.born = performance.now(); u.maxHp = mhp; u.nx = x; u.nz = z; }
   if (m.u) for (let i = 0; i < m.u.length; i += 8) { const u = byId(m.u[i]); if (!u || u.kind !== 'unit') continue;
-    u.nx = m.u[i + 1] / 10; u.nz = m.u[i + 2] / 10; u.nh = m.u[i + 3] / 100; u.nt = m.u[i + 4] / 100; u.hp = m.u[i + 5]; u.weld = m.u[i + 6] & 1; u.stunV = m.u[i + 6] & 2; u.rank = (m.u[i + 6] >> 2) & 3; u.maxHp = m.u[i + 7]; }
+    u.nx = m.u[i + 1] / 10; u.nz = m.u[i + 2] / 10; u.nh = m.u[i + 3] / 100; u.nt = m.u[i + 4] / 100; u.hp = m.u[i + 5]; u.weld = m.u[i + 6] & 1; u.stunV = m.u[i + 6] & 2; u.rank = (m.u[i + 6] >> 2) & 3; u.nalt = (m.u[i + 6] >> 4) & 31; u.maxHp = m.u[i + 7]; }
   if (m.b) for (const [id, hp, built, ty, mhp] of m.b) { const b = byId(id); if (!b || b.kind !== 'bld') continue; b.hp = hp; b.maxHp = mhp; b.built = built / 1000; b.nYaw = ty / 100; if (!b.complete && built >= 1000) completeBld(b); }
   if (m.L) NET.lastL = m.L;
   if (m.L) for (const [id, rid, prog, q, prod, lr] of m.L) { const b = byId(id); if (!b) continue; const r = rid ? RS.find(x => x.id === rid) : null; if ((b.res && b.res.id) !== (r && r.id)) panelSig = ''; b.res = r; b.resProg = prog; if (lr && b.lastRes !== lr) { b.lastRes = lr; panelSig = ''; } if (b.queue.length !== q.length) panelSig = ''; b.queue = q.map(([ch, pr, wp]) => ({ ch, pr, wp })); b.prod = prod; }

@@ -1290,7 +1290,11 @@ function updStreamers(dt) { for (let i = STREAM.length - 1; i >= 0; i--) { const
 function rays3D(x, y, z, r, life, tint) { const f = RAYS[rayIdx = (rayIdx + 1) % RAYS.length]; f.t = 0; f.r = r; f.life = life || 0.35; f.m.position.set(x, y, z); f.m.rotation.y = rand(0, TAU); f.m.visible = true; f.m.scale.setScalar(0.01); f.m.material.opacity = 0.4; const tt = tint || [1, 1, 1]; f.m.material.color.setRGB(tt[0], tt[1], tt[2]); }
 function updRays(dt) { for (const f of RAYS) { if (!f.m.visible) continue; f.t += dt; const k = f.t / f.life; if (k >= 1) { f.m.visible = false; continue; }
   f.m.scale.setScalar(f.r * (0.5 + 1.3 * (1 - Math.pow(1 - k, 3)))); f.m.material.opacity = 0.4 * (k < 0.25 ? 1 : 1 - (k - 0.25) / 0.75); } }
-function fireball3D(x, y, z, r, tint, str, lm) { const f = FBALLS[fbIdx = (fbIdx + 1) % FBALLS.length]; f.t = 0; f.tint = tint || [1, 1, 1]; f.life = (0.45 + r * 0.04) * (lm || 1); f.r = r; f.m.position.set(x, y + r * 0.35, z); f.m.rotation.set(rand(-0.25, 0.25), rand(0, TAU), rand(-0.25, 0.25)); f.spin = rand(-0.8, 0.8); for (const q of f.puffs) { q.dir.set(rand(-1, 1), rand(-0.3, 0.9), rand(-1, 1)).normalize(); q.s = rand(0.35, 0.6); q.m.rotation.set(rand(0, TAU), rand(0, TAU), 0); q.m.scale.setScalar(q.s); q.m.position.copy(q.dir).multiplyScalar(0.55); } f.m.visible = true; f.m.scale.setScalar(r * 0.25); rays3D(x, y + r * 0.35, z, r * 1.5, f.life * 0.75, f.tint); if (str !== 0 && Math.abs(x - cam.x) < 110 && Math.abs(z - cam.z) < 110) streamers(x, y + r * 0.35, z, r * (str || 1)); f.m.material.color.setRGB(f.tint[0], f.tint[1], f.tint[2]); f.core.material.color.setRGB(Math.min(1, f.tint[0] + 0.3), Math.min(1, f.tint[1] + 0.3), Math.min(1, f.tint[2] + 0.4)); f.m.material.opacity = 0.7; f.core.material.opacity = 0.85; f.flashM.opacity = 0.92; f.flashM.color.setRGB(1, 0.985, 0.93); f.m.material.depthWrite = false; f.core.visible = true; }
+const XLIGHTS = []; for (let i = 0; i < 4; i++) { const L = new THREE.PointLight(0xffc070, 0, 10, 1.6); L.visible = true; scene.add(L); XLIGHTS.push({ L, t: 1, life: 1, peak: 0 }); } let xlIdx = 0;
+function xlight(x, y, z, r, tint, life) { if (Math.abs(x - cam.x) > 120 || Math.abs(z - cam.z) > 120) return; let o = XLIGHTS[0]; for (const q of XLIGHTS) if (q.t / q.life > o.t / o.life) o = q; const tt = tint || [1, 1, 1];
+  o.t = 0; o.life = life; o.peak = 30 * r * r + 40; o.L.position.set(x, y + r * 0.6, z); o.L.distance = r * 9 + 8; o.L.color.setRGB(Math.min(1, tt[0]), Math.min(1, 0.72 * tt[1] + 0.05), Math.min(1, 0.4 * tt[2] + 0.05)); }
+function updXLights(dt) { for (const o of XLIGHTS) { if (o.t >= o.life) { o.L.intensity = 0; continue; } o.t += dt; const k = Math.min(1, o.t / o.life); o.L.intensity = o.peak * (k < 0.1 ? k / 0.1 : Math.pow(1 - (k - 0.1) / 0.9, 2)); } }
+function fireball3D(x, y, z, r, tint, str, lm) { xlight(x, y, z, r, tint, (0.5 + r * 0.04) * (lm || 1)); const f = FBALLS[fbIdx = (fbIdx + 1) % FBALLS.length]; f.t = 0; f.tint = tint || [1, 1, 1]; f.life = (0.45 + r * 0.04) * (lm || 1); f.r = r; f.m.position.set(x, y + r * 0.35, z); f.m.rotation.set(rand(-0.25, 0.25), rand(0, TAU), rand(-0.25, 0.25)); f.spin = rand(-0.8, 0.8); for (const q of f.puffs) { q.dir.set(rand(-1, 1), rand(-0.3, 0.9), rand(-1, 1)).normalize(); q.s = rand(0.35, 0.6); q.m.rotation.set(rand(0, TAU), rand(0, TAU), 0); q.m.scale.setScalar(q.s); q.m.position.copy(q.dir).multiplyScalar(0.55); } f.m.visible = true; f.m.scale.setScalar(r * 0.25); rays3D(x, y + r * 0.35, z, r * 1.5, f.life * 0.75, f.tint); if (str !== 0 && Math.abs(x - cam.x) < 110 && Math.abs(z - cam.z) < 110) streamers(x, y + r * 0.35, z, r * (str || 1)); f.m.material.color.setRGB(f.tint[0], f.tint[1], f.tint[2]); f.core.material.color.setRGB(Math.min(1, f.tint[0] + 0.3), Math.min(1, f.tint[1] + 0.3), Math.min(1, f.tint[2] + 0.4)); f.m.material.opacity = 0.7; f.core.material.opacity = 0.85; f.flashM.opacity = 0.92; f.flashM.color.setRGB(1, 0.985, 0.93); f.m.material.depthWrite = false; f.core.visible = true; }
 function updFireballs(dt) { for (const f of FBALLS) { if (!f.m.visible) continue; f.t += dt; const k = f.t / f.life; if (k >= 1) { f.m.visible = false; continue; }
   const grow = k < 0.3 ? 1 - Math.pow(1 - k / 0.3, 3) : 1; f.m.scale.setScalar(f.r * (0.25 + 0.75 * grow + 0.15 * k)); f.m.position.y += dt * f.r * 0.6; f.m.rotation.y += dt * f.spin; for (const q of f.puffs) { q.m.position.copy(q.dir).multiplyScalar(0.55 + 0.35 * k); q.m.scale.setScalar(q.s * (1 + 0.4 * k)); }
   const dark = k < 0.45 ? 0 : (k - 0.45) / 0.55; f.m.material.color.setRGB(f.tint[0] * (1 - dark * 0.1), f.tint[1] * (1 - dark * 0.55), f.tint[2] * (1 - dark * 0.85)); f.core.material.opacity = Math.max(0, 1 - k * 1.8); f.core.visible = k < 0.55;
@@ -1318,7 +1322,7 @@ function impactFx(x, y, z, sz, big, st) { st = st || XST.def;
 const reloadVis = [];
 function updReload() { const t = performance.now(); for (let i = reloadVis.length - 1; i >= 0; i--) if (t >= reloadVis[i].t) { reloadVis[i].m.visible = true; reloadVis.splice(i, 1); } }
 function updBoomFx(dt) {
-  updReload(); updFireballs(dt); updRays(dt); updStreamers(dt);
+  updReload(); updXLights(dt); updFireballs(dt); updRays(dt); updStreamers(dt);
   for (const s of shocks) if (s.m.visible) { s.t += dt; const k = s.t / s.max; if (k >= 1) { s.m.visible = false; continue; } const r = s.r * (0.6 + 2.4 * Math.sqrt(k)); s.m.scale.set(r, 1, r); s.m.material.opacity = 0.55 * (1 - k) * (1 - k); }
   for (const s of scorches) if (s.m.visible) { s.t -= dt; if (s.t < 8) s.m.material.opacity = 0.85 * Math.max(0, s.t / 8); if (s.t <= 0) s.m.visible = false; }
   for (const d of debris) if (d.m.visible) { d.t -= dt; const p = d.m.position; d.vy -= 18 * dt; p.x += d.vx * dt; p.y += d.vy * dt; p.z += d.vz * dt; d.m.rotation.x += d.rx * dt; d.m.rotation.z += d.rz * dt;
@@ -1412,14 +1416,21 @@ function addWreck(e) {
   let m;
   if (e.kind === 'unit') { m = new THREE.Mesh(unitGeo(e.d, e.pal).body, matWreck); m.position.set(e.x, e.y - 0.15, e.z); m.rotation.set(rand(-0.2, 0.2), e.heading, rand(-0.2, 0.2)); }
   else { const B = new Builder(); for (let i = 0; i < 9; i++) B.add(G.ico, rand(0.6, 1.6), rand(0.3, 0.9), rand(0.6, 1.6), rand(-e.r, e.r) * 0.7, 0, rand(-e.r, e.r) * 0.7, pick([0x3a3530, 0x2a2622, 0x4a443c]), rand(0, 3), rand(0, 3), 0); m = new THREE.Mesh(B.build(), matVC); m.position.set(e.x, e.y, e.z); }
-  scene.add(m); wrecks.push({ m, life: e.kind === 'unit' ? 25 : 60, smokeT: 0, x: e.x, y: e.y, z: e.z, big: e.kind !== 'unit' });
+  let fly = null;
+  if (e.kind === 'unit' && e.tur) { const tm = new THREE.Mesh(e.tur.geometry, matWreck); const ty = e.heading + (e.turYaw || 0); tm.position.set(e.x, e.y + (e.h || 1.5) - 0.4, e.z); tm.rotation.set(0, ty, 0); scene.add(tm);
+    if (Math.random() < 0.65 && Math.abs(e.x - cam.x) < 140 && Math.abs(e.z - cam.z) < 140) { const a = rand(0, TAU), hs = rand(1.5, 4.5); fly = { m: tm, vx: Math.sin(a) * hs, vy: rand(8, 14), vz: Math.cos(a) * hs, sx: rand(-6, 6), sz: rand(-6, 6), rest: false, trail: 0 }; }
+    else { tm.rotation.set(rand(-0.15, 0.15), ty + rand(-0.4, 0.4), rand(-0.15, 0.15)); fly = { m: tm, rest: true }; } }
+  scene.add(m); wrecks.push({ m, fly, life: e.kind === 'unit' ? 25 : 60, smokeT: 0, x: e.x, y: e.y, z: e.z, big: e.kind !== 'unit' });
 }
 function updWrecks(dt) {
   for (let i = wrecks.length - 1; i >= 0; i--) {
     const w = wrecks[i]; w.life -= dt; w.smokeT -= dt;
     if (w.smokeT <= 0 && w.life > 8) { w.smokeT = w.big ? 0.25 : 0.6; fx('smoke', w.x + rand(-1, 1), w.y + 1, w.z + rand(-1, 1), w.big ? 1.2 : 0.6); }
-    if (w.life < 3) w.m.position.y -= dt * 0.4;
-    if (w.life <= 0) { scene.remove(w.m); wrecks.splice(i, 1); }
+    const f = w.fly; if (f && !f.rest) { f.vy -= 24 * dt; const P = f.m.position; P.x += f.vx * dt; P.y += f.vy * dt; P.z += f.vz * dt; f.m.rotation.x += f.sx * dt; f.m.rotation.z += f.sz * dt;
+      f.trail -= dt; if (f.trail <= 0) { f.trail = 0.04; fx('blacksmoke', P.x, P.y, P.z, 0.5); if (Math.random() < 0.5) fx('fire', P.x, P.y, P.z, 0.4); }
+      const gy = heightAt(P.x, P.z) + 0.25; if (P.y < gy && f.vy < 0) { P.y = gy; if (f.vy < -4) { f.vy *= -0.32; f.vx *= 0.55; f.vz *= 0.55; f.sx *= 0.4; f.sz *= 0.4; fx('dust', P.x, gy, P.z, 1); if (Math.random() < 0.6) sfx('debris', P.x, P.z); } else { f.rest = true; f.m.rotation.x = rand(-0.5, 0.5) + (Math.random() < 0.3 ? Math.PI : 0); f.m.rotation.z = rand(-0.4, 0.4); } } }
+    if (w.life < 3) { w.m.position.y -= dt * 0.4; if (f) f.m.position.y -= dt * 0.4; }
+    if (w.life <= 0) { scene.remove(w.m); if (f) scene.remove(f.m); wrecks.splice(i, 1); }
   }
 }
 
@@ -1466,6 +1477,7 @@ function fireWeapon(src, t, w, mx, my, mz, mul) {
   if (NET.host && (Math.abs(src.x - NET.ccx) < 90 && Math.abs(src.z - NET.ccz) < 90)) NET.ev.push(['f', src.id, t.id, w.id, r1(mx), r1(my), r1(mz), mul || 1]);
   if (NET.cl) heat = Math.min(1.5, heat + 0.01);
   const dmg = w.dmg * (mul || 1) * (TEAMS[src.team].dmg[wfam(w)] || 1) * (1 + 0.1 * (src.rank || 0));
+  if (src.kind === 'unit') src.kv = (src.kv || 0) + (w.kind === 'shell' ? 3.2 : w.kind === 'mortar' ? (w.art === 'how' ? 4 : 2.2) : w.kind === 'rocket' || w.kind === 'missile' ? 1 : 0.35) / Math.max(0.8, CH[src.d.ch].size);
   if (w.kind === 'shell') { const hx = (mx - src.x), hz = (mz - src.z), hl = Math.hypot(hx, hz) || 1; const big = (src.kind === 'bld' ? 1.25 : 1) * 3;
     if (Math.abs(mx - cam.x) < 140 && Math.abs(mz - cam.z) < 140) fireball3D(mx + hx / hl * 0.5 * big, my - big * 0.15, mz + hz / hl * 0.5 * big, 0.55 * big, null, 0, 0.55); fx('gunflash', mx, my, mz, 0.5 * big); fx('fire', mx + hx / hl * 0.6, my, mz + hz / hl * 0.6, 0.6); fx('muzzle', mx, my, mz, 1.6); }
   else if (w.kind === 'mg') fx('gunflash', mx, my, mz, 0.35);
@@ -1610,7 +1622,14 @@ function unitVisual(u, dt) {
   const sp = Math.hypot(u.vx, u.vz);
   const sh = Math.sin(u.heading), ch = Math.cos(u.heading);
   const hf = heightAt(u.x + sh, u.z + ch), hb = heightAt(u.x - sh, u.z - ch), hr = heightAt(u.x + ch, u.z - sh), hl = heightAt(u.x - ch, u.z + sh);
-  const pitch = u.d.pr === 'hover' ? 0 : -Math.atan2(hf - hb, 2), roll = u.d.pr === 'hover' ? 0 : Math.atan2(hr - hl, 2);
+  let pitch = u.d.pr === 'hover' ? 0 : -Math.atan2(hf - hb, 2), roll = u.d.pr === 'hover' ? 0 : Math.atan2(hr - hl, 2);
+  if (dt > 0) { // suspension physics: recoil spring + lean from acceleration and turning
+    u.kk = u.kk || 0; u.kv = u.kv || 0; u.kv += (-60 * u.kk - 7 * u.kv) * dt; u.kk += u.kv * dt;
+    const fwd = u.vx * sh + u.vz * ch, acc = clamp((fwd - (u.pf || 0)) / dt, -40, 40), turn = angDiff(u.ph === undefined ? u.heading : u.ph, u.heading) / dt; u.pf = fwd; u.ph = u.heading;
+    const hv = u.d.pr === 'hover' ? 2 : 1, tp = clamp(-acc * 0.006 * hv, -0.09, 0.09), tr = clamp(-turn * fwd * 0.012 * hv, -0.1, 0.1), kf = Math.min(1, dt * 5);
+    u.lp = lerp(u.lp || 0, tp, kf); u.lr = lerp(u.lr || 0, tr, kf);
+    const ty = u.turYaw || 0, k = u.kk * 0.25; pitch += u.lp - k * Math.cos(ty); roll += u.lr + k * Math.sin(ty);
+    const rc = Math.max(0, u.kk) * 0.9; u.tur.position.x = -Math.sin(ty) * rc; u.tur.position.z = -Math.cos(ty) * rc; }
   u.mesh.position.set(u.x, yy, u.z); u.mesh.rotation.set(pitch, u.heading, roll);
   if (sp > 1 && Math.abs(u.x - cam.x) < 60 && Math.abs(u.z - cam.z) < 60 && Math.random() < dt * 4) fx('smoke', u.x - sh * 1.4 * CH[u.d.ch].size, yy + 0.6, u.z - ch * 1.4 * CH[u.d.ch].size, 0.22);
   if (sp > 2 && Math.random() < dt * (u.d.pr === 'hover' ? 8 : 4)) fx('dust', u.x - sh * 1.2, u.y + 0.3, u.z - ch * 1.2, u.d.pr === 'hover' ? 0.9 : 0.6);
@@ -2761,7 +2780,7 @@ window.onBack = () => {
   if (S.paused || !$('pause').classList.contains('hidden')) return false;
   S.paused = !NET.on; $('pause').classList.remove('hidden'); return true;
 };
-window.__game = { FBALLS, updFireballs, SPOT, nearestSpotted, WP, impactFx, XST, heightAt,  killNear: () => { for (const e of ents) if (e.alive && e.team === 1 && Math.hypot(e.x - PLAYER2.x, e.z - PLAYER2.z) < 25) kill(e); }, NET, execCmd, doCmd, byId, PLAYER, PLAYER2, S, TEAMS, ents, cam, setSel, sel: () => sel, createUnit, createBuilding, sfx, AU, SB, buildSfx, projs: () => projs, BD, WP };
+window.__game = { kill, wrecks, FBALLS, updFireballs, SPOT, nearestSpotted, WP, impactFx, XST, heightAt,  killNear: () => { for (const e of ents) if (e.alive && e.team === 1 && Math.hypot(e.x - PLAYER2.x, e.z - PLAYER2.z) < 25) kill(e); }, NET, execCmd, doCmd, byId, PLAYER, PLAYER2, S, TEAMS, ents, cam, setSel, sel: () => sel, createUnit, createBuilding, sfx, AU, SB, buildSfx, projs: () => projs, BD, WP };
 
 resize(); updateCamera(0); requestAnimationFrame(loop);
 // background scene behind the intro

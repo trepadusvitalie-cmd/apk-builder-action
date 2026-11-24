@@ -469,6 +469,11 @@ const WP = {
 };
 // longer attack range for every weapon (direct fire +40%, artillery +25%, flamer +25%)
 for (const k in WP) { const w = WP[k]; if (w.range) w.range = Math.round(w.range * (w.art ? 1.25 : w.kind === 'flame' ? 1.25 : 1.4)); if (w.art) { w.rof = +(w.rof * 0.55).toFixed(2); w.sight = w.range; w.range = w.range * 3; } } // artillery: 3x range, but beyond its own sight it needs radar // artillery reloads ~45% faster
+// weapon reach grows with the map: on the 2 km map the cannon reaches 500 m and the mortar 150 m (radar-guided artillery 3x that);
+// on the normal 300 m map ranges stay as they are, in between they scale linearly with the map size
+const RNG_T = clamp((MAP - 300) / 1700, 0, 1), RNG_D = 1 + (500 / WP.cannon.range - 1) * RNG_T, RNG_A = 1 + (150 / WP.mortar.sight - 1) * RNG_T, PROJ_SPD = Math.sqrt(RNG_D);
+for (const k in WP) { const w = WP[k]; if (!w.range || w.range >= 9999 || w.kind === 'bomb') continue;
+  if (w.art) { w.sight = Math.round(w.sight * RNG_A); w.range = w.sight * 3; } else w.range = Math.round(w.range * (w.kind === 'flame' ? Math.sqrt(RNG_D) : RNG_D)); }
 const wfam = w => w.art ? 'art' : w.fam || w.id;
 const BASE_SPEED = 5.4;
 const BD = {
@@ -1513,7 +1518,7 @@ function spawnProj(kind, src, tgt, dmg, splash, ox, oy, oz, w, realT, mlen, lift
   else if (kind === 'mortar' && !(w && w.plasma)) { m = new THREE.Mesh(artShellGeo, matVC); m.scale.setScalar(w && w.big ? 2.6 : w && w.art === 'how' ? 2.0 : 1.7); }
   else { m = new THREE.Mesh(shellGeo, w && w.plasma ? plasmaMat : shellMat); if (kind === 'mortar') m.scale.setScalar(w && w.big ? 2.6 : w && w.plasma ? 2.4 : 1.6); }
   scene.add(m); if (lift) m.position.set(ox, oy, oz);
-  const tx = tgt.x, tz = tgt.z, ty = tgt.y + (tgt.kind === 'bld' ? 1.5 : 0.8); const d = Math.hypot(tx - ox, tz - oz); const spd = kind === 'shell' ? 26 : kind === 'mortar' ? 26 : 22;
+  const tx = tgt.x, tz = tgt.z, ty = tgt.y + (tgt.kind === 'bld' ? 1.5 : 0.8); const d = Math.hypot(tx - ox, tz - oz); const spd = (kind === 'shell' ? 26 : kind === 'mortar' ? 26 : 22) * (kind === 'mortar' ? Math.sqrt(RNG_A) : PROJ_SPD);
   projs.push({ kind, m, team: src.team, src, tgt, ox, oy, oz, tx, ty, tz, t: 0, dur: w && w.kind === 'bomb' ? 0.75 : Math.max(0.12, kind === 'mortar' ? Math.min(d / spd, 3 + d / 120) : d / spd), arc: w && w.kind === 'bomb' ? 0 : kind === 'shell' ? d * 0.05 : kind === 'mortar' ? Math.min(d * 0.55, 60 + d * 0.1) : d * 0.13, dmg, splash, smokeT: 0, w, realT, lift: !!lift, big: !!(w && w.big) });
 }
 const fireZones = [];

@@ -439,6 +439,9 @@ const WP = {
   hhowitzer: { name: 'Obuzier greu', dmg: 140, rof: 8, range: 50, cost: 240, kind: 'mortar', splash: 6.5, art: 'how', big: 1 },
   plasma: { name: 'Lansator plasmă', dmg: 90, rof: 6, range: 36, cost: 260, kind: 'mortar', splash: 6, fire: 25, plasma: 1, art: 'plasma' },
   ballistic: { name: 'Rachetă balistică', dmg: 220, rof: 12, range: 60, cost: 320, kind: 'salvo', splash: 7.5, n: 1, big: 1, art: 'salvo' },
+  rbattery: { name: 'Baterie Tunet', dmg: 26, rof: 9, range: 70, cost: 220, kind: 'salvo', splash: 3.4, n: 12, art: 'salvo', site: 1 },
+  smissile: { name: 'Rachete Săgeată', dmg: 70, rof: 7, range: 60, cost: 260, kind: 'salvo', splash: 3.2, n: 4, art: 'salvo', site: 1 },
+  omissile: { name: 'Rachetă Orizont', dmg: 380, rof: 18, range: 120, cost: 420, kind: 'salvo', splash: 9, n: 1, big: 1, art: 'salvo', site: 1 },
   flame: { name: 'Aruncător de flăcări', dmg: 10, rof: 0.16, range: 8, cost: 50, kind: 'flame' },
   laser: { name: 'Laser', dmg: 22, rof: 0.55, range: 17, cost: 80, kind: 'laser' },
   rockets: { name: 'Rachete', dmg: 30, rof: 2.4, range: 18, cost: 60, kind: 'rocket', splash: 2.8 },
@@ -471,13 +474,13 @@ const DCLASS = {
   bunker: { name: 'Buncăr', hp: 1300, cost: 110, size: 3.4, time: 22, h: 2, ty: 1.35, ts: 1, rb: -1, dm: 1.25, req: 'bunker', wps: ['mg', 'cannon', 'flame', 'laser'] },
   hard: { name: 'Fortificație', hp: 1700, cost: 170, size: 3.8, time: 28, h: 3.8, ty: 3.5, ts: 1.15, rb: 3, dm: 1.6, req: 'hardpoint', wps: ['mg', 'cannon', 'flame', 'rockets', 'laser'] },
   fort: { name: 'Fortăreață', hp: 5200, cost: 560, size: 8, time: 70, h: 6, ty: 5.6, ts: 1.9, rb: 6, dm: 3.6, req: 'fortress', wps: ['cannon', 'rockets', 'laser'] },
-  pit: { name: 'Amplasament', hp: 700, cost: 80, size: 3.6, time: 18, h: 1.5, ty: 0.75, ts: 1.1, rb: 0, dm: 1.4, req: null, wps: ['mortar', 'imortar', 'empmortar', 'salvo', 'howitzer', 'ihowitzer', 'rhowitzer', 'hhowitzer', 'plasma', 'ballistic'] },
+  pit: { name: 'Amplasament', hp: 700, cost: 80, size: 3.6, time: 18, h: 1.5, ty: 0.75, ts: 1.1, rb: 0, dm: 1.4, req: null, wps: ['mortar', 'imortar', 'empmortar', 'salvo', 'howitzer', 'ihowitzer', 'rhowitzer', 'hhowitzer', 'plasma', 'ballistic', 'rbattery', 'smissile', 'omissile'] },
 };
-const IMP_SND = { mortar: 'imp_mortar', rmortar: 'imp_mortar', imortar: 'imp_inc', ihowitzer: 'imp_inc', empmortar: 'imp_salvo', salvo: 'imp_salvo', howitzer: 'imp_how', rhowitzer: 'imp_how', hhowitzer: 'imp_hhow', ballistic: 'imp_hhow', plasma: 'imp_plasma' };
-const ART_SND = { mortar: 'art_mortar', imortar: 'art_inc', empmortar: 'art_emp', rmortar: 'art_rmortar', salvo: 'art_salvo', howitzer: 'art_how', ihowitzer: 'art_inc', rhowitzer: 'art_rhow', hhowitzer: 'art_hhow', plasma: 'art_plasma', ballistic: 'art_ball' };
+const IMP_SND = { mortar: 'imp_mortar', rmortar: 'imp_mortar', imortar: 'imp_inc', ihowitzer: 'imp_inc', empmortar: 'imp_salvo', salvo: 'imp_salvo', howitzer: 'imp_how', rhowitzer: 'imp_how', hhowitzer: 'imp_hhow', ballistic: 'imp_hhow', plasma: 'imp_plasma', rbattery: 'imp_salvo', smissile: 'imp_rocket', omissile: 'imp_hhow' };
+const ART_SND = { mortar: 'art_mortar', imortar: 'art_inc', empmortar: 'art_emp', rmortar: 'art_rmortar', salvo: 'art_salvo', howitzer: 'art_how', ihowitzer: 'art_inc', rhowitzer: 'art_rhow', hhowitzer: 'art_hhow', plasma: 'art_plasma', ballistic: 'art_ball', rbattery: 'art_salvo', smissile: 'art_salvo', omissile: 'art_ball' };
 const ART_W = ['mortar', 'imortar', 'empmortar', 'salvo', 'howitzer', 'ihowitzer', 'rhowitzer', 'hhowitzer', 'plasma', 'ballistic'];
-const WSHORT = { mg: 'mitralieră', cannon: 'tun', flame: 'flăcări', rockets: 'rachete', viper: 'rachete Viperă', laser: 'laser', mortar: 'mortier', imortar: 'mortier incendiar', empmortar: 'mortier IEM', salvo: 'salve', howitzer: 'obuzier', ihowitzer: 'obuzier incendiar', rhowitzer: 'obuzier rapid', hhowitzer: 'obuzier greu', plasma: 'plasmă', ballistic: 'rachetă balistică' };
-for (const [ck, c] of Object.entries(DCLASS)) for (const w of c.wps) BD['d_' + ck + '_' + w] = { short: WSHORT[w][0].toUpperCase() + WSHORT[w].slice(1), name: `${c.name} ${WSHORT[w]}`, icon: '', hp: c.hp, cost: c.cost + 0 * 1, size: c.size, time: c.time, h: c.h, tw: w, cls: ck, req: c.req, ty: c.ty, ts: c.ts, rb: c.rb, dm: c.dm };
+const WSHORT = { mg: 'mitralieră', cannon: 'tun', flame: 'flăcări', rockets: 'rachete', viper: 'rachete Viperă', rbattery: 'baterie Tunet', smissile: 'rachete Săgeată', omissile: 'rachetă Orizont', laser: 'laser', mortar: 'mortier', imortar: 'mortier incendiar', empmortar: 'mortier IEM', salvo: 'salve', howitzer: 'obuzier', ihowitzer: 'obuzier incendiar', rhowitzer: 'obuzier rapid', hhowitzer: 'obuzier greu', plasma: 'plasmă', ballistic: 'rachetă balistică' };
+for (const [ck, c] of Object.entries(DCLASS)) for (const w of c.wps) BD['d_' + ck + '_' + w] = { short: WSHORT[w][0].toUpperCase() + WSHORT[w].slice(1), name: `${c.name} ${WSHORT[w]}`, icon: '', hp: c.hp, cost: c.cost + (WP[w].site ? Math.round(WP[w].cost * 0.8) : 0), size: c.size, time: c.time, h: c.h, tw: w, cls: ck, req: c.req, ty: c.ty, ts: c.ts, rb: c.rb, dm: c.dm };
 // enemy technology tiers: 0 = outer ring (weak) … 3 = citadel (latest technology)
 const TIERS = [
   { name: 'Avanpost', ch: ['light'], pr: ['wheels'], wp: ['mg'], tower: 'mg', hp: 1, garrison: 3, towers: 2 },
@@ -518,6 +521,9 @@ const RS = [
   { id: 'ballistic', name: 'Rachetă balistică', cost: 420, time: 65, req: ['salvo', 'hhowitzer'] },
   { id: 'flame', name: 'Aruncător de flăcări', cost: 120, time: 26, req: [] },
   { id: 'laser', name: 'Laser de luptă', cost: 240, time: 45, req: ['rockets'] },
+  { id: 'rbattery', name: 'Baterie de rachete Tunet', cost: 280, time: 50, req: ['salvo', 'hardpoint'] },
+  { id: 'smissile', name: 'Rachete ghidate Săgeată', cost: 340, time: 58, req: ['rbattery', 'laser'] },
+  { id: 'omissile', name: 'Rachetă Orizont', cost: 480, time: 75, req: ['smissile', 'ballistic'] },
   { id: 'viper', name: 'Rachete Viperă', cost: 300, time: 52, req: ['rockets', 'heavy'] },
   { id: 'nova', name: 'Șasiu Nova (auriu)', cost: 300, time: 52, req: ['titan', 'laser'] },
   { id: 'radar2', name: 'Radar avansat', cost: 180, time: 34, req: ['radar'] },
@@ -530,7 +536,7 @@ const BRANCHES = [
   { name: 'Mobilitate', ids: ['halftrack', 'tracks', 'hover', 'engine'] },
   { name: 'Corp și blindaj', ids: ['scout', 'medium', 'assault', 'heavy', 'armor', 'titan', 'nova'] },
   { name: 'Armament', ids: ['cannon', 'flame', 'rockets', 'viper', 'laser'] },
-  { name: 'Artilerie', ids: ['mortar', 'imortar', 'empmortar', 'salvo', 'howitzer', 'ihowitzer', 'rhowitzer', 'hhowitzer', 'plasma', 'ballistic'] },
+  { name: 'Artilerie', ids: ['rbattery', 'smissile', 'omissile', 'mortar', 'imortar', 'empmortar', 'salvo', 'howitzer', 'ihowitzer', 'rhowitzer', 'hhowitzer', 'plasma', 'ballistic'] },
   { name: 'Sprijin', ids: ['radar', 'radar2', 'repair', 'repair2'] },
   { name: 'Apărare', ids: ['traps', 'tower2', 'bunker', 'hardpoint', 'fortress'] },
   { name: 'Industrie', ids: ['prod'] },
@@ -590,6 +596,9 @@ const RICON = {
   rhowitzer: SV(`<path d="M6 40l8-10h20l8 10z" fill="#3d432f"/><path d="M14 28l24-18M18 32l24-18" stroke="#3a3a36" stroke-width="4"/><path d="M18 31l10-7" stroke="#71804e" stroke-width="8"/><path d="M40 6l5-2M44 12l4-1" stroke="#ffcf5a" stroke-width="2"/>`),
   hhowitzer: SV(`<path d="M3 42l8-12h26l8 12z" fill="#3d432f"/><path d="M14 30l30-22" stroke="#2e2e2a" stroke-width="7"/><path d="M16 32l14-10" stroke="#50565e" stroke-width="10"/><text x="10" y="18" font-size="9" fill="#f0b44a" font-family="sans-serif" font-weight="bold">XL</text>`),
   plasma: SV(`<path d="M6 40l8-10h20l8 10z" fill="#3d432f"/><path d="M16 30l22-16" stroke="#3a3a40" stroke-width="7"/><path d="M20 27l4-3M26 23l4-3M32 19l4-3" stroke="#60ff90" stroke-width="3"/><circle cx="41" cy="11" r="5" fill="#9affb8" stroke="#2eaa4a" stroke-width="2"/>`),
+  rbattery: SV(`<rect x="6" y="34" width="36" height="7" rx="2" fill="#3d432f"/><g transform="rotate(-28 24 26)"><rect x="5" y="16" width="12" height="14" fill="#7b7f82" stroke="#c9b48a" stroke-width="1.2"/><rect x="18" y="16" width="12" height="14" fill="#7b7f82" stroke="#c9b48a" stroke-width="1.2"/><rect x="31" y="16" width="12" height="14" fill="#7b7f82" stroke="#c9b48a" stroke-width="1.2"/><g fill="#111"><circle cx="9" cy="20" r="1.5"/><circle cx="13" cy="20" r="1.5"/><circle cx="9" cy="26" r="1.5"/><circle cx="13" cy="26" r="1.5"/><circle cx="22" cy="20" r="1.5"/><circle cx="26" cy="20" r="1.5"/><circle cx="22" cy="26" r="1.5"/><circle cx="26" cy="26" r="1.5"/><circle cx="35" cy="20" r="1.5"/><circle cx="39" cy="20" r="1.5"/><circle cx="35" cy="26" r="1.5"/><circle cx="39" cy="26" r="1.5"/></g></g><path d="M8 34h32" stroke="#e0b020" stroke-width="3" stroke-dasharray="3 3"/>`),
+  smissile: SV(`<rect x="8" y="34" width="32" height="7" rx="2" fill="#3d432f"/><g transform="rotate(-30 24 24)"><rect x="4" y="27" width="38" height="3" fill="#5a5e60"/><g fill="#eef0f2" stroke="#c9b48a" stroke-width=".8"><rect x="6" y="11" width="30" height="3.4" rx="1.6"/><rect x="6" y="16" width="30" height="3.4" rx="1.6"/><rect x="6" y="21" width="30" height="3.4" rx="1.6"/></g><g fill="#3f9fe0"><path d="M36 11l5 1.7-5 1.7z"/><path d="M36 16l5 1.7-5 1.7z"/><path d="M36 21l5 1.7-5 1.7z"/></g></g>`),
+  omissile: SV(`<rect x="6" y="36" width="36" height="7" rx="2" fill="#3d432f"/><rect x="8" y="22" width="5" height="14" fill="#6a6e70"/><rect x="35" y="22" width="5" height="14" fill="#6a6e70"/><g transform="rotate(-55 24 30)"><rect x="6" y="26" width="32" height="8" rx="4" fill="#2e3236" stroke="#c9b48a" stroke-width="1.2"/><path d="M38 26l8 4-8 4z" fill="#c8321e"/><path d="M14 26v8M22 26v8M30 26v8" stroke="#e0b020" stroke-width="2"/><path d="M6 26l-4-3M6 34l-4 3" stroke="#1e1e1e" stroke-width="2"/></g>`),
   ballistic: SV(`<path d="M10 42h28" stroke="#c9b48a" stroke-width="3"/><path d="M24 4c5 6 6 12 6 30h-12c0-18 1-24 6-30z" fill="#e8e8e8" stroke="#c9b48a" stroke-width="1.5"/><path d="M18 26l-5 8h5zM30 26l5 8h-5z" fill="#b8432c"/><path d="M20 34l4 7 4-7" fill="#ff9a2a"/><rect x="20" y="12" width="8" height="3" fill="#b8432c"/>`),
   flame: SV(`<rect x="6" y="20" width="9" height="18" rx="4.5" fill="#b8432c" stroke="#c9b48a" stroke-width="1.5"/><rect x="16" y="22" width="9" height="16" rx="4.5" fill="#b8432c" stroke="#c9b48a" stroke-width="1.5"/><path d="M24 28h8" stroke="#3a3a36" stroke-width="4"/><path d="M32 28c6-8 10-2 14-8-1 7-4 9-2 14-4-2-7 2-12-2z" fill="#ff8a2a"/><path d="M33 28c4-4 6-1 9-4-1 4-2 5-1 8-3-1-5 1-8-1z" fill="#ffe680"/>`),
   viper: SV(`<rect x="8" y="30" width="32" height="9" rx="3" fill="#3d432f"/><rect x="17" y="22" width="14" height="10" fill="#71804e" stroke="#c9b48a" stroke-width="1.5"/><path d="M17 30h14" stroke="#e0b020" stroke-width="3" stroke-dasharray="2.5 2.5"/><g transform="rotate(-14 24 22)"><rect x="3" y="14" width="22" height="4.5" rx="2" fill="#e8e8e8" stroke="#c9b48a" stroke-width="1"/><path d="M25 14l5 2.25-5 2.25z" fill="#e0402a"/><rect x="25" y="20" width="0" height="0"/><rect x="23" y="24" width="22" height="4.5" rx="2" fill="#e8e8e8" stroke="#c9b48a" stroke-width="1"/><path d="M45 24l3 2.25-3 2.25z" fill="#e0402a"/><path d="M3 14l-2-2M3 18.5l-2 2" stroke="#3a3a36" stroke-width="1.5"/></g>`),
@@ -781,7 +790,35 @@ function unitGeo(d, team) {
       else tb.box(0.6 * s, 0.3 * s, 0.35 * s, 0, 0.25 * s, -0.4 * s, w.fire ? 0xa83a26 : 0x6a5a3a);
     } else if (A === 'salvo') {
       tb.add(G.cyl16, 0.5 * s, 0.15 * s, 0.5 * s, 0, 0.08 * s, 0, T.dark);
-      if (w.big) { tb.box(0.25 * s, 0.9 * s, 0.25 * s, 0.35 * s, 0.5 * s, -0.2 * s, 0x5a564f); tb.add(G.cyl16, 0.2 * s, 2.0 * s, 0.2 * s, 0, 0.75 * s, 0.1 * s, 0xe8e8e8, 0.95, 0, 0); tb.add(G.cone, 0.2 * s, 0.45 * s, 0.2 * s, 0, 1.23 * s, 0.98 * s, 0xb8432c, 0.95, 0, 0); for (const sx of [-1, 1]) tb.box(0.04 * s, 0.25 * s, 0.25 * s, sx * 0.2 * s, 0.25 * s, -0.75 * s, 0xb8432c, 0.95, 0, 0); }
+      const tube = (x, y, z, r, L, a, c) => tb.add(G.cyl16, r, L, r, x, y, z, c, Math.PI / 2 - a, 0, 0);
+      if (d.wp === 'rbattery') { // three grey launcher blocks side by side, 3x3 tubes each, on a heavy cradle
+        const a = 0.6, ca = Math.cos(a), sa = Math.sin(a), P = (x, y, z) => [x, 0.85 * s + y * ca + z * sa, 0.0 * s - y * sa + z * ca];
+        tb.box(1.3 * s, 0.5 * s, 0.9 * s, 0, 0.35 * s, -0.25 * s, T.dark); tb.hazard(1.3 * s, 0.14 * s, 0, 0.3 * s, 0.205 * s, 'z', 1);
+        for (const sx of [-1, 1]) tb.box(0.12 * s, 0.8 * s, 0.5 * s, sx * 0.55 * s, 0.6 * s, -0.1 * s, 0x4a4a46);
+        for (let b = -1; b <= 1; b++) { const ox = b * 0.5 * s;
+          { const [x, y, z] = P(ox, 0, 0); tb.box(0.46 * s, 0.5 * s, 1.5 * s, x, y, z, 0x7b7f82, -a, 0, 0); }
+          { const [x, y, z] = P(ox, 0, -0.55 * s); tb.box(0.48 * s, 0.52 * s, 0.1 * s, x, y, z, T.body, -a, 0, 0); }
+          for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) { const [x, y, z] = P(ox + (i - 1) * 0.13 * s, (j - 1) * 0.13 * s, 0.76 * s); tb.add(G.cyl10, 0.055 * s, 0.04 * s, 0.055 * s, x, y, z, 0x111111, Math.PI / 2 - a, 0, 0); } }
+      } else if (d.wp === 'smissile') { // inclined rail with four slim guided missiles, blue seeker heads
+        const a = 0.5, ca = Math.cos(a), sa = Math.sin(a);
+        tb.box(1.0 * s, 0.45 * s, 0.8 * s, 0, 0.32 * s, -0.2 * s, T.dark); tb.hazard(1.0 * s, 0.12 * s, 0, 0.28 * s, 0.205 * s, 'z', 1);
+        tb.box(1.15 * s, 0.1 * s, 1.9 * s, 0, 0.72 * s, 0.1 * s, 0x5a5e60, -a, 0, 0);
+        for (const sx of [-1, 1]) tb.box(0.08 * s, 0.6 * s, 0.3 * s, sx * 0.45 * s, 0.5 * s, -0.3 * s, 0x3a3a36);
+        for (const ox of [-0.39, -0.13, 0.13, 0.39]) { const x = ox * s, y = 0.86 * s, z = 0.1 * s, L = 1.9 * s;
+          tube(x, y, z, 0.075 * s, L, a, 0xeef0f2);
+          tb.add(G.cone, 0.075 * s, 0.32 * s, 0.075 * s, x, y + sa * (L / 2 + 0.16 * s), z + ca * (L / 2 + 0.16 * s), 0x3f9fe0, Math.PI / 2 - a, 0, 0);
+          for (const k of [-0.42, 0.15]) for (const f of [-1, 1]) tb.box(0.012 * s, 0.16 * s, 0.2 * s, x + f * 0.07 * s, y + sa * L * k + 0.05 * s, z + ca * L * k, 0x3a3a36, -a, 0, 0); }
+      } else if (d.wp === 'omissile') { // one huge missile on a tall erector between blast shields
+        const a = 1.05, L = 3.4 * s;
+        tb.box(1.2 * s, 0.4 * s, 1.2 * s, 0, 0.25 * s, 0, T.dark); tb.hazard(1.2 * s, 0.14 * s, 0, 0.25 * s, 0.605 * s, 'z', 1);
+        for (const sx of [-1, 1]) { tb.box(0.14 * s, 1.5 * s, 1.0 * s, sx * 0.62 * s, 0.95 * s, -0.1 * s, 0x6a6e70); tb.hazard(1.0 * s, 0.12 * s, sx * 0.695 * s, 1.55 * s, -0.1 * s, 'x', sx); }
+        tb.box(0.35 * s, 0.25 * s, L * 0.9, 0, 0.55 * s + Math.sin(a) * L * 0.35, -0.2 * s + Math.cos(a) * L * 0.35, 0x3a3a36, -a, 0, 0);
+        const y0 = 0.75 * s, z0 = -0.05 * s, at = k => [0, y0 + Math.sin(a) * L * k, z0 + Math.cos(a) * L * k];
+        { const [x, y, z] = at(0.5); tube(x, y, z, 0.22 * s, L, a, 0x2e3236); }
+        for (const k of [0.25, 0.55, 0.85]) { const [x, y, z] = at(k); tube(x, y, z, 0.225 * s, 0.12 * s, a, 0xe0b020); }
+        { const [x, y, z] = at(1.0 + 0.1); tb.add(G.cone, 0.22 * s, 0.7 * s, 0.22 * s, x, y, z, 0xc8321e, Math.PI / 2 - a, 0, 0); }
+        for (let f = 0; f < 4; f++) { const [x, y, z] = at(0.06); tb.box(0.02 * s, 0.6 * s, 0.4 * s, x, y, z, 0x1e1e1e, -a, f * Math.PI / 4, 0); }
+      } else if (w.big) { tb.box(0.25 * s, 0.9 * s, 0.25 * s, 0.35 * s, 0.5 * s, -0.2 * s, 0x5a564f); tb.add(G.cyl16, 0.2 * s, 2.0 * s, 0.2 * s, 0, 0.75 * s, 0.1 * s, 0xe8e8e8, 0.95, 0, 0); tb.add(G.cone, 0.2 * s, 0.45 * s, 0.2 * s, 0, 1.23 * s, 0.98 * s, 0xb8432c, 0.95, 0, 0); for (const sx of [-1, 1]) tb.box(0.04 * s, 0.25 * s, 0.25 * s, sx * 0.2 * s, 0.25 * s, -0.75 * s, 0xb8432c, 0.95, 0, 0); }
       else { // big armoured rocket pod: 4x3 tubes with red warheads
         const a = 0.55, ca = Math.cos(a), sa = Math.sin(a), P = (x, y, z) => [x, 0.75 * s + y * ca + z * sa, 0.05 * s - y * sa + z * ca];
         tb.box(0.35 * s, 0.6 * s, 0.4 * s, 0, 0.35 * s, -0.1 * s, T.dark);
@@ -1238,7 +1275,7 @@ function updProjs(dt) {
     if (p.kind === 'mortar' && !p.wh && p.dur > 1.2 && (1 - p.t) * p.dur < 0.95 && !(p.w && (p.w.plasma || p.w.kind === 'salvo' || p.w.id === 'ballistic'))) { p.wh = 1; sfx('whistle', p.tx, p.tz); }
     if (k >= 1) {
       scene.remove(p.m); projs.splice(i, 1);
-      fx('flash', x, y, z, p.kind === 'rocket' ? 1 : 0.7); fx('blastball', x, y + 0.3, z, p.kind === 'mortar' ? (p.w && p.w.big ? 2.2 : 1.3) : p.kind === 'rocket' ? (p.w && p.w.heavy ? 1.1 : 0.85) : 0.75); fx('fire', x, y, z, 0.7); fx('smoke', x, y, z, 0.6); for (let s = 0; s < 4; s++) fx('spark', x, y, z, 1);
+      fx('flash', x, y, z, p.kind === 'rocket' ? 1 : 0.7); fx('blastball', x, y + 0.3, z, p.kind === 'mortar' ? (p.w && p.w.big ? 2.2 : 1.3) : p.kind === 'rocket' ? (p.w && p.w.heavy ? 1.1 : 0.85) : 0.75); fx('fire', x, y, z, 0.7); { const sk = p.kind === 'mortar' ? (p.w && p.w.big ? 2.6 : 1.6) : 1.1; fx('smoke', x, y + 0.5, z, sk); fx('smoke', x + rand(-1, 1), y + 1.4, z + rand(-1, 1), sk * 0.8); fx('blacksmoke', x, y + 0.6, z, sk * 0.6); } for (let s = 0; s < 4; s++) fx('spark', x, y, z, 1);
       if (p.kind === 'mortar') { const big = p.w && p.w.big; fx('flash', x, y, z, big ? 3 : 1.6); fx('dust', x, y, z, big ? 2.6 : 1.4); if (Math.abs(x - cam.x) < 90 && Math.abs(z - cam.z) < 90) { shockwave(x, z, big ? 3 : 1.8); scorch(x, z, big ? 2.4 : 1.4); fx('fireball', x, y + 0.4, z, big ? 1.5 : 0.9); for (let k = 0; k < (big ? 6 : 3); k++) fx('ember', x, y + 0.3, z, 1); if (big) throwDebris(x, y + 0.3, z, 4, 0.9); } if (big) for (let s = 0; s < 3; s++) fx('fire', x + rand(-1.5, 1.5), y, z + rand(-1.5, 1.5), 1.4); }
       sfx(p.kind === 'shell' ? 'imp_shell' : p.kind === 'rocket' ? 'imp_rocket' : (p.w && IMP_SND[p.w.id]) || 'imp_mortar', x, z); if (p.kind !== 'mortar' && p.tgt.alive) sfx('hit', x, z);
       if (p.w && p.w.fire) fireZones.push({ x, z, r: p.splash, t: 5, dps: p.w.fire, team: p.team, src: p.src, fxT: 0 });
@@ -1305,14 +1342,14 @@ function fireWeapon(src, t, w, mx, my, mz, mul) {
   if (NET.host && (Math.abs(src.x - NET.ccx) < 90 && Math.abs(src.z - NET.ccz) < 90)) NET.ev.push(['f', src.id, t.id, w.id, r1(mx), r1(my), r1(mz), mul || 1]);
   if (NET.cl) heat = Math.min(1.5, heat + 0.01);
   const dmg = w.dmg * (mul || 1) * (TEAMS[src.team].dmg[wfam(w)] || 1) * (1 + 0.1 * (src.rank || 0));
-  if (w.kind === 'shell') { const hx = (mx - src.x), hz = (mz - src.z), hl = Math.hypot(hx, hz) || 1; const big = src.kind === 'bld' ? 1.25 : 1;
-    fx('gunflash', mx, my, mz, big); fx('gunflash', mx + hx / hl * 0.9, my, mz + hz / hl * 0.9, 0.7 * big); fx('fire', mx + hx / hl * 0.6, my, mz + hz / hl * 0.6, 0.6); fx('muzzle', mx, my, mz, 1.6); }
+  if (w.kind === 'shell') { const hx = (mx - src.x), hz = (mz - src.z), hl = Math.hypot(hx, hz) || 1; const big = (src.kind === 'bld' ? 1.25 : 1) * 10;
+    fx('gunflash', mx, my, mz, big); fx('gunflash', mx + hx / hl * 0.9 * big, my, mz + hz / hl * 0.9 * big, 0.6 * big); fx('fire', mx + hx / hl * 0.6, my, mz + hz / hl * 0.6, 0.6); fx('muzzle', mx, my, mz, 1.6); }
   else if (w.kind === 'mg') fx('gunflash', mx, my, mz, 0.35);
   else fx('muzzle', mx, my, mz, 1.4);
   if (w.kind === 'mg') { const ty = t.y + (t.kind === 'bld' ? 1.5 : 0.7); tracer(mx, my, mz, t.x + rand(-0.4, 0.4), ty, t.z + rand(-0.4, 0.4)); if (Math.random() < 0.3) { fx('spark', t.x, ty, t.z, 1); if (Math.random() < 0.5) sfx('ric', t.x, t.z); } damage(t, dmg, src); sfx('mg', mx, mz); }
-  else if (w.kind === 'shell') { spawnProj('shell', src, t, dmg, 0, mx, my, mz); fx('smoke', mx, my, mz, 0.6); sfx('shell', mx, mz); }
-  else if (w.kind === 'mortar') { spawnProj('mortar', src, t, dmg, w.splash, mx, my, mz, w); fx('smoke', mx, my, mz, w.big ? 1.6 : 0.9); fx('flash', mx, my, mz, w.big ? 1.2 : 0.6); sfx(ART_SND[w.id] || 'art_mortar', mx, mz); }
-  else if (w.kind === 'salvo') { sfx(ART_SND[w.id], mx, mz); for (let i = 0; i < w.n; i++) later(i * 0.12, () => { if (src.alive && t.alive) { spawnProj('mortar', src, { ...t, x: t.x + rand(-2.5, 2.5) * (w.n > 1 ? 1 : 0), z: t.z + rand(-2.5, 2.5) * (w.n > 1 ? 1 : 0), alive: false, kind: t.kind, y: t.y }, dmg, w.splash, mx, my, mz, w, t); fx('fire', mx, my, mz, 0.55); fx('smoke', mx, my - 0.3, mz, 0.8); } }); }
+  else if (w.kind === 'shell') { spawnProj('shell', src, t, dmg, 0, mx, my, mz); const hx = mx - src.x, hz = mz - src.z, hl = Math.hypot(hx, hz) || 1; for (let i = 0; i < 6; i++) { const d = i * 1.6; fx('smoke', mx + hx / hl * d + rand(-0.8, 0.8), my + rand(-0.3, 0.6), mz + hz / hl * d + rand(-0.8, 0.8), 1.4 + i * 0.25); } fx('trail', mx, my, mz, 2.2); fx('dust', src.x, src.y + 0.3, src.z, 2.2); sfx('shell', mx, mz); }
+  else if (w.kind === 'mortar') { spawnProj('mortar', src, t, dmg, w.splash, mx, my, mz, w); fx('smoke', mx, my, mz, w.big ? 2.6 : 1.5); fx('smoke', mx, my + 0.8, mz, w.big ? 2 : 1.1); fx('trail', mx, my, mz, w.big ? 2 : 1.2); fx('flash', mx, my, mz, w.big ? 1.2 : 0.6); sfx(ART_SND[w.id] || 'art_mortar', mx, mz); }
+  else if (w.kind === 'salvo') { sfx(ART_SND[w.id], mx, mz); for (let i = 0; i < w.n; i++) later(i * 0.12, () => { if (src.alive && t.alive) { spawnProj('mortar', src, { ...t, x: t.x + rand(-2.5, 2.5) * (w.n > 1 ? 1 : 0), z: t.z + rand(-2.5, 2.5) * (w.n > 1 ? 1 : 0), alive: false, kind: t.kind, y: t.y }, dmg, w.splash, mx, my, mz, w, t); fx('fire', mx, my, mz, w.big ? 1.4 : 0.55); fx('smoke', mx, my - 0.3, mz, w.big ? 3 : 1.4); fx('trail', mx, my, mz, w.big ? 2.6 : 1.2); if (w.big) fx('dust', src.x, src.y + 0.3, src.z, 4); } }); }
   else if (w.kind === 'flame') { const ty = t.y + (t.kind === 'bld' ? 1.2 : 0.6);
     for (let k = 1; k <= 5; k++) { const f = k / 5; fx('flame', lerp(mx, t.x, f) + rand(-0.3, 0.3), lerp(my, ty, f) + rand(-0.2, 0.3), lerp(mz, t.z, f) + rand(-0.3, 0.3), 0.6 + f * 1.1); }
     if (Math.random() < 0.4) fx('smoke', t.x, ty + 1, t.z, 0.7); damage(t, dmg, src);

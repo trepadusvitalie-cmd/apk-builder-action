@@ -1241,7 +1241,18 @@ const FBALLS = []; for (let i = 0; i < 28; i++) { const outer = new THREE.Mesh(F
   const core = new THREE.Mesh(FB_GEO, new THREE.MeshBasicMaterial({ color: 0xfff4b0, transparent: true, fog: false, toneMapped: false, depthWrite: false })); core.scale.setScalar(0.62); outer.add(core);
   outer.visible = false; outer.renderOrder = 2; scene.add(outer); FBALLS.push({ m: outer, core, t: 0, life: 0, r: 1 }); }
 let fbIdx = 0;
-function fireball3D(x, y, z, r) { const f = FBALLS[fbIdx = (fbIdx + 1) % FBALLS.length]; f.t = 0; f.life = 0.45 + r * 0.04; f.r = r; f.m.position.set(x, y + r * 0.35, z); f.m.rotation.set(0, 0, 0); f.m.visible = true; f.m.scale.setScalar(r * 0.25); f.m.material.color.setRGB(1, 1, 1); f.m.material.opacity = 0.8; f.core.material.opacity = 1; f.m.material.depthWrite = false; f.core.visible = true; }
+// light rays bursting out of an explosion: thin bright spikes, mostly upwards and sideways
+const RAY_GEO = [0, 1, 2].map(v => { const B = new Builder(), up = new THREE.Vector3(0, 1, 0), q = new THREE.Quaternion(), e = new THREE.Euler(), d = new THREE.Vector3();
+  for (let i = 0; i < 14; i++) { const a = (i / 14) * TAU + v * 0.7 + Math.sin(i * 3.1 + v) * 0.2, el = 0.05 + Math.abs(Math.sin(i * 1.7 + v * 2.3)) * 1.1; d.set(Math.cos(a) * Math.cos(el), Math.sin(el), Math.sin(a) * Math.cos(el)).normalize();
+    const L = 0.6 + Math.abs(Math.sin(i * 2.9 + v)) * 0.6; q.setFromUnitVectors(up, d); e.setFromQuaternion(q);
+    B.add(G.cone, 0.045, L, 0.045, d.x * L / 2, d.y * L / 2, d.z * L / 2, i % 3 ? 0xffe9a0 : 0xffffff, e.x, e.y, e.z); }
+  return B.build(); });
+const RAYS = []; for (let i = 0; i < 20; i++) { const m = new THREE.Mesh(RAY_GEO[i % 3], new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, toneMapped: false })); m.visible = false; m.renderOrder = 3; scene.add(m); RAYS.push({ m, t: 0, life: 0.32, r: 1 }); }
+let rayIdx = 0;
+function rays3D(x, y, z, r, life) { const f = RAYS[rayIdx = (rayIdx + 1) % RAYS.length]; f.t = 0; f.r = r; f.life = life || 0.35; f.m.position.set(x, y, z); f.m.rotation.y = rand(0, TAU); f.m.visible = true; f.m.scale.setScalar(0.01); f.m.material.opacity = 1; }
+function updRays(dt) { for (const f of RAYS) { if (!f.m.visible) continue; f.t += dt; const k = f.t / f.life; if (k >= 1) { f.m.visible = false; continue; }
+  f.m.scale.setScalar(f.r * (0.5 + 1.3 * (1 - Math.pow(1 - k, 3)))); f.m.material.opacity = k < 0.25 ? 1 : 1 - (k - 0.25) / 0.75; } }
+function fireball3D(x, y, z, r) { const f = FBALLS[fbIdx = (fbIdx + 1) % FBALLS.length]; f.t = 0; f.life = 0.45 + r * 0.04; f.r = r; f.m.position.set(x, y + r * 0.35, z); f.m.rotation.set(0, 0, 0); f.m.visible = true; f.m.scale.setScalar(r * 0.25); rays3D(x, y + r * 0.35, z, r * 1.5, f.life * 0.75); f.m.material.color.setRGB(1, 1, 1); f.m.material.opacity = 0.8; f.core.material.opacity = 1; f.m.material.depthWrite = false; f.core.visible = true; }
 function updFireballs(dt) { for (const f of FBALLS) { if (!f.m.visible) continue; f.t += dt; const k = f.t / f.life; if (k >= 1) { f.m.visible = false; continue; }
   const grow = k < 0.3 ? 1 - Math.pow(1 - k / 0.3, 3) : 1; f.m.scale.setScalar(f.r * (0.25 + 0.75 * grow + 0.15 * k)); f.m.position.y += dt * f.r * 0.6;
   const dark = k < 0.45 ? 0 : (k - 0.45) / 0.55; f.m.material.color.setRGB(1, 1 - dark * 0.55, 1 - dark * 0.85); f.core.material.opacity = Math.max(0, 1 - k * 1.8); f.core.visible = k < 0.55;
@@ -1261,7 +1272,7 @@ function impactFx(x, y, z, sz, big) {
 const reloadVis = [];
 function updReload() { const t = performance.now(); for (let i = reloadVis.length - 1; i >= 0; i--) if (t >= reloadVis[i].t) { reloadVis[i].m.visible = true; reloadVis.splice(i, 1); } }
 function updBoomFx(dt) {
-  updReload(); updFireballs(dt);
+  updReload(); updFireballs(dt); updRays(dt);
   for (const s of shocks) if (s.m.visible) { s.t += dt; const k = s.t / s.max; if (k >= 1) { s.m.visible = false; continue; } const r = s.r * (0.6 + 2.4 * Math.sqrt(k)); s.m.scale.set(r, 1, r); s.m.material.opacity = 0.55 * (1 - k) * (1 - k); }
   for (const s of scorches) if (s.m.visible) { s.t -= dt; if (s.t < 8) s.m.material.opacity = 0.85 * Math.max(0, s.t / 8); if (s.t <= 0) s.m.visible = false; }
   for (const d of debris) if (d.m.visible) { d.t -= dt; const p = d.m.position; d.vy -= 18 * dt; p.x += d.vx * dt; p.y += d.vy * dt; p.z += d.vz * dt; d.m.rotation.x += d.rx * dt; d.m.rotation.z += d.rz * dt;

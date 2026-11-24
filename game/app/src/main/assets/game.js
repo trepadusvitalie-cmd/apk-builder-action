@@ -193,6 +193,13 @@ class Builder {
     if (ax === 'z') { this.box(len, h, t, x, y, z, 0xe0b020); for (let i = 0; i < n; i++) this.box(st * 0.42, h * 1.15, t * 1.6, x - len / 2 + (i + 0.5) * st, y, z + sgn * 0.008, 0x161616, 0, 0, 0.62); }
     else { this.box(t, h, len, x, y, z, 0xe0b020); for (let i = 0; i < n; i++) this.box(t * 1.6, h * 1.15, st * 0.42, x + sgn * 0.008, y, z - len / 2 + (i + 0.5) * st, 0x161616, 0.62, 0, 0); }
     return this; }
+  // woodland camouflage patches on the faces of a box (box rotated rx about X)
+  camo(w, h, d, x, y, z, rx = 0, n = 7) { const C = [0x8fa284, 0xcdbf92, 0x4f5f3c, 0x5a4a30], c = Math.cos(rx), s = Math.sin(rx);
+    const put = (ox, oy, oz, sx, sy, sz, i) => this.add(G.sph, sx, sy, sz, x + ox, y + oy * c - oz * s, z + oy * s + oz * c, C[i % 4], rx, 0, 0);
+    for (let i = 0; i < n; i++) { const u = ((i * 0.618) % 1) - 0.5, v = ((i * 0.382 + 0.2) % 1) - 0.5;
+      put(u * w * 0.8, h / 2, v * d * 0.85, w * 0.22, 0.02, d * 0.16, i);
+      put((i % 2 ? 1 : -1) * w / 2, u * h * 0.6, v * d * 0.85, 0.02, h * 0.22, d * 0.17, i + 1); }
+    return this; }
   cyl(r, h, x, y, z, c, rx, ry, rz) { return this.add(G.cyl10, r, h, r, x, y, z, c, rx, ry, rz); }
   build() {
     let n = 0; for (const p of this.parts) n += p.geo.attributes.position.count;
@@ -451,7 +458,7 @@ const WP = {
   truck: { name: 'Constructor', dmg: 0, range: 0, cost: 40, kind: 'truck' },
 };
 // longer attack range for every weapon (direct fire +40%, artillery +25%, flamer +25%)
-for (const k in WP) { const w = WP[k]; if (w.range) w.range = Math.round(w.range * (w.art ? 1.25 : w.kind === 'flame' ? 1.25 : 1.4)); if (w.art) w.rof = +(w.rof * 0.55).toFixed(2); } // artillery reloads ~45% faster
+for (const k in WP) { const w = WP[k]; if (w.range) w.range = Math.round(w.range * (w.art ? 1.25 : w.kind === 'flame' ? 1.25 : 1.4)); if (w.art) { w.rof = +(w.rof * 0.55).toFixed(2); w.sight = w.range; w.range = w.range * 3; } } // artillery: 3x range, but beyond its own sight it needs radar // artillery reloads ~45% faster
 const wfam = w => w.art ? 'art' : w.fam || w.id;
 const BASE_SPEED = 5.4;
 const BD = {
@@ -464,7 +471,7 @@ const BD = {
   ptrap: { name: 'Arici antitanc', icon: '', hp: 380, cost: 15, size: 2.2, time: 5, h: 1.5, req: 'traps' },
   pwall: { name: 'Zid beton', icon: '', hp: 1400, cost: 40, size: 5, time: 10, h: 3, r: 2.7, req: 'traps' },
   repairbay: { name: 'Atelier reparații', icon: '', hp: 800, cost: 160, size: 5.5, time: 24, h: 4, req: 'repair' },
-  radartower: { name: 'Turn radar', icon: '', hp: 600, cost: 140, size: 3.5, time: 20, h: 7, req: 'radar' },
+  radartower: { name: 'Turn radar', icon: '', hp: 600, cost: 140, size: 3.5, time: 20, h: 7, req: null },
   citadel: { name: 'CETATEA', icon: '🏰', hp: 6000, cost: 0, size: 10, time: 1, h: 9 },
   wall: { name: 'Zid', icon: '🧱', hp: 1400, cost: 0, size: 5, time: 1, h: 3, r: 2.7 },
 };
@@ -660,12 +667,26 @@ function designName(d) { return d.wp === 'truck' && d.ch === 'light' && d.pr ===
 
 // ================= GEOMETRY CACHES =================
 const geoCache = {};
+const MSL_GEO = {};
+function missileGeo(kind) {
+  if (MSL_GEO[kind]) return MSL_GEO[kind];
+  const K = { rocket: [0.045, 0xeeeeee, 0xc8321e, 0x3a3a36, 0xc8321e], viper: [0.05, 0xeeeeee, 0xc8321e, 0x3a3a36, 0xc8321e], seeker: [0.04, 0x7d8a5c, 0x3f9fe0, 0x3a3a36, 0xcdbf92],
+    salvo: [0.06, 0xb8bcc0, 0xc8321e, 0x3a3a36, 0x5a5e60], orizont: [0.065, 0x5f6a48, 0xc8321e, 0x2e3328, 0xcdbf92], ballistic: [0.08, 0xe8e8e8, 0xb8432c, 0xb8432c, 0x3a3a36] }[kind] || [0.05, 0xeeeeee, 0xc8321e, 0x333333, 0xc8321e];
+  const [r, body, nose, fin, band] = K, B = new Builder(), bl = 0.78;
+  B.add(G.cyl16, r, bl, r, 0, -0.5 + bl / 2, 0, body);                                     // body (built along +y)
+  B.add(G.cone, r, 1 - bl, r, 0, -0.5 + bl + (1 - bl) / 2, 0, nose);                         // nose
+  for (const k of kind === 'orizont' ? [0.22, 0.42, 0.62] : [0.55]) B.add(G.cyl16, r * 1.04, 0.035, r * 1.04, 0, -0.5 + bl * k, 0, band);
+  B.add(G.cyl16, r * 0.8, 0.04, r * 0.8, 0, -0.5 - 0.01, 0, 0x222222);                       // nozzle
+  for (let f = 0; f < 4; f++) { const a = f * Math.PI / 2 + Math.PI / 4; B.box(0.012, 0.16, r * 2.6, Math.sin(a) * r * 1.6, -0.42, Math.cos(a) * r * 1.6, fin, 0, a, 0); }
+  if (kind === 'orizont' || kind === 'ballistic') for (let f = 0; f < 4; f++) { const a = f * Math.PI / 2 + Math.PI / 4; B.box(0.008, 0.08, r * 1.6, Math.sin(a) * r * 1.2, 0.05, Math.cos(a) * r * 1.2, fin, 0, a, 0); }
+  const g = B.build(); g.rotateX(Math.PI / 2); return MSL_GEO[kind] = g;
+}
 function unitGeo(d, team) {
   const key = d.ch + d.pr + d.wp + team; if (geoCache[key]) return geoCache[key];
   const hu = CH[d.ch].hue; const tn = (c, k) => new THREE.Color(c).lerp(new THREE.Color(hu), 0.65).multiplyScalar(k).getHex(); const tk = hu ? 1 : 1;
   const T = CH[d.ch].gold ? { ...TEAMC[team], body: 0xd4a832, dark: 0x5e4c1c } : hu ? { ...TEAMC[team], body: tn(TEAMC[team].body, 1), dark: tn(TEAMC[team].dark, 0.55) } : TEAMC[team], s = CH[d.ch].size, B = new Builder(), tb = new Builder(); B.uvScale = tb.uvScale = 1.1;
   const L = 2.4 * s, W = 1.65 * s, H = (d.pr === 'tracks' || d.pr === 'halftrack' ? 0.6 : 0.72) * s; const PI2 = Math.PI / 2;
-  let by;
+  let by, msl = null;
   const wheel = (r, wd, x, y, z, sx) => { // chunky off-road tyre: tread rings, deep rim, coloured hub
     B.add(G.cyl16, r, wd, r, x, y, z, 0x1b1a18, 0, 0, PI2);
     for (const o of [-0.36, 0, 0.36]) B.add(G.cyl16, r * 1.04, wd * 0.16, r * 1.04, x + o * wd, y, z, 0x262421, 0, 0, PI2);
@@ -762,12 +783,12 @@ function unitGeo(d, team) {
     tb.add(G.cyl6, 0.02, 1.3 * s, 0.02, -0.45 * s, 0.95 * s, -0.8 * s, 0x222222, -0.12, 0, 0);
   } else if (d.wp === 'viper') { // pivot block with two side arms, each carrying a pair of long missiles
     tb.add(G.cyl16, 0.45 * s, 0.14 * s, 0.45 * s, 0, 0.07 * s, 0, T.dark); tb.add(G.cyl16, 0.47 * s, 0.04 * s, 0.47 * s, 0, 0.15 * s, 0, T.acc);
-    tb.box(0.55 * s, 0.42 * s, 0.75 * s, 0, 0.38 * s, -0.05 * s, T.body); tb.box(0.5 * s, 0.1 * s, 0.6 * s, 0, 0.62 * s, -0.1 * s, T.dark);
+    tb.box(0.55 * s, 0.42 * s, 0.75 * s, 0, 0.38 * s, -0.05 * s, T.body); tb.camo(0.57 * s, 0.42 * s, 0.75 * s, 0, 0.38 * s, -0.05 * s, 0, 5); tb.box(0.5 * s, 0.1 * s, 0.6 * s, 0, 0.62 * s, -0.1 * s, T.dark);
     tb.hazard(0.55 * s, 0.1 * s, 0, 0.3 * s, 0.33 * s, 'z', 1); tb.box(0.16 * s, 0.08 * s, 0.03 * s, 0.12 * s, 0.5 * s, 0.33 * s, 0x3fb0ff);
     const a = 0.22, ca = Math.cos(a), sa = Math.sin(a);
     for (const sx of [-1, 1]) { const ax = sx * 0.62 * s;
       tb.box(0.36 * s, 0.1 * s, 0.14 * s, sx * 0.4 * s, 0.48 * s, 0, 0x3a3a36);                       // arm
-      tb.box(0.42 * s, 0.08 * s, 1.5 * s, ax, 0.5 * s + 0.1 * s * sa, 0.15 * s, T.body, -a, 0, 0);   // rail
+      tb.box(0.42 * s, 0.08 * s, 1.5 * s, ax, 0.5 * s + 0.1 * s * sa, 0.15 * s, T.body, -a, 0, 0); tb.camo(0.42 * s, 0.1 * s, 1.5 * s, ax, 0.5 * s + 0.1 * s * sa, 0.15 * s, -a, 4);   // rail
       tb.hazard(0.42 * s, 0.06 * s, ax, 0.45 * s - 0.6 * s * sa, 0.15 * s - 0.6 * s * ca, 'z', -1);
       for (const ox of [-0.11, 0.11]) { const x = ax + ox * s, y = 0.62 * s, z = 0.12 * s, L = 1.7 * s;
         tb.add(G.cyl16, 0.085 * s, L, 0.085 * s, x, y + sa * 0.05 * s, z, 0xe8e8e8, Math.PI / 2 - a, 0, 0);
@@ -784,7 +805,7 @@ function unitGeo(d, team) {
   } else if (WP[d.wp].art && d.wp !== 'mortar') {
     const w = WP[d.wp], A = w.art; const tint = w.fire ? 0xb8432c : w.emp ? 0x3f9fe0 : w.plasma ? 0x2eaa4a : T.body;
     if (A === 'mortar') {
-      tb.add(G.cyl16, 0.55 * s, 0.12 * s, 0.55 * s, 0, 0.06 * s, 0, 0x5a564f); tb.add(G.cyl16, 0.57 * s, 0.05 * s, 0.57 * s, 0, 0.14 * s, 0, T.acc);
+      tb.add(G.cyl16, 0.55 * s, 0.12 * s, 0.55 * s, 0, 0.06 * s, 0, 0x5a564f); tb.add(G.cyl16, 0.57 * s, 0.05 * s, 0.57 * s, 0, 0.14 * s, 0, T.acc); tb.box(1.0 * s, 0.32 * s, 0.34 * s, 0, 0.3 * s, -0.5 * s, 0x6f7a52); tb.camo(1.0 * s, 0.34 * s, 0.34 * s, 0, 0.3 * s, -0.5 * s, 0, 4); for (const sx of [-1, 1]) { tb.box(0.3 * s, 0.3 * s, 0.7 * s, sx * 0.55 * s, 0.25 * s, -0.1 * s, 0x6f7a52); tb.camo(0.3 * s, 0.32 * s, 0.7 * s, sx * 0.55 * s, 0.25 * s, -0.1 * s, 0, 3); }
       tb.add(G.cyl16, 0.17 * s, 1.1 * s, 0.17 * s, 0, 0.6 * s, 0.2 * s, 0x34342e, 0.75, 0, 0); for (let k = 0; k < 2; k++) tb.add(G.cyl16, 0.2 * s, 0.08 * s, 0.2 * s, 0, (0.45 + k * 0.3) * s, (0.08 + k * 0.28) * s, tint, 0.75, 0, 0);
       if (w.emp) for (const sx of [-1, 1]) tb.add(G.sph, 0.12 * s, 0.12 * s, 0.12 * s, sx * 0.4 * s, 0.3 * s, -0.3 * s, 0x66e0ff);
       else tb.box(0.6 * s, 0.3 * s, 0.35 * s, 0, 0.25 * s, -0.4 * s, w.fire ? 0xa83a26 : 0x6a5a3a);
@@ -796,34 +817,34 @@ function unitGeo(d, team) {
         tb.box(1.3 * s, 0.5 * s, 0.9 * s, 0, 0.35 * s, -0.25 * s, T.dark); tb.hazard(1.3 * s, 0.14 * s, 0, 0.3 * s, 0.205 * s, 'z', 1);
         for (const sx of [-1, 1]) tb.box(0.12 * s, 0.8 * s, 0.5 * s, sx * 0.55 * s, 0.6 * s, -0.1 * s, 0x4a4a46);
         for (let b = -1; b <= 1; b++) { const ox = b * 0.5 * s;
-          { const [x, y, z] = P(ox, 0, 0); tb.box(0.46 * s, 0.5 * s, 1.5 * s, x, y, z, 0x7b7f82, -a, 0, 0); }
+          { const [x, y, z] = P(ox, 0, 0); tb.box(0.46 * s, 0.5 * s, 1.5 * s, x, y, z, 0x6f7a52, -a, 0, 0); tb.camo(0.46 * s, 0.52 * s, 1.5 * s, x, y, z, -a, 5); }
           { const [x, y, z] = P(ox, 0, -0.55 * s); tb.box(0.48 * s, 0.52 * s, 0.1 * s, x, y, z, T.body, -a, 0, 0); }
           for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) { const [x, y, z] = P(ox + (i - 1) * 0.13 * s, (j - 1) * 0.13 * s, 0.76 * s); tb.add(G.cyl10, 0.055 * s, 0.04 * s, 0.055 * s, x, y, z, 0x111111, Math.PI / 2 - a, 0, 0); } }
-      } else if (d.wp === 'smissile') { // inclined rail with four slim guided missiles, blue seeker heads
-        const a = 0.5, ca = Math.cos(a), sa = Math.sin(a);
-        tb.box(1.0 * s, 0.45 * s, 0.8 * s, 0, 0.32 * s, -0.2 * s, T.dark); tb.hazard(1.0 * s, 0.12 * s, 0, 0.28 * s, 0.205 * s, 'z', 1);
-        tb.box(1.15 * s, 0.1 * s, 1.9 * s, 0, 0.72 * s, 0.1 * s, 0x5a5e60, -a, 0, 0);
-        for (const sx of [-1, 1]) tb.box(0.08 * s, 0.6 * s, 0.3 * s, sx * 0.45 * s, 0.5 * s, -0.3 * s, 0x3a3a36);
-        for (const ox of [-0.39, -0.13, 0.13, 0.39]) { const x = ox * s, y = 0.86 * s, z = 0.1 * s, L = 1.9 * s;
-          tube(x, y, z, 0.075 * s, L, a, 0xeef0f2);
-          tb.add(G.cone, 0.075 * s, 0.32 * s, 0.075 * s, x, y + sa * (L / 2 + 0.16 * s), z + ca * (L / 2 + 0.16 * s), 0x3f9fe0, Math.PI / 2 - a, 0, 0);
-          for (const k of [-0.42, 0.15]) for (const f of [-1, 1]) tb.box(0.012 * s, 0.16 * s, 0.2 * s, x + f * 0.07 * s, y + sa * L * k + 0.05 * s, z + ca * L * k, 0x3a3a36, -a, 0, 0); }
-      } else if (d.wp === 'omissile') { // one huge missile on a tall erector between blast shields
-        const a = 1.05, L = 3.4 * s;
-        tb.box(1.2 * s, 0.4 * s, 1.2 * s, 0, 0.25 * s, 0, T.dark); tb.hazard(1.2 * s, 0.14 * s, 0, 0.25 * s, 0.605 * s, 'z', 1);
-        for (const sx of [-1, 1]) { tb.box(0.14 * s, 1.5 * s, 1.0 * s, sx * 0.62 * s, 0.95 * s, -0.1 * s, 0x6a6e70); tb.hazard(1.0 * s, 0.12 * s, sx * 0.695 * s, 1.55 * s, -0.1 * s, 'x', sx); }
-        tb.box(0.35 * s, 0.25 * s, L * 0.9, 0, 0.55 * s + Math.sin(a) * L * 0.35, -0.2 * s + Math.cos(a) * L * 0.35, 0x3a3a36, -a, 0, 0);
-        const y0 = 0.75 * s, z0 = -0.05 * s, at = k => [0, y0 + Math.sin(a) * L * k, z0 + Math.cos(a) * L * k];
-        { const [x, y, z] = at(0.5); tube(x, y, z, 0.22 * s, L, a, 0x2e3236); }
-        for (const k of [0.25, 0.55, 0.85]) { const [x, y, z] = at(k); tube(x, y, z, 0.225 * s, 0.12 * s, a, 0xe0b020); }
-        { const [x, y, z] = at(1.0 + 0.1); tb.add(G.cone, 0.22 * s, 0.7 * s, 0.22 * s, x, y, z, 0xc8321e, Math.PI / 2 - a, 0, 0); }
-        for (let f = 0; f < 4; f++) { const [x, y, z] = at(0.06); tb.box(0.02 * s, 0.6 * s, 0.4 * s, x, y, z, 0x1e1e1e, -a, f * Math.PI / 4, 0); }
-      } else if (w.big) { tb.box(0.25 * s, 0.9 * s, 0.25 * s, 0.35 * s, 0.5 * s, -0.2 * s, 0x5a564f); tb.add(G.cyl16, 0.2 * s, 2.0 * s, 0.2 * s, 0, 0.75 * s, 0.1 * s, 0xe8e8e8, 0.95, 0, 0); tb.add(G.cone, 0.2 * s, 0.45 * s, 0.2 * s, 0, 1.23 * s, 0.98 * s, 0xb8432c, 0.95, 0, 0); for (const sx of [-1, 1]) tb.box(0.04 * s, 0.25 * s, 0.25 * s, sx * 0.2 * s, 0.25 * s, -0.75 * s, 0xb8432c, 0.95, 0, 0); }
+      } else if (d.wp === 'smissile') { // camouflaged launch box: 2x2 canisters, seeker tips peeking out of the openings
+        const a = 0.45, ca = Math.cos(a), sa = Math.sin(a), P = (x, y, z) => [x, 0.78 * s + y * ca + z * sa, 0.05 * s - y * sa + z * ca];
+        tb.box(1.0 * s, 0.45 * s, 0.8 * s, 0, 0.3 * s, -0.25 * s, 0x5f6a48); tb.camo(1.0 * s, 0.47 * s, 0.8 * s, 0, 0.3 * s, -0.25 * s, 0, 5); tb.hazard(1.0 * s, 0.12 * s, 0, 0.26 * s, 0.155 * s, 'z', 1);
+        for (const sx of [-1, 1]) tb.box(0.1 * s, 0.7 * s, 0.4 * s, sx * 0.5 * s, 0.55 * s, -0.15 * s, 0x3a3a36);
+        { const [x, y, z] = P(0, 0, 0); tb.box(1.0 * s, 0.86 * s, 2.0 * s, x, y, z, 0x6f7a52, -a, 0, 0); tb.camo(1.0 * s, 0.88 * s, 2.0 * s, x, y, z, -a, 8); }
+        { const [x, y, z] = P(0, 0.45 * s, -0.2 * s); tb.box(0.7 * s, 0.06 * s, 0.9 * s, x, y, z, 0x4f5f3c, -a, 0, 0); }                 // top hatch
+        for (const zz of [-0.6, 0.6]) { const [x, y, z] = P(0, 0, zz * s); tb.box(1.04 * s, 0.9 * s, 0.08 * s, x, y, z, 0x3a3a36, -a, 0, 0); } // reinforcing ribs
+        { const [x, y, z] = P(0, 0, 1.0 * s); tb.box(1.0 * s, 0.86 * s, 0.04 * s, x, y, z, 0x2e3328, -a, 0, 0); }                         // front face
+        for (const ox of [-0.24, 0.24]) for (const oy of [-0.2, 0.2]) { const [x, y, z] = P(ox * s, oy * s, 1.02 * s); tb.add(G.cyl16, 0.15 * s, 0.05 * s, 0.15 * s, x, y, z, 0x111111, Math.PI / 2 - a, 0, 0);
+          const [x2, y2, z2] = P(ox * s, oy * s, 1.0 * s); tb.add(G.cone, 0.09 * s, 0.22 * s, 0.09 * s, x2, y2, z2, 0x3f9fe0, Math.PI / 2 - a, 0, 0); }
+      } else if (d.wp === 'omissile') { // one huge missile sealed in a camouflaged canister on an erector
+        const a = 0.95, L = 3.6 * s, ca = Math.cos(a), sa = Math.sin(a);
+        tb.box(1.3 * s, 0.4 * s, 1.3 * s, 0, 0.25 * s, 0, 0x5f6a48); tb.camo(1.3 * s, 0.42 * s, 1.3 * s, 0, 0.25 * s, 0, 0, 6); tb.hazard(1.3 * s, 0.14 * s, 0, 0.25 * s, 0.655 * s, 'z', 1);
+        for (const sx of [-1, 1]) { tb.box(0.16 * s, 0.9 * s, 0.5 * s, sx * 0.62 * s, 0.75 * s, -0.35 * s, 0x3a3a36); tb.add(G.cyl10, 0.06 * s, 1.4 * s, 0.06 * s, sx * 0.3 * s, 0.9 * s, -0.1 * s, 0xb8b8b0, 0.7, 0, 0); }
+        const c0 = [0, 0.75 * s + sa * L * 0.42, -0.35 * s + ca * L * 0.42];
+        tb.box(1.0 * s, 1.0 * s, L, c0[0], c0[1], c0[2], 0x6f7a52, -a, 0, 0); tb.camo(1.0 * s, 1.02 * s, L, c0[0], c0[1], c0[2], -a, 10);
+        for (const k of [-0.38, 0, 0.38]) tb.box(1.06 * s, 1.06 * s, 0.1 * s, c0[0], c0[1] + sa * L * k, c0[2] + ca * L * k, 0x3a3a36, -a, 0, 0);       // canister rings
+        { const k = 0.505; tb.box(0.9 * s, 0.9 * s, 0.05 * s, c0[0], c0[1] + sa * L * k, c0[2] + ca * L * k, 0x2e3328, -a, 0, 0); tb.add(G.cyl16, 0.32 * s, 0.07 * s, 0.32 * s, c0[0], c0[1] + sa * L * (k + 0.01), c0[2] + ca * L * (k + 0.01), 0xc8321e, Math.PI / 2 - a, 0, 0); } // front cap
+        msl = { kind: 'orizont', x: c0[0], y: c0[1], z: c0[2], a, len: L * 0.92 };
+      } else if (w.big) { tb.box(0.25 * s, 0.9 * s, 0.25 * s, 0.35 * s, 0.5 * s, -0.2 * s, 0x5a564f); tb.box(0.5 * s, 0.12 * s, 2.0 * s, 0, 0.45 * s, 0.05 * s, 0x3a3a36, -0.62, 0, 0); msl = { kind: 'ballistic', x: 0, y: 0.8 * s, z: 0.15 * s, a: 0.62, len: 2.45 * s }; }
       else { // big armoured rocket pod: 4x3 tubes with red warheads
         const a = 0.55, ca = Math.cos(a), sa = Math.sin(a), P = (x, y, z) => [x, 0.75 * s + y * ca + z * sa, 0.05 * s - y * sa + z * ca];
         tb.box(0.35 * s, 0.6 * s, 0.4 * s, 0, 0.35 * s, -0.1 * s, T.dark);
         tb.box(0.9 * s, 0.22 * s, 0.7 * s, 0, 0.2 * s, -0.1 * s, T.body); tb.hazard(0.9 * s, 0.1 * s, 0, 0.2 * s, 0.255 * s, 'z', 1);
-        { const [x, y, z] = P(0, 0, 0); tb.box(1.2 * s, 0.82 * s, 1.5 * s, x, y, z, T.body, -a, 0, 0); }
+        { const [x, y, z] = P(0, 0, 0); tb.box(1.2 * s, 0.82 * s, 1.5 * s, x, y, z, T.body, -a, 0, 0); tb.camo(1.2 * s, 0.84 * s, 1.5 * s, x, y, z, -a); }
         for (const zz of [-0.45, 0.45]) { const [x, y, z] = P(0, 0, zz * s); tb.box(1.26 * s, 0.86 * s, 0.12 * s, x, y, z, T.acc, -a, 0, 0); }
         for (const sx of [-1, 1]) { const [x, y, z] = P(sx * 0.62 * s, 0, 0); tb.box(0.06 * s, 0.9 * s, 1.56 * s, x, y, z, T.dark, -a, 0, 0); }
         for (let i = 0; i < 4; i++) for (let j = 0; j < 3; j++) { const ox = (i - 1.5) * 0.26 * s, oy = (j - 1) * 0.24 * s;
@@ -851,8 +872,8 @@ function unitGeo(d, team) {
       const L = (w.big ? 2.7 : 2.2) * s, rr = (w.big ? 0.14 : 0.1) * s, ang = 0.5, ca = Math.cos(ang), sa = Math.sin(ang);
       const py = 0.6 * s, pz = 0.5 * s, along = (k, ox) => [ox, py + sa * L * k, pz + ca * L * k], R = Math.PI / 2 - ang;
       tb.add(G.cyl16, 0.6 * s, 0.14 * s, 0.6 * s, 0, 0.07 * s, 0, T.dark); tb.add(G.cyl16, 0.62 * s, 0.04 * s, 0.62 * s, 0, 0.15 * s, 0, T.acc);
-      tb.box(1.0 * s, 0.5 * s, 1.15 * s, 0, 0.42 * s, -0.1 * s, T.body);                       // gun house
-      tb.box(1.0 * s, 0.34 * s, 0.4 * s, 0, 0.5 * s, 0.52 * s, T.body, -0.55, 0, 0);            // sloped glacis
+      tb.box(1.0 * s, 0.5 * s, 1.15 * s, 0, 0.42 * s, -0.1 * s, T.body); tb.camo(1.02 * s, 0.5 * s, 1.15 * s, 0, 0.42 * s, -0.1 * s, 0, 7);                       // gun house
+      tb.box(1.0 * s, 0.34 * s, 0.4 * s, 0, 0.5 * s, 0.52 * s, T.body, -0.55, 0, 0); tb.camo(1.0 * s, 0.36 * s, 0.4 * s, 0, 0.5 * s, 0.52 * s, -0.55, 3);            // sloped glacis
       tb.box(0.94 * s, 0.08 * s, 1.1 * s, 0, 0.7 * s, -0.12 * s, T.dark);                       // roof
       tb.add(G.cyl16, 0.16 * s, 0.1 * s, 0.16 * s, 0.25 * s, 0.78 * s, -0.35 * s, T.dark); tb.box(0.14 * s, 0.08 * s, 0.03 * s, -0.3 * s, 0.6 * s, 0.38 * s, 0x3fb0ff);
       tb.hazard(1.0 * s, 0.18 * s, 0, 0.26 * s, 0.47 * s, 'z', 1);
@@ -871,7 +892,7 @@ function unitGeo(d, team) {
       tb.add(G.cyl6, 0.02, 1.0 * s, 0.02, -0.4 * s, 1.2 * s, -0.55 * s, 0x222222);
     }
   } else if (d.wp === 'mortar') {
-    tb.add(G.cyl16, 0.55 * s, 0.12 * s, 0.55 * s, 0, 0.06 * s, 0, 0x5a564f); tb.add(G.cyl16, 0.57 * s, 0.05 * s, 0.57 * s, 0, 0.14 * s, 0, T.acc);
+    tb.add(G.cyl16, 0.55 * s, 0.12 * s, 0.55 * s, 0, 0.06 * s, 0, 0x5a564f); tb.add(G.cyl16, 0.57 * s, 0.05 * s, 0.57 * s, 0, 0.14 * s, 0, T.acc); tb.box(1.0 * s, 0.32 * s, 0.34 * s, 0, 0.3 * s, -0.5 * s, 0x6f7a52); tb.camo(1.0 * s, 0.34 * s, 0.34 * s, 0, 0.3 * s, -0.5 * s, 0, 4); for (const sx of [-1, 1]) { tb.box(0.3 * s, 0.3 * s, 0.7 * s, sx * 0.55 * s, 0.25 * s, -0.1 * s, 0x6f7a52); tb.camo(0.3 * s, 0.32 * s, 0.7 * s, sx * 0.55 * s, 0.25 * s, -0.1 * s, 0, 3); }
     tb.add(G.cyl16, 0.17 * s, 1.1 * s, 0.17 * s, 0, 0.6 * s, 0.2 * s, 0x34342e, 0.75, 0, 0); tb.add(G.cyl16, 0.2 * s, 0.12 * s, 0.2 * s, 0, 1.0 * s, 0.55 * s, 0x2a2a26, 0.75, 0, 0);
     for (const sx of [-1, 1]) tb.add(G.cyl6, 0.04 * s, 0.7 * s, 0.04 * s, sx * 0.25 * s, 0.35 * s, 0.35 * s, 0x3a3a36, -0.5, 0, sx * 0.3);
     tb.box(0.3 * s, 0.25 * s, 0.3 * s, 0.35 * s, 0.25 * s, -0.3 * s, 0x6a5a3a); tb.box(0.3 * s, 0.25 * s, 0.3 * s, -0.35 * s, 0.25 * s, -0.3 * s, 0x6a5a3a);
@@ -911,7 +932,7 @@ function unitGeo(d, team) {
     tb.add(G.cyl6, 0.05, 0.6 * s, 0.05, 0, 0.9 * s, -1.25 * s, 0x333333);
     tb.add(G.sph, 0.12 * s, 0.12 * s, 0.12 * s, 0.3 * s, 0.7 * s, 0.4 * s, 0xff9a20);
   }
-  const res = { body: B.build(), tur: tb.build(), turY: top };
+  const res = { body: B.build(), tur: tb.build(), turY: top, msl };
   geoCache[key] = res; return res;
 }
 
@@ -1116,14 +1137,15 @@ function createUnit(team, d, x, z, tier, pal) {
   const T = TEAMS[team]; const st = unitStats(d, team); if (tier !== undefined) st.hp = Math.round(st.hp * TIERS[tier].hp); const g = unitGeo(d, pal);
   const grp = new THREE.Group(); grp.rotation.order = 'YXZ';
   const body = new THREE.Mesh(g.body, matUnit); body.castShadow = true; grp.add(body);
-  const tur = new THREE.Mesh(g.tur, matUnit); tur.position.y = g.turY; tur.castShadow = true; grp.add(tur);
+  const tur = new THREE.Mesh(g.tur, matUnit); tur.position.y = g.turY; tur.castShadow = true; grp.add(tur); const mslMesh = attachMissile(tur, g);
   if (d.pr === 'hover') { const gl = new THREE.Mesh(glowDisc, glowMat[pal]); gl.scale.set(CH[d.ch].size * 1.3, 1, CH[d.ch].size * 1.7); gl.position.y = 0.05; grp.add(gl); }
   scene.add(grp);
-  const u = { kind: 'unit', team, d, st, x, z, y: heightAt(x, z), hp: st.hp, maxHp: st.hp, r: 1.0 * CH[d.ch].size, h: g.turY + 0.6, heading: team === 0 ? Math.PI * 0.75 : -Math.PI * 0.25, vx: 0, vz: 0, mesh: grp, tur, turYaw: 0, state: 'idle', tx: x, tz: z, target: null, cd: rand(0, 0.5), acq: rand(0, 0.3), isTruck: d.wp === 'truck', bob: Math.random() * 6, smokeT: 0, alive: true, id: uid++, lastHit: -99, amove: false, lx: x, lz: z, tier, post: null, pal };
+  const u = { kind: 'unit', team, d, st, x, z, y: heightAt(x, z), hp: st.hp, maxHp: st.hp, r: 1.0 * CH[d.ch].size, h: g.turY + 0.6, heading: team === 0 ? Math.PI * 0.75 : -Math.PI * 0.25, vx: 0, vz: 0, mesh: grp, tur, mslMesh, turYaw: 0, state: 'idle', tx: x, tz: z, target: null, cd: rand(0, 0.5), acq: rand(0, 0.3), isTruck: d.wp === 'truck', bob: Math.random() * 6, smokeT: 0, alive: true, id: uid++, lastHit: -99, amove: false, lx: x, lz: z, tier, post: null, pal };
   ents.push(u); EID.set(u.id, u); T.units++; return u;
 }
 
 function bldY(x, z, size) { const r = size * 0.4; let s = 0; const pts = [[0, 0], [r, r], [-r, r], [r, -r], [-r, -r]]; for (const p of pts) s += heightAt(x + p[0], z + p[1]); return s / pts.length; }
+function attachMissile(turMesh, g) { if (!g.msl) return null; const m = new THREE.Mesh(missileGeo(g.msl.kind), matVC); m.position.set(g.msl.x, g.msl.y, g.msl.z); m.rotation.x = -g.msl.a; m.scale.setScalar(g.msl.len); m.castShadow = true; turMesh.add(m); return m; }
 function makeBldMesh(type, team) { // team = colour palette index
   const g = bldGeo(type, team); const grp = new THREE.Group(); const main = new THREE.Mesh(g.geo, matVC); main.castShadow = true; main.receiveShadow = true; grp.add(main); const parts = {};
   if (type === 'hq') { const d = new THREE.Mesh(g.anim.dish, matVC); d.position.set(-1.2, 5.4, -1.2); grp.add(d); parts.dish = d; }
@@ -1134,7 +1156,7 @@ function makeBldMesh(type, team) { // team = colour palette index
   if (type === 'tower' || BD[type].tw) {
     const t = new THREE.Group(); t.position.y = BD[type].ty || 3.3; t.scale.setScalar(BD[type].ts || 1); grp.add(t);
     parts.wl = BD[type].tw ? [BD[type].tw] : ['mg', 'cannon', 'rockets', 'laser'];
-    for (const w of parts.wl) { const m = new THREE.Mesh(unitGeo({ ch: 'heavy', pr: 'wheels', wp: w }, team).tur, matUnit); m.castShadow = true; m.visible = false; t.add(m); parts[w] = m; }
+    for (const w of parts.wl) { const ug = unitGeo({ ch: 'heavy', pr: 'wheels', wp: w }, team); const m = new THREE.Mesh(ug.tur, matUnit); m.castShadow = true; m.visible = false; t.add(m); parts[w] = m; const ms = attachMissile(m, ug); if (ms) parts.msl = ms; }
     parts.tur = t;
   }
   return { grp, parts };
@@ -1210,7 +1232,23 @@ const debris = []; let dbIdx = 0; for (let i = 0; i < 48; i++) { const m = new T
 function shockwave(x, z, r) { const s = shocks.find(q => !q.m.visible) || shocks[0]; s.m.position.set(x, heightAt(x, z) + 0.25, z); s.t = 0; s.max = 0.32 + r * 0.03; s.r = r; s.m.visible = true; }
 function scorch(x, z, r) { const s = scorches[scIdx = (scIdx + 1) % scorches.length]; s.m.position.set(x, heightAt(x, z) + 0.08, z); s.m.rotation.y = rand(0, TAU); s.m.scale.set(r * 2, 1, r * 2); s.t = 40; s.m.visible = true; s.m.material.opacity = 0.85; }
 function throwDebris(x, y, z, n, pw) { for (let i = 0; i < n; i++) { const d = debris[dbIdx = (dbIdx + 1) % debris.length]; const sz = rand(0.15, 0.4) * Math.min(2, pw); d.m.scale.set(sz, sz * rand(0.4, 1), sz * rand(0.6, 1.4)); d.m.position.set(x, y, z); const a = rand(0, TAU), v = rand(3, 7) * pw; d.vx = Math.sin(a) * v; d.vz = Math.cos(a) * v; d.vy = rand(5, 10) * pw; d.rx = rand(-12, 12); d.rz = rand(-12, 12); d.t = 3.5; d.smk = 0; d.burn = Math.random() < 0.5; d.m.visible = true; } }
+const EXPL = 3; // impact explosions are 3x their original size
+function impactFx(x, y, z, sz, big) {
+  const near = Math.abs(x - cam.x) < 110 && Math.abs(z - cam.z) < 110;
+  fx('flash', x, y, z, sz * 1.2); fx('blastball', x, y + 0.35 * sz, z, sz); fx('fire', x, y, z, sz * 0.5);
+  if (!near) { fx('smoke', x, y + 0.5, z, sz * 0.9); return; }
+  for (let i = 0; i < 2; i++) fx('fireball', x + rand(-0.4, 0.4) * sz, y + rand(0.1, 0.5) * sz, z + rand(-0.4, 0.4) * sz, sz * 0.7);
+  fx('smoke', x, y + 0.5 * sz, z, sz * 0.9); fx('smoke', x + rand(-1, 1) * sz * 0.4, y + 0.9 * sz, z + rand(-1, 1) * sz * 0.4, sz * 0.7); fx('blacksmoke', x, y + 0.4 * sz, z, sz * 0.55);
+  fx('dust', x, y, z, sz * 0.9); for (let k = 0; k < 6; k++) fx('spark', x, y + 0.3, z, 1.2); for (let k = 0; k < 4; k++) fx('ember', x, y + 0.3, z, 1);
+  shockwave(x, z, sz * 0.9); scorch(x, z, sz * 0.6); if (sz > 4) throwDebris(x, y + 0.3, z, big ? 6 : 3, 0.9);
+  if (big) for (let k = 0; k < 4; k++) fx('fire', x + rand(-1, 1) * sz * 0.4, y, z + rand(-1, 1) * sz * 0.4, sz * 0.45);
+  shake = Math.max(shake, Math.min(0.6, sz * 0.05 * Math.max(0, 1 - Math.hypot(x - cam.x, z - cam.z) / 80)));
+}
+// missiles on launchers: hidden after launch, back after reload
+const reloadVis = [];
+function updReload() { const t = performance.now(); for (let i = reloadVis.length - 1; i >= 0; i--) if (t >= reloadVis[i].t) { reloadVis[i].m.visible = true; reloadVis.splice(i, 1); } }
 function updBoomFx(dt) {
+  updReload();
   for (const s of shocks) if (s.m.visible) { s.t += dt; const k = s.t / s.max; if (k >= 1) { s.m.visible = false; continue; } const r = s.r * (0.6 + 2.4 * Math.sqrt(k)); s.m.scale.set(r, 1, r); s.m.material.opacity = 0.55 * (1 - k) * (1 - k); }
   for (const s of scorches) if (s.m.visible) { s.t -= dt; if (s.t < 8) s.m.material.opacity = 0.85 * Math.max(0, s.t / 8); if (s.t <= 0) s.m.visible = false; }
   for (const d of debris) if (d.m.visible) { d.t -= dt; const p = d.m.position; d.vy -= 18 * dt; p.x += d.vx * dt; p.y += d.vy * dt; p.z += d.vz * dt; d.m.rotation.x += d.rx * dt; d.m.rotation.z += d.rz * dt;
@@ -1249,13 +1287,19 @@ function tracer(x1, y1, z1, x2, y2, z2) { const t = tracers[trIdx = (trIdx + 1) 
 const plasmaMat = new THREE.MeshBasicMaterial({ color: 0x9affb8 });
 const shellGeo = new THREE.SphereGeometry(0.2, 6, 4), rocketGeo = new THREE.ConeGeometry(0.18, 1.0, 6).rotateX(Math.PI / 2);
 const shellMat = new THREE.MeshBasicMaterial({ color: 0xffd27a }), rocketMat = new THREE.MeshBasicMaterial({ color: 0xe8e8e8 });
+const mslExh = new THREE.ConeGeometry(0.07, 0.7, 8).rotateX(-Math.PI / 2).translate(0, 0, -0.85), mslExhCore = new THREE.ConeGeometry(0.035, 0.4, 8).rotateX(-Math.PI / 2).translate(0, 0, -0.7);
 const exhGeo = new THREE.ConeGeometry(0.12, 1.1, 6).rotateX(-Math.PI / 2).translate(0, 0, -0.85), exhCoreGeo = new THREE.ConeGeometry(0.06, 0.6, 6).rotateX(-Math.PI / 2).translate(0, 0, -0.6);
 const exhMat = new THREE.MeshBasicMaterial({ color: 0xff7a1a, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false }), exhCoreMat = new THREE.MeshBasicMaterial({ color: 0xfff0a0, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
 const projs = [];
-function spawnProj(kind, src, tgt, dmg, splash, ox, oy, oz, w, realT) {
-  const rk = kind === 'rocket' || (w && w.kind === 'salvo'); const m = new THREE.Mesh(rk ? rocketGeo : shellGeo, w && w.plasma ? plasmaMat : rk ? rocketMat : shellMat); scene.add(m); if (rk && !(w && w.plasma)) { m.add(new THREE.Mesh(exhGeo, exhMat)); m.add(new THREE.Mesh(exhCoreGeo, exhCoreMat)); } if (kind === 'rocket') m.scale.setScalar(w && w.heavy ? 2.2 : 1.5); if (kind === 'mortar') m.scale.setScalar(w && w.big ? 2.6 : w && w.plasma ? 2.4 : w && w.kind === 'salvo' ? 1.7 : 1.6);
+function spawnProj(kind, src, tgt, dmg, splash, ox, oy, oz, w, realT, mlen, lift) {
+  const rk = kind === 'rocket' || (w && w.kind === 'salvo'); let m;
+  if (rk && !(w && w.plasma)) { const mk = !w ? 'rocket' : w.id === 'viper' ? 'viper' : w.id === 'smissile' ? 'seeker' : w.id === 'omissile' ? 'orizont' : w.id === 'ballistic' ? 'ballistic' : w.kind === 'salvo' ? 'salvo' : 'rocket';
+    m = new THREE.Mesh(missileGeo(mk), matVC); m.add(new THREE.Mesh(mslExh, exhMat)); m.add(new THREE.Mesh(mslExhCore, exhCoreMat));
+    m.scale.setScalar(mlen || ({ rocket: 1.5, viper: 2.3, seeker: 2.0, orizont: 4.5, ballistic: 3, salvo: 1.4 })[mk]); }
+  else { m = new THREE.Mesh(shellGeo, w && w.plasma ? plasmaMat : shellMat); if (kind === 'mortar') m.scale.setScalar(w && w.big ? 2.6 : w && w.plasma ? 2.4 : 1.6); }
+  scene.add(m); if (lift) m.position.set(ox, oy, oz);
   const tx = tgt.x, tz = tgt.z, ty = tgt.y + (tgt.kind === 'bld' ? 1.5 : 0.8); const d = Math.hypot(tx - ox, tz - oz); const spd = kind === 'shell' ? 34 : kind === 'mortar' ? 26 : 22;
-  projs.push({ kind, m, team: src.team, src, tgt, ox, oy, oz, tx, ty, tz, t: 0, dur: Math.max(0.12, d / spd), arc: kind === 'shell' ? d * 0.05 : kind === 'mortar' ? d * 0.55 : d * 0.13, dmg, splash, smokeT: 0, w, realT });
+  projs.push({ kind, m, team: src.team, src, tgt, ox, oy, oz, tx, ty, tz, t: 0, dur: Math.max(0.12, kind === 'mortar' ? Math.min(d / spd, 3 + d / 120) : d / spd), arc: kind === 'shell' ? d * 0.05 : kind === 'mortar' ? Math.min(d * 0.55, 60 + d * 0.1) : d * 0.13, dmg, splash, smokeT: 0, w, realT, lift: !!lift, big: !!(w && w.big) });
 }
 const fireZones = [];
 function updFireZones(dt) {
@@ -1268,15 +1312,15 @@ function updProjs(dt) {
   for (let i = projs.length - 1; i >= 0; i--) {
     const p = projs[i]; p.t += dt / p.dur;
     if (p.tgt.alive) { p.tx = p.tgt.x; p.tz = p.tgt.z; p.ty = p.tgt.y + (p.tgt.kind === 'bld' ? 1.5 : 0.8); }
-    const k = Math.min(1, p.t); const x = lerp(p.ox, p.tx, k), z = lerp(p.oz, p.tz, k), y = lerp(p.oy, p.ty, k) + Math.sin(k * Math.PI) * p.arc;
+    const k = Math.min(1, p.lift ? Math.pow(p.t, 1.6) : p.t); const x = lerp(p.ox, p.tx, k), z = lerp(p.oz, p.tz, k), y = lerp(p.oy, p.ty, k) + Math.sin(k * Math.PI) * p.arc;
     const px = p.m.position.x, py = p.m.position.y, pz = p.m.position.z;
-    p.m.position.set(x, y, z); if (p.w && p.w.plasma && Math.random() < 0.5) fx('spark', x, y, z, 0.6); if (p.kind === 'rocket' || (p.w && p.w.kind === 'salvo')) { p.m.lookAt(x + (x - px), y + (y - py), z + (z - pz)); p.smokeT -= dt; if (p.smokeT <= 0) { const hv = p.w && p.w.heavy; p.smokeT = 0.035; fx('trail', x, y, z, hv ? 0.75 : 0.55); fx('fire', x, y, z, hv ? 0.45 : 0.32); } }
+    p.m.position.set(x, y, z); if (p.w && p.w.plasma && Math.random() < 0.5) fx('spark', x, y, z, 0.6); if (p.kind === 'rocket' || (p.w && p.w.kind === 'salvo')) { p.m.lookAt(x + (x - px), y + (y - py), z + (z - pz)); p.smokeT -= dt; if (p.smokeT <= 0) { const hv = p.w && (p.w.heavy || p.w.big); p.smokeT = 0.035; fx('trail', x, y, z, p.big ? 1.8 : hv ? 0.75 : 0.55); fx('fire', x, y, z, p.big ? 1.0 : hv ? 0.45 : 0.32); if (p.big && Math.random() < 0.3) fx('blacksmoke', x, y, z, 0.8); } }
     else if (p.kind === 'mortar' && !(p.w && p.w.plasma)) { p.smokeT -= dt; if (p.smokeT <= 0) { p.smokeT = 0.045; fx('trail', x, y, z, p.w && p.w.big ? 0.6 : 0.45); if (Math.random() < 0.35) fx('fire', x, y, z, 0.25); } }
     if (p.kind === 'mortar' && !p.wh && p.dur > 1.2 && (1 - p.t) * p.dur < 0.95 && !(p.w && (p.w.plasma || p.w.kind === 'salvo' || p.w.id === 'ballistic'))) { p.wh = 1; sfx('whistle', p.tx, p.tz); }
     if (k >= 1) {
       scene.remove(p.m); projs.splice(i, 1);
-      fx('flash', x, y, z, p.kind === 'rocket' ? 1 : 0.7); fx('blastball', x, y + 0.3, z, p.kind === 'mortar' ? (p.w && p.w.big ? 2.2 : 1.3) : p.kind === 'rocket' ? (p.w && p.w.heavy ? 1.1 : 0.85) : 0.75); fx('fire', x, y, z, 0.7); { const sk = p.kind === 'mortar' ? (p.w && p.w.big ? 2.6 : 1.6) : 1.1; fx('smoke', x, y + 0.5, z, sk); fx('smoke', x + rand(-1, 1), y + 1.4, z + rand(-1, 1), sk * 0.8); fx('blacksmoke', x, y + 0.6, z, sk * 0.6); } for (let s = 0; s < 4; s++) fx('spark', x, y, z, 1);
-      if (p.kind === 'mortar') { const big = p.w && p.w.big; fx('flash', x, y, z, big ? 3 : 1.6); fx('dust', x, y, z, big ? 2.6 : 1.4); if (Math.abs(x - cam.x) < 90 && Math.abs(z - cam.z) < 90) { shockwave(x, z, big ? 3 : 1.8); scorch(x, z, big ? 2.4 : 1.4); fx('fireball', x, y + 0.4, z, big ? 1.5 : 0.9); for (let k = 0; k < (big ? 6 : 3); k++) fx('ember', x, y + 0.3, z, 1); if (big) throwDebris(x, y + 0.3, z, 4, 0.9); } if (big) for (let s = 0; s < 3; s++) fx('fire', x + rand(-1.5, 1.5), y, z + rand(-1.5, 1.5), 1.4); }
+      { const big = p.w && p.w.big; const base = p.kind === 'shell' ? 1 : p.kind === 'rocket' ? (p.w && p.w.heavy ? 1.3 : 1) : p.w && p.w.kind === 'salvo' ? (big ? 2.6 : 1.2) : big ? 2.6 : 1.5;
+        impactFx(x, y, z, Math.min(6.5, base * EXPL), big); }
       sfx(p.kind === 'shell' ? 'imp_shell' : p.kind === 'rocket' ? 'imp_rocket' : (p.w && IMP_SND[p.w.id]) || 'imp_mortar', x, z); if (p.kind !== 'mortar' && p.tgt.alive) sfx('hit', x, z);
       if (p.w && p.w.fire) fireZones.push({ x, z, r: p.splash, t: 5, dps: p.w.fire, team: p.team, src: p.src, fxT: 0 });
       if (p.w && p.w.emp) { sfx('art_emp', x, z); for (const e of ents) if (e.alive && e.kind === 'unit' && e.team !== p.team && Math.hypot(e.x - x, e.z - z) < p.splash) e.stun = p.w.emp; for (let s = 0; s < 6; s++) fx('spark', x + rand(-2, 2), y + rand(0, 2), z + rand(-2, 2), 1.2); }
@@ -1331,6 +1375,14 @@ function kill(e) {
 }
 const timers = []; function later(t, fn) { timers.push({ t: S.time + t, fn }); }
 
+// radar spotting: enemies near a friendly radar tower / radar vehicle can be shelled by artillery emplacements from afar
+const SPOT = [[], []]; let spotT = 0;
+function updSpot(dt) { spotT -= dt; if (spotT > 0) return; spotT = 0.5;
+  for (let t = 0; t < 2; t++) { const src = []; const adv = TEAMS[t].tech.has('radar2');
+    for (const e of ents) if (e.alive && e.team === t && ((e.type === 'radartower' && e.complete) || (e.kind === 'unit' && e.st.w.kind === 'radar'))) src.push([e.x, e.z, e.kind === 'bld' ? (adv ? 80 : 60) : (adv ? 52 : 40)]);
+    const out = []; if (src.length) for (const e of ents) { if (!e.alive || e.team === t || (e.team !== 0 && e.team !== 1)) continue; for (const [x, z, r] of src) if (Math.hypot(e.x - x, e.z - z) < r) { out.push(e); break; } }
+    SPOT[t] = out; } }
+function nearestSpotted(team, x, z, range) { let best = null, bd = 1e9; for (const e of SPOT[team] || []) { if (!e.alive) continue; const d = Math.hypot(e.x - x, e.z - z) - e.r; if (d < range && d < bd) { bd = d; best = e; } } return best; }
 function nearestEnemy(team, x, z, range) {
   let best = null, bd = 1e9;
   for (const e of ents) { if (!e.alive || e.team === team) continue; const d = Math.hypot(e.x - x, e.z - z) - e.r; if (d > range) continue; const s = d + (e.kind === 'bld' ? 5 : 0); if (s < bd) { bd = s; best = e; } }
@@ -1349,7 +1401,10 @@ function fireWeapon(src, t, w, mx, my, mz, mul) {
   if (w.kind === 'mg') { const ty = t.y + (t.kind === 'bld' ? 1.5 : 0.7); tracer(mx, my, mz, t.x + rand(-0.4, 0.4), ty, t.z + rand(-0.4, 0.4)); if (Math.random() < 0.3) { fx('spark', t.x, ty, t.z, 1); if (Math.random() < 0.5) sfx('ric', t.x, t.z); } damage(t, dmg, src); sfx('mg', mx, mz); }
   else if (w.kind === 'shell') { spawnProj('shell', src, t, dmg, 0, mx, my, mz); const hx = mx - src.x, hz = mz - src.z, hl = Math.hypot(hx, hz) || 1; for (let i = 0; i < 6; i++) { const d = i * 1.6; fx('smoke', mx + hx / hl * d + rand(-0.8, 0.8), my + rand(-0.3, 0.6), mz + hz / hl * d + rand(-0.8, 0.8), 1.4 + i * 0.25); } fx('trail', mx, my, mz, 2.2); fx('dust', src.x, src.y + 0.3, src.z, 2.2); sfx('shell', mx, mz); }
   else if (w.kind === 'mortar') { spawnProj('mortar', src, t, dmg, w.splash, mx, my, mz, w); fx('smoke', mx, my, mz, w.big ? 2.6 : 1.5); fx('smoke', mx, my + 0.8, mz, w.big ? 2 : 1.1); fx('trail', mx, my, mz, w.big ? 2 : 1.2); fx('flash', mx, my, mz, w.big ? 1.2 : 0.6); sfx(ART_SND[w.id] || 'art_mortar', mx, mz); }
-  else if (w.kind === 'salvo') { sfx(ART_SND[w.id], mx, mz); for (let i = 0; i < w.n; i++) later(i * 0.12, () => { if (src.alive && t.alive) { spawnProj('mortar', src, { ...t, x: t.x + rand(-2.5, 2.5) * (w.n > 1 ? 1 : 0), z: t.z + rand(-2.5, 2.5) * (w.n > 1 ? 1 : 0), alive: false, kind: t.kind, y: t.y }, dmg, w.splash, mx, my, mz, w, t); fx('fire', mx, my, mz, w.big ? 1.4 : 0.55); fx('smoke', mx, my - 0.3, mz, w.big ? 3 : 1.4); fx('trail', mx, my, mz, w.big ? 2.6 : 1.2); if (w.big) fx('dust', src.x, src.y + 0.3, src.z, 4); } }); }
+  else if (w.kind === 'salvo') { sfx(ART_SND[w.id], mx, mz);
+    const ms = w.n === 1 ? (src.mslMesh || (src.parts && src.parts.msl)) : null; let mlen = 0;
+    if (ms && ms.visible) { const v = new THREE.Vector3(); ms.getWorldPosition(v); mx = v.x; my = v.y; mz = v.z; mlen = ms.getWorldScale(v).x; ms.visible = false; reloadVis.push({ m: ms, t: performance.now() + w.rof * 700 }); }
+    for (let i = 0; i < w.n; i++) later(i * 0.12, () => { if (src.alive && t.alive) { spawnProj('mortar', src, { ...t, x: t.x + rand(-2.5, 2.5) * (w.n > 1 ? 1 : 0), z: t.z + rand(-2.5, 2.5) * (w.n > 1 ? 1 : 0), alive: false, kind: t.kind, y: t.y }, dmg, w.splash, mx, my, mz, w, t, mlen, !!mlen); fx('fire', mx, my, mz, w.big ? 1.4 : 0.55); fx('smoke', mx, my - 0.3, mz, w.big ? 3 : 1.4); fx('trail', mx, my, mz, w.big ? 2.6 : 1.2); if (w.big) fx('dust', src.x, src.y + 0.3, src.z, 4); } }); }
   else if (w.kind === 'flame') { const ty = t.y + (t.kind === 'bld' ? 1.2 : 0.6);
     for (let k = 1; k <= 5; k++) { const f = k / 5; fx('flame', lerp(mx, t.x, f) + rand(-0.3, 0.3), lerp(my, ty, f) + rand(-0.2, 0.3), lerp(mz, t.z, f) + rand(-0.3, 0.3), 0.6 + f * 1.1); }
     if (Math.random() < 0.4) fx('smoke', t.x, ty + 1, t.z, 0.7); damage(t, dmg, src);
@@ -1423,9 +1478,9 @@ function updUnit(u, dt) {
   u.acq -= dt;
   if (w.dmg > 0 && u.acq <= 0 && u.state !== 'attack') {
     u.acq = 0.35 + Math.random() * 0.15;
-    const passive = u.state === 'move'; const vis = u.st.range + (passive ? 0 : 9);
+    const passive = u.state === 'move'; const vis = (w.art ? w.sight : u.st.range) + (passive ? 0 : 9);
     if (!u.target || !inRange(u, u.target)) {
-      const t = nearestEnemy(u.team, u.x, u.z, vis);
+      const t = nearestEnemy(u.team, u.x, u.z, vis) || (w.art && !passive ? nearestSpotted(u.team, u.x, u.z, u.st.range) : null);
       if (t) { u.target = t; if (u.state === 'idle' || u.state === 'amove') { if (u.state === 'idle') { u.lx = u.x; u.lz = u.z; } u.state = 'engage'; } }
       else if (passive && u.target && !inRange(u, u.target, 4)) u.target = null;
     }
@@ -1527,7 +1582,8 @@ function updBld(b, dt) {
     const wk = b.def.tw || (b.tier !== undefined ? TIERS[b.tier].tower : (T.tech.has('tower2') ? 'cannon' : 'mg'));
     for (const k of b.parts.wl) b.parts[k].visible = k === wk; const w = WP[wk]; const range = w.range + (b.def.rb !== undefined ? b.def.rb : 2);
     if (NET.cl) { b.parts.tur.rotation.y = b.turYaw = b.turYaw + angDiff(b.turYaw, b.nYaw || 0) * Math.min(1, dt * 8); } else {
-    b.acq -= dt; if (b.acq <= 0) { b.acq = 0.4; if (!b.target || !b.target.alive || Math.hypot(b.target.x - b.x, b.target.z - b.z) - b.target.r > range) b.target = nearestEnemy(b.team, b.x, b.z, range); }
+    b.acq -= dt; if (b.acq <= 0) { b.acq = 0.4; if (!b.target || !b.target.alive || Math.hypot(b.target.x - b.x, b.target.z - b.z) - b.target.r > (b.tgtR || range)) { const own = w.art ? w.sight + (b.def.rb || 0) : range; b.target = nearestEnemy(b.team, b.x, b.z, own); b.tgtR = own;
+      if (!b.target && w.art) { const er = w.id === 'omissile' ? 1e9 : range; b.target = nearestSpotted(b.team, b.x, b.z, er); if (b.target) b.tgtR = er; } } }
     b.cd -= dt;
     if (b.target && b.target.alive) {
       const a = Math.atan2(b.target.x - b.x, b.target.z - b.z); const local = angDiff(b.rot, a); b.turYaw += clamp(angDiff(b.turYaw, local), -4 * dt, 4 * dt);
@@ -1885,7 +1941,7 @@ let buildTab = 'base', defCls = 'tower', labBr = 0;
 function buildMenu(T) {
   let h = `<div class="tabs"><button data-act="btab" data-v="base" class="${buildTab === 'base' ? 'on' : ''}">${UIC.factory}Bază</button><button data-act="btab" data-v="def" class="${buildTab === 'def' ? 'on' : ''}">${UIC.tower}Apărare</button></div>`;
   if (buildTab === 'base') {
-    h += `<div class="grid">${bdBtn('generator')}${bdBtn('factory')}${bdBtn('lab')}${['repairbay', 'radartower'].filter(k => T.tech.has(BD[k].req)).map(bdBtn).join('')}${ents.some(e => e.alive && e.team === 0 && e.type === 'hq') ? '' : bdBtn('hq')}</div>`;
+    h += `<div class="grid">${bdBtn('generator')}${bdBtn('factory')}${bdBtn('lab')}${['repairbay', 'radartower'].filter(k => !BD[k].req || T.tech.has(BD[k].req)).map(bdBtn).join('')}${ents.some(e => e.alive && e.team === 0 && e.type === 'hq') ? '' : bdBtn('hq')}</div>`;
   } else {
     const cls = Object.keys(DCLASS).filter(c => !DCLASS[c].req || T.tech.has(DCLASS[c].req)); if (!cls.includes(defCls)) defCls = 'tower';
     h += `<div class="chips">${cls.map(c => `<button data-act="dcls" data-v="${c}" class="${defCls === c ? 'on' : ''}">${DCLASS[c].name}</button>`).join('')}</div>`;
@@ -1950,7 +2006,7 @@ function renderPanel() {
       }
     } else if (b.type === 'generator') { h += `<div class="hint">Extrage petrol din sondă și produce +${(4 * T.powMul).toFixed(1)} ⚡/s.</div>`; }
     else if (b.type === 'repairbay') h += `<div class="hint">Repară automat unitățile tale aflate la mai puțin de 11 m.</div>`;
-    else if (b.type === 'radartower') h += `<div class="hint">Unitățile tale din jur (${T.tech.has('radar2') ? 44 : 34} m) trag mai departe și mai tare.</div>`;
+    else if (b.type === 'radartower') h += `<div class="hint">Unitățile tale din jur (${T.tech.has('radar2') ? 44 : 34} m) trag mai departe și mai tare. Inamicii văzuți de radar (${T.tech.has('radar2') ? 80 : 60} m) pot fi loviți de artilerie de la distanță: toată artileria până la bătaia ei maximă (de 3× mai mare decât ce vede singură), Rachetă Orizont fără limită.</div>`;
     else if (b.def.tw) h += `<div class="hint">${b.def.name}: ${WP[b.def.tw].name.toLowerCase()}, rază ${WP[b.def.tw].range + (b.def.rb || 0)} m. Atacă automat inamicii din apropiere.</div>`;
     else if (b.type === 'tower') h += `<div class="hint">Atacă automat inamicii din apropiere. ${TEAMS[0].tech.has('tower2') ? 'Armă: tun.' : 'Armă: mitralieră (cercetează „Turnuri cu tun”).'}</div>`;
     else if (b.type === 'hq') h += `<div class="hint">Centrul de comandă. Dă +1.5 ⚡/s. Nu-l pierde!</div>`;
@@ -2499,7 +2555,7 @@ function update(dt) {
   for (const e of ents) if (e.alive) (e.kind === 'unit' ? updUnit : updBld)(e, dt);
   separate();
   for (let i = ents.length - 1; i >= 0; i--) if (!ents[i].alive) ents.splice(i, 1);
-  updProjs(dt); updWrecks(dt); updWells(dt); updFireZones(dt); updBoomFx(dt);
+  updSpot(dt); updProjs(dt); updWrecks(dt); updWells(dt); updFireZones(dt); updBoomFx(dt);
   for (let i = markers.length - 1; i >= 0; i--) { const m = markers[i]; m.t -= dt; m.m.scale.setScalar(0.4 + m.t); m.m.material.opacity = m.t; if (m.t <= 0) { scene.remove(m.m); markers.splice(i, 1); } }
   engineAudio(dt); heat = Math.max(0, heat - dt * 0.08); AU.heat = lerp(AU.heat, clamp(heat, 0, 1), dt * 0.5);
   winT += dt; if (winT > 1) { winT = 0; checkEnd(); }
@@ -2618,7 +2674,7 @@ window.onBack = () => {
   if (S.paused || !$('pause').classList.contains('hidden')) return false;
   S.paused = !NET.on; $('pause').classList.remove('hidden'); return true;
 };
-window.__game = { killNear: () => { for (const e of ents) if (e.alive && e.team === 1 && Math.hypot(e.x - PLAYER2.x, e.z - PLAYER2.z) < 25) kill(e); }, NET, execCmd, doCmd, byId, PLAYER, PLAYER2, S, TEAMS, ents, cam, setSel, sel: () => sel, createUnit, createBuilding, sfx, AU, SB, buildSfx, projs: () => projs, BD, WP };
+window.__game = { SPOT, nearestSpotted, WP,  killNear: () => { for (const e of ents) if (e.alive && e.team === 1 && Math.hypot(e.x - PLAYER2.x, e.z - PLAYER2.z) < 25) kill(e); }, NET, execCmd, doCmd, byId, PLAYER, PLAYER2, S, TEAMS, ents, cam, setSel, sel: () => sel, createUnit, createBuilding, sfx, AU, SB, buildSfx, projs: () => projs, BD, WP };
 
 resize(); updateCamera(0); requestAnimationFrame(loop);
 // background scene behind the intro

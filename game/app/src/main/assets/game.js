@@ -48,7 +48,7 @@ RINGS.forEach((R, ri) => {
   }
 });
 OUTPOSTS.push({ x: 0, z: 0, tier: 3, a: 0, prodT: 0, nextWave: 0, citadel: true });
-const FLAT = [{ x: PLAYER.x, z: PLAYER.z, r: 26 }, { x: PLAYER2.x, z: PLAYER2.z, r: 20 }, { x: 0, z: 0, r: 34 }, ...OUTPOSTS.filter(o => !o.citadel).map(o => ({ x: o.x, z: o.z, r: 16 }))];
+const FLAT = [{ x: PLAYER.x, z: PLAYER.z - 8, r: 44 }, { x: PLAYER2.x, z: PLAYER2.z, r: 28 }, { x: 0, z: 0, r: 34 }, ...OUTPOSTS.filter(o => !o.citadel).map(o => ({ x: o.x, z: o.z, r: 16 }))];
 const WELL_POS = [[-14, PLAYER.z + 12], [16, PLAYER.z + 10], [0, PLAYER.z - 16], [PLAYER2.x + 12, PLAYER2.z + 9], ...[[-40, 118], [42, 116], [-70, 95], [72, 92], [0, 70], [-95, 40], [96, 30], [-20, -96], [30, -120], [-110, -40], [110, -70], [-60, -130], [70, 60], [-60, 60]].map(([x, z]) => [x * SC, z * SC])];
 { let k = 0; const extra = Math.round(16 * (SC * SC - 1)); for (let t = 0; k < extra && t < 4000; t++) { const x = (hash2(t, 7) - 0.5) * (MAP - 40), z = (hash2(t, 13) - 0.5) * (MAP - 40);
   if (Math.hypot(x, z) < 40 || Math.hypot(x - PLAYER.x, z - PLAYER.z) < 35 || Math.hypot(x - PLAYER2.x, z - PLAYER2.z) < 30 || OUTPOSTS.some(o => Math.hypot(o.x - x, o.z - z) < 24) || WELL_POS.some(w => Math.hypot(w[0] - x, w[1] - z) < 30)) continue; WELL_POS.push([x, z]); k++; } }
@@ -1467,6 +1467,7 @@ function execCmd(c, remote) {
     case 'st': for (const u of U(c[1])) if (u.kind === 'unit') { u.state = 'idle'; u.target = null; u.amove = false; u.vx = u.vz = 0; } break;
     case 'pl': { const [, type, x, z, ids] = c; const def = BD[type]; if (!def) break;
       if (!canPlace(type, x, z, 0)) { say('Nu se poate construi aici'); break; }
+      if (type === 'lab' && labCount() >= MAX_LABS) { say(`Maxim ${MAX_LABS} laboratoare`); break; }
       if (T.energy < def.cost) { say('Energie insuficientă'); break; }
       T.energy -= def.cost; const b = createBuilding(0, type, x, z, false, undefined, undefined, remote ? 2 : 0); for (const u of U(ids)) if (u.isTruck) { u.state = 'build'; u.buildTarget = b; u.target = null; } break; }
     case 'ra': { const f = byId(c[1]); if (f && f.team === 0) f.rally = { x: c[2], z: c[3] }; break; }
@@ -1474,7 +1475,9 @@ function execCmd(c, remote) {
       let k = 0; for (let i = 0; i < Math.min(5, c[3] | 0); i++) { const cost = unitStats(d, 0).cost; if (T.energy < cost || f.queue.length >= 8) break; T.energy -= cost; f.queue.push({ ch: d.ch, pr: d.pr, wp: d.wp }); k++; }
       if (!k) say('Energie insuficientă sau coadă plină'); panelSig = ''; break; }
     case 'uq': { const f = byId(c[1]); if (!f || f.team !== 0 || !f.queue) break; const i = c[2] | 0; const d = f.queue[i]; if (d) { T.energy += unitStats(d, 0).cost; f.queue.splice(i, 1); if (i === 0) f.prod = 0; panelSig = ''; } break; }
-    case 'rs': { const l = byId(c[1]); const r = RS.find(x => x.id === c[2]); if (!l || !l.alive || l.team !== 0 || l.type !== 'lab' || !l.complete || !r || l.res) break;
+    case 'rs': { let l = byId(c[1]); const r = RS.find(x => x.id === c[2]); if (!r) break;
+      if (!l || !l.alive || l.team !== 0 || l.type !== 'lab' || !l.complete || l.res) l = ents.find(e => e.alive && e.team === 0 && e.type === 'lab' && e.complete && !e.res);
+      if (!l) { say('Toate laboratoarele sunt ocupate'); break; }
       if (T.tech.has(r.id) || T.researching.has(r.id) || (r.req && !r.req.every(q => T.tech.has(q)))) break;
       if (T.energy >= r.cost) { T.energy -= r.cost; l.res = r; l.resProg = 0; T.researching.add(r.id); panelSig = ''; } else say('Energie insuficientă'); break; }
   }
@@ -1740,7 +1743,7 @@ let toastT = 0;
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); toastT = 2.6; }
 function fmtTime(s) { s = Math.floor(s); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
 function computeSig() {
-  const T = TEAMS[0]; let s = (placing ? 'P' + placing.type + placing.valid : '') + '|' + sel.map(e => e.id).join(',') + '|' + T.tech.size + '|' + amoveNext;
+  const T = TEAMS[0]; let s = (placing ? 'P' + placing.type + placing.valid : '') + '|' + sel.map(e => e.id).join(',') + '|' + T.tech.size + '|' + amoveNext + '|' + labCount();
   for (const e of sel) if (e.kind === 'bld') s += `|${e.complete}|${e.queue.length}|${e.res ? e.res.id : ''}|${[...T.researching].join()}`;
   if (sel[0] && sel[0].type === 'lab') s += '|L' + ents.filter(e => e.alive && e.team === 0 && e.type === 'lab').map(e => e.id + (e.complete ? 'c' : '') + (e.res ? e.res.id : '')).join(',');
   const costs = [35, 50, 65, 75, 100, 120, 130, 140, 150, 160, 180, 200, 220, 250, 300]; s += '|' + costs.map(c => T.energy >= c ? 1 : 0).join('');
@@ -1760,7 +1763,9 @@ function buildMenu(T) {
   }
   return h;
 }
-function bdBtn(type) { const d = BD[type]; return `<button data-act="build" data-v="${type}" ${TEAMS[0].energy < d.cost ? 'disabled' : ''}>${BIC(type)}<span class="bn">${d.short || d.name}</span><small>${d.cost}<i class="eu">⚡</i></small></button>`; }
+const MAX_LABS = 5; const labCount = () => ents.filter(e => e.alive && e.team === 0 && e.type === 'lab').length;
+function bdBtn(type) { const d = BD[type]; const lim = type === 'lab' ? labCount() : -1; const full = lim >= MAX_LABS;
+  return `<button data-act="build" data-v="${type}" ${TEAMS[0].energy < d.cost || full ? 'disabled' : ''}>${BIC(type)}<span class="bn">${d.short || d.name}${lim >= 0 ? ` ${lim}/${MAX_LABS}` : ''}</span><small>${full ? 'maxim' : d.cost + '<i class="eu">⚡</i>'}</small></button>`; }
 let lastDesigns = [];
 function renderPanel() {
   const T = TEAMS[0]; let h = '';
@@ -1793,7 +1798,8 @@ function renderPanel() {
       h += `<div class="lbl">Cercetare</div>`;
       const labs = ents.filter(e => e.alive && e.team === 0 && e.type === 'lab');
       const busy = labs.filter(l => l.res).length;
-      h += `<div class="labs"><div class="labsh">Laboratoare: <b>${labs.length}</b> · ocupate <b>${busy}</b> · libere <b>${labs.length - busy}</b></div>`;
+      const free = labs.filter(l => l.complete && !l.res).length;
+      h += `<div class="labs"><div class="labsh">Laboratoare: <b>${labs.length}/${MAX_LABS}</b> · cercetări în paralel: <b>${busy}</b> · libere <b>${free}</b>${free ? ' — alege o cercetare, merge în primul laborator liber' : ''}</div>`;
       labs.forEach((l, i) => { h += `<button class="labrow ${l === b ? 'cur' : ''} ${l.res ? '' : 'idle'}" data-act="sellab" data-v="${l.id}">${l.res ? RICON[l.res.id] : UIC.lab.replace('class="ui"', 'class="ric"')}<span class="ln">#${i + 1}</span><span class="lt"><b>${!l.complete ? 'În construcție' : l.res ? l.res.name : 'Liber — alege o cercetare'}</b>${l.res ? `<span class="bar b"><i id="labB${l.id}"></i></span>` : ''}</span><span class="lr" id="labT${l.id}"></span></button>`; });
       h += `</div>`;
       const avail = br => br.ids.filter(id => { const r = RS.find(x => x.id === id); return !T.tech.has(id) && !r.req.some(q => !T.tech.has(q)); }).length;
@@ -1805,7 +1811,7 @@ function renderPanel() {
           const done = T.tech.has(r.id), locked = !done && r.req.some(q => !T.tech.has(q)), busy = !done && T.researching.has(r.id);
           const meta = done ? '✔ Cercetat' : locked ? '🔒 ' + r.req.map(q => RS.find(x => x.id === q).name).join(', ') : busy ? '⏳ În curs' : `${r.cost}⚡ · ${r.time}s`;
           const cls = done ? 'done' : locked ? 'locked' : busy ? 'busy' : '';
-          const dis = done || locked || busy || b.res || T.energy < r.cost;
+          const dis = done || locked || busy || !free || T.energy < r.cost;
           h += `<button class="rcard ${cls}" data-act="research" data-v="${r.id}" ${dis ? 'disabled' : ''}>${RICON[r.id]}<span class="rn">${r.name}</span><span class="rm">${meta}</span></button>`;
         }
         h += `</div>`;
@@ -1848,7 +1854,8 @@ panel.addEventListener('click', ev => {
   else if (act === 'produce') queueUnit(e, JSON.parse(v), 1);
   else if (act === 'unq') doCmd(['uq', e.id, +v]);
   else if (act === 'designer') openDesigner(e);
-  else if (act === 'research') { const r = RS.find(x => x.id === v); if (T.energy >= r.cost && !e.res) doCmd(['rs', e.id, r.id]); }
+  else if (act === 'research') { const r = RS.find(x => x.id === v); const l = !e.res && e.complete ? e : ents.find(x => x.alive && x.team === 0 && x.type === 'lab' && x.complete && !x.res);
+    if (!l) toast('Toate laboratoarele sunt ocupate'); else if (T.energy >= r.cost) { doCmd(['rs', l.id, r.id]); panelSig = ''; } }
 });
 function queueUnit(f, d, n) {
   const T = TEAMS[0];

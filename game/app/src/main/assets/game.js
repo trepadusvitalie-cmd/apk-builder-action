@@ -2579,8 +2579,8 @@ function buildSfx() {
       const f0 = 100 + k * 3; let buzz = 0; for (let h = 1; h <= 7; h += 2) buzz += Math.sin(TAU2 * f0 * h * t) / h; buzz = Math.tanh(buzz * 2.2) * 0.35;
       const hiss = (W() - l(W(), 2200)) * 0.55; const sizzle = l2((Math.random() < 0.004 ? W() * 3 : 0), 6000) * 0.8;
       const fade = Math.min(1, t / 0.12) * Math.min(1, (0.9 - t) / 0.2); return (buzz + hiss * env + sizzle) * fade * 0.8; }, 1)); }
-  { const l = LP(); SB.click = mk(0.05, t => (Math.sin(TAU2 * 1800 * t) * 0.6 + l(W(), 4000) * 0.6) * Math.exp(-t * 140), 1); }
-  { const l = LP(), l2 = LP(); SB.ack = mk(0.32, t => { const radio = (l(W(), 3200) - l2(W(), 900)) * (t < 0.06 || t > 0.24 ? 0.9 : 0.12); const beep = t > 0.07 && t < 0.2 ? Math.sin(TAU2 * 1250 * t) * 0.5 * Math.min(1, (t - 0.07) * 200) : 0; return radio + beep; }, 1); }
+  { const l = LP(); SB.click = mk(0.04, t => l(W(), 2500) * 0.7 * Math.exp(-t * 160), 1); }
+  { const l = LP(), l2 = LP(); SB.ack = mk(0.32, t => { const radio = (l(W(), 3200) - l2(W(), 900)) * (t < 0.06 || t > 0.24 ? 0.9 : 0.12); return radio; }, 1); }
   { const l = LP(); let ph = 0; SB.laser = mk(0.45, t => { const f = 600 + 2600 * Math.exp(-t * 9); ph += TAU2 * (f + 180 * Math.sin(TAU2 * 55 * t)) / SR; return (Math.sin(ph) * 0.8 + Math.sin(ph * 1.5) * 0.3 + l(W(), 5000) * 0.25) * Math.min(1, t * 300) * Math.exp(-t * 7); }, 1.3); }
   { const l = LP(), l2 = LP(), br = BR(); SB.flame = mk(0.4, t => (l(W(), 1400) * 1.4 + l2(br(), 200) * 0.8 + (Math.random() < 0.02 ? W() * 0.5 : 0)) * Math.min(1, t * 60) * Math.exp(-t * 5)); }
   // ---- artillery: each weapon has its own firing sound

@@ -1235,17 +1235,17 @@ function throwDebris(x, y, z, n, pw) { for (let i = 0; i < n; i++) { const d = d
 const EXPL = 3; // impact explosions are 3x their original size
 // solid 3D fireballs: opaque yellow-white core inside an orange shell, grows fast, darkens to red and fades
 const FB_GEO = (() => { const g = new THREE.SphereGeometry(1, 40, 28); const p = g.attributes.position; const c = new Float32Array(p.count * 3); const v = new THREE.Vector3();
-  for (let i = 0; i < p.count; i++) { v.fromBufferAttribute(p, i); const hot = Math.max(0, Math.min(1, 0.55 + v.y * 0.45)); c[i * 3] = 1; c[i * 3 + 1] = 0.38 + 0.45 * hot; c[i * 3 + 2] = 0.02 + 0.08 * hot * hot; }
+  for (let i = 0; i < p.count; i++) { v.fromBufferAttribute(p, i); const hot = Math.max(0, Math.min(1, 0.55 + v.y * 0.45)); c[i * 3] = 1; c[i * 3 + 1] = 0.62 + 0.33 * hot; c[i * 3 + 2] = 0.18 + 0.3 * hot * hot; }
   g.setAttribute('color', new THREE.BufferAttribute(c, 3)); return g; })();
 const FBALLS = []; for (let i = 0; i < 28; i++) { const outer = new THREE.Mesh(FB_GEO, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, fog: false, toneMapped: false }));
-  const core = new THREE.Mesh(FB_GEO, new THREE.MeshBasicMaterial({ color: 0xffe040, transparent: true, fog: false, toneMapped: false })); core.scale.setScalar(0.62); outer.add(core);
+  const core = new THREE.Mesh(FB_GEO, new THREE.MeshBasicMaterial({ color: 0xfff4b0, transparent: true, fog: false, toneMapped: false, depthWrite: false })); core.scale.setScalar(0.62); outer.add(core);
   outer.visible = false; outer.renderOrder = 2; scene.add(outer); FBALLS.push({ m: outer, core, t: 0, life: 0, r: 1 }); }
 let fbIdx = 0;
-function fireball3D(x, y, z, r) { const f = FBALLS[fbIdx = (fbIdx + 1) % FBALLS.length]; f.t = 0; f.life = 0.45 + r * 0.04; f.r = r; f.m.position.set(x, y + r * 0.35, z); f.m.rotation.set(0, 0, 0); f.m.visible = true; f.m.scale.setScalar(r * 0.25); f.m.material.color.setRGB(1, 1, 1); f.m.material.opacity = 1; f.core.material.opacity = 1; f.core.visible = true; }
+function fireball3D(x, y, z, r) { const f = FBALLS[fbIdx = (fbIdx + 1) % FBALLS.length]; f.t = 0; f.life = 0.45 + r * 0.04; f.r = r; f.m.position.set(x, y + r * 0.35, z); f.m.rotation.set(0, 0, 0); f.m.visible = true; f.m.scale.setScalar(r * 0.25); f.m.material.color.setRGB(1, 1, 1); f.m.material.opacity = 0.8; f.core.material.opacity = 1; f.m.material.depthWrite = false; f.core.visible = true; }
 function updFireballs(dt) { for (const f of FBALLS) { if (!f.m.visible) continue; f.t += dt; const k = f.t / f.life; if (k >= 1) { f.m.visible = false; continue; }
   const grow = k < 0.3 ? 1 - Math.pow(1 - k / 0.3, 3) : 1; f.m.scale.setScalar(f.r * (0.25 + 0.75 * grow + 0.15 * k)); f.m.position.y += dt * f.r * 0.6;
   const dark = k < 0.45 ? 0 : (k - 0.45) / 0.55; f.m.material.color.setRGB(1, 1 - dark * 0.55, 1 - dark * 0.85); f.core.material.opacity = Math.max(0, 1 - k * 1.8); f.core.visible = k < 0.55;
-  f.m.material.opacity = k < 0.6 ? 1 : 1 - (k - 0.6) / 0.4; } }
+  f.m.material.opacity = 0.8 * (k < 0.6 ? 1 : 1 - (k - 0.6) / 0.4); } }
 function impactFx(x, y, z, sz, big) {
   const near = Math.abs(x - cam.x) < 110 && Math.abs(z - cam.z) < 110;
   fx('flash', x, y, z, sz * 1.2); fireball3D(x, y, z, sz * 1.1); fx('blastball', x, y + 0.35 * sz, z, sz * 0.8); fx('fire', x, y, z, sz * 0.5);

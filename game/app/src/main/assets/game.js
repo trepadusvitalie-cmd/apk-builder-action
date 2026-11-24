@@ -1123,6 +1123,8 @@ function completeBld(b) {
 
 // ================= FX =================
 const glowTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d'); const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.35, 'rgba(255,255,255,0.55)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })();
+// solid round fireball for gun flashes: white-hot core, yellow body, orange rim
+const ballTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d'); const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,250,210,1)'); gr.addColorStop(0.22, 'rgba(255,225,70,1)'); gr.addColorStop(0.6, 'rgba(255,165,25,1)'); gr.addColorStop(0.82, 'rgba(240,90,10,.75)'); gr.addColorStop(1, 'rgba(200,60,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })();
 function makePool(n, blend) { const arr = []; for (let i = 0; i < n; i++) { const m = new THREE.SpriteMaterial({ map: glowTex, transparent: true, depthWrite: false, blending: blend }); const s = new THREE.Sprite(m); s.visible = false; scene.add(s); arr.push({ s, life: 0, max: 1, vx: 0, vy: 0, vz: 0, s0: 1, s1: 2, a0: 1, g: 0, smoke: false }); } return arr; }
 const addPool = makePool(360, THREE.AdditiveBlending), normPool = makePool(560, THREE.NormalBlending);
 let addIdx = 0, normIdx = 0;
@@ -1133,6 +1135,8 @@ const FXT = {
   smoke: { life: 2.6, s0: 1, s1: 4.2, a: 0.55, color: 0x48433c, v: 0.4, vy: 1.6, wind: 0.6 },
   trail: { life: 2.6, s0: 0.8, s1: 3.2, a: 0.85, color: 0xc4bfb5, v: 0.15, vy: 0.5, wind: 0.35 },
   dust: { life: 1.1, s0: 1, s1: 2.8, a: 0.4, color: 0xb59c78, v: 0.8, vy: 0.6 },
+  blastball: { life: 0.42, s0: 2.4, s1: 5.2, a: 1, color: 0xffffff, v: 0, vy: 1.2, tex: 'ball' },
+  gunflash: { life: 0.22, s0: 3.4, s1: 1.6, a: 1, color: 0xffffff, v: 0, vy: 0.4, tex: 'ball' },
   muzzle: { life: 0.06, s0: 0.7, s1: 1.1, a: 1, color: 0xfff3c0, v: 0, vy: 0 },
   snow: { life: 5, s0: 0.35, s1: 0.3, a: 0.9, color: 0xffffff, v: 0.6, vy: -5, wind: 0.8 },
   steam: { life: 3, s0: 1.2, s1: 4.5, a: 0.5, color: 0xf2f2ee, v: 0.3, vy: 2.2, wind: 0.5 },
@@ -1143,16 +1147,16 @@ const FXT = {
 };
 function fx(type, x, y, z, size = 1) {
   const P = FXT[type]; const normal = type === 'smoke' || type === 'trail' || type === 'dust' || type === 'snow' || type === 'steam';
-  const p = (normal || type === 'blacksmoke') ? normPool[normIdx = (normIdx + 1) % normPool.length] : addPool[addIdx = (addIdx + 1) % addPool.length];
-  p.life = p.max = P.life * rand(0.8, 1.2); p.s0 = P.s0 * size; p.s1 = P.s1 * size; p.a0 = P.a; p.smoke = normal || type === 'blacksmoke'; p.fast = type === 'trail';
+  const p = (normal || type === 'blacksmoke' || P.tex === 'ball') ? normPool[normIdx = (normIdx + 1) % normPool.length] : addPool[addIdx = (addIdx + 1) % addPool.length];
+  p.life = p.max = P.life * rand(0.8, 1.2); p.s0 = P.s0 * size; p.s1 = P.s1 * size; p.a0 = P.a; p.smoke = normal || type === 'blacksmoke'; p.fast = type === 'trail'; p.ball = P.tex === 'ball';
   p.vx = rand(-P.v, P.v) + (P.wind || 0); p.vy = P.vy * rand(0.6, 1.2); p.vz = rand(-P.v, P.v); p.g = P.g || 0;
-  p.s.material.color.setHex(P.color); p.s.position.set(x, y, z); p.s.visible = true; p.s.scale.setScalar(p.s0);
+  p.s.material.color.setHex(P.color); { const mp = P.tex === 'ball' ? ballTex : glowTex; if (p.s.material.map !== mp) p.s.material.map = mp; } p.s.position.set(x, y, z); p.s.visible = true; p.s.scale.setScalar(p.s0);
 }
 function updFx(dt) {
   for (const pool of [addPool, normPool]) for (const p of pool) {
     if (!p.s.visible) continue; p.life -= dt; if (p.life <= 0) { p.s.visible = false; continue; }
     const k = 1 - p.life / p.max; p.s.scale.setScalar(lerp(p.s0, p.s1, k));
-    p.s.material.opacity = p.smoke ? p.a0 * (1 - k) * Math.min(1, k * (p.fast ? 30 : 6)) : p.a0 * (1 - k);
+    p.s.material.opacity = p.ball ? (k < 0.45 ? 1 : (1 - k) / 0.55) : p.smoke ? p.a0 * (1 - k) * Math.min(1, k * (p.fast ? 30 : 6)) : p.a0 * (1 - k);
     if (p.s.position.y < -50) p.life = 0;
     p.vy -= p.g * dt; p.s.position.x += p.vx * dt; p.s.position.y += p.vy * dt; p.s.position.z += p.vz * dt;
   }
@@ -1179,7 +1183,7 @@ function updBoomFx(dt) {
 }
 function explosion(x, y, z, size) {
   const near = Math.abs(x - cam.x) < 90 && Math.abs(z - cam.z) < 90; // keep effects cheap off-screen
-  fx('flash', x, y, z, size * 1.3);
+  fx('flash', x, y, z, size * 1.3); fx('blastball', x, y + 0.4 * size, z, size * 1.1);
   if (near) {
     for (let i = 0; i < 2 + size * 2; i++) fx('fireball', x + rand(-0.6, 0.6) * size, y + rand(0, 0.6) * size, z + rand(-0.6, 0.6) * size, size * 0.75);
     for (let i = 0; i < 3 + size * 3; i++) fx('fire', x + rand(-0.5, 0.5) * size, y + rand(0, 0.5) * size, z + rand(-0.5, 0.5) * size, size * 0.8);
@@ -1234,7 +1238,7 @@ function updProjs(dt) {
     if (p.kind === 'mortar' && !p.wh && p.dur > 1.2 && (1 - p.t) * p.dur < 0.95 && !(p.w && (p.w.plasma || p.w.kind === 'salvo' || p.w.id === 'ballistic'))) { p.wh = 1; sfx('whistle', p.tx, p.tz); }
     if (k >= 1) {
       scene.remove(p.m); projs.splice(i, 1);
-      fx('flash', x, y, z, p.kind === 'rocket' ? 1 : 0.7); fx('fire', x, y, z, 0.7); fx('smoke', x, y, z, 0.6); for (let s = 0; s < 4; s++) fx('spark', x, y, z, 1);
+      fx('flash', x, y, z, p.kind === 'rocket' ? 1 : 0.7); fx('blastball', x, y + 0.3, z, p.kind === 'mortar' ? (p.w && p.w.big ? 2.2 : 1.3) : p.kind === 'rocket' ? (p.w && p.w.heavy ? 1.1 : 0.85) : 0.75); fx('fire', x, y, z, 0.7); fx('smoke', x, y, z, 0.6); for (let s = 0; s < 4; s++) fx('spark', x, y, z, 1);
       if (p.kind === 'mortar') { const big = p.w && p.w.big; fx('flash', x, y, z, big ? 3 : 1.6); fx('dust', x, y, z, big ? 2.6 : 1.4); if (Math.abs(x - cam.x) < 90 && Math.abs(z - cam.z) < 90) { shockwave(x, z, big ? 3 : 1.8); scorch(x, z, big ? 2.4 : 1.4); fx('fireball', x, y + 0.4, z, big ? 1.5 : 0.9); for (let k = 0; k < (big ? 6 : 3); k++) fx('ember', x, y + 0.3, z, 1); if (big) throwDebris(x, y + 0.3, z, 4, 0.9); } if (big) for (let s = 0; s < 3; s++) fx('fire', x + rand(-1.5, 1.5), y, z + rand(-1.5, 1.5), 1.4); }
       sfx(p.kind === 'shell' ? 'imp_shell' : p.kind === 'rocket' ? 'imp_rocket' : (p.w && IMP_SND[p.w.id]) || 'imp_mortar', x, z); if (p.kind !== 'mortar' && p.tgt.alive) sfx('hit', x, z);
       if (p.w && p.w.fire) fireZones.push({ x, z, r: p.splash, t: 5, dps: p.w.fire, team: p.team, src: p.src, fxT: 0 });
@@ -1301,7 +1305,10 @@ function fireWeapon(src, t, w, mx, my, mz, mul) {
   if (NET.host && (Math.abs(src.x - NET.ccx) < 90 && Math.abs(src.z - NET.ccz) < 90)) NET.ev.push(['f', src.id, t.id, w.id, r1(mx), r1(my), r1(mz), mul || 1]);
   if (NET.cl) heat = Math.min(1.5, heat + 0.01);
   const dmg = w.dmg * (mul || 1) * (TEAMS[src.team].dmg[wfam(w)] || 1) * (1 + 0.1 * (src.rank || 0));
-  fx('muzzle', mx, my, mz, w.kind === 'mg' ? 0.8 : 1.4);
+  if (w.kind === 'shell') { const hx = (mx - src.x), hz = (mz - src.z), hl = Math.hypot(hx, hz) || 1; const big = src.kind === 'bld' ? 1.25 : 1;
+    fx('gunflash', mx, my, mz, big); fx('gunflash', mx + hx / hl * 0.9, my, mz + hz / hl * 0.9, 0.7 * big); fx('fire', mx + hx / hl * 0.6, my, mz + hz / hl * 0.6, 0.6); fx('muzzle', mx, my, mz, 1.6); }
+  else if (w.kind === 'mg') fx('gunflash', mx, my, mz, 0.35);
+  else fx('muzzle', mx, my, mz, 1.4);
   if (w.kind === 'mg') { const ty = t.y + (t.kind === 'bld' ? 1.5 : 0.7); tracer(mx, my, mz, t.x + rand(-0.4, 0.4), ty, t.z + rand(-0.4, 0.4)); if (Math.random() < 0.3) { fx('spark', t.x, ty, t.z, 1); if (Math.random() < 0.5) sfx('ric', t.x, t.z); } damage(t, dmg, src); sfx('mg', mx, mz); }
   else if (w.kind === 'shell') { spawnProj('shell', src, t, dmg, 0, mx, my, mz); fx('smoke', mx, my, mz, 0.6); sfx('shell', mx, mz); }
   else if (w.kind === 'mortar') { spawnProj('mortar', src, t, dmg, w.splash, mx, my, mz, w); fx('smoke', mx, my, mz, w.big ? 1.6 : 0.9); fx('flash', mx, my, mz, w.big ? 1.2 : 0.6); sfx(ART_SND[w.id] || 'art_mortar', mx, mz); }

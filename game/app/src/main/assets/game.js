@@ -578,7 +578,7 @@ const K = '#c9b48a', OL = '#71804e', OD = '#3d432f', AM = '#f0b44a', BL = '#3f9f
 const UIC = {
   generator: SI(`<path d="M7 42c3-9 3-18 0-27h14c-3 9-3 18 0 27z" fill="#8c867a" stroke="${K}" stroke-width="2"/><path d="M24 42c3-9 3-18 0-27h14c-3 9-3 18 0 27z" fill="#a39d90" stroke="${K}" stroke-width="2"/><path d="M12 12q2-5 6-4M29 12q2-5 6-4" stroke="#ddd" stroke-width="2.5" opacity=".8"/><path d="M42 18l-6 10h5l-4 10" stroke="${AM}" stroke-width="3"/>`),
   factory: SI(`<path d="M4 42V24l10 6v-6l10 6v-6l10 6V10h8v32z" fill="${OL}" stroke="${K}" stroke-width="2"/><rect x="8" y="34" width="5" height="4" fill="${AM}"/><rect x="17" y="34" width="5" height="4" fill="${AM}"/><rect x="26" y="34" width="5" height="4" fill="${AM}"/><path d="M36 6q3-3 6-1" stroke="#ccc" stroke-width="2"/>`),
-  lab: SI(`<path d="M8 40a16 16 0 0 1 32 0z" fill="#9ab0b8" stroke="${K}" stroke-width="2"/><path d="M14 30a10 10 0 0 1 10-8" stroke="#e8f4ff" stroke-width="2.5"/><rect x="6" y="40" width="36" height="4" rx="1" fill="${OD}"/><path d="M24 24V8" stroke="${K}" stroke-width="2"/><circle cx="24" cy="8" r="3" fill="${BL}"/><path d="M17 12a10 10 0 0 1 14 0" stroke="${BL}" stroke-width="2"/>`),
+  lab: SI(`<rect x="6" y="22" width="26" height="18" rx="2" fill="#9ab0b8" stroke="${K}" stroke-width="2"/><rect x="9" y="26" width="20" height="5" fill="${BL}"/><rect x="32" y="14" width="10" height="26" rx="4" fill="#c9ced2" stroke="${K}" stroke-width="2"/><path d="M32 22h10M32 30h10" stroke="#60e0ff" stroke-width="2.5"/><rect x="10" y="16" width="16" height="6" fill="#7d8a90" stroke="${K}" stroke-width="1.5"/><rect x="4" y="40" width="40" height="4" rx="1" fill="${OD}"/>`),
   tower: SI(`<rect x="15" y="20" width="18" height="22" fill="#8c867a" stroke="${K}" stroke-width="2"/><rect x="12" y="16" width="24" height="5" fill="${OD}" stroke="${K}" stroke-width="1.5"/><path d="M17 16a7 6 0 0 1 14 0z" fill="${OL}"/><path d="M29 12l14-4" stroke="#3a3a36" stroke-width="4"/><rect x="21" y="27" width="6" height="3" fill="#1c1c1c"/>`),
   hq: SI(`<path d="M6 42V22h36v20z" fill="${OL}" stroke="${K}" stroke-width="2"/><path d="M4 22l20-12 20 12z" fill="#5c6a3e" stroke="${K}" stroke-width="2"/><rect x="20" y="30" width="8" height="12" fill="${OD}"/><rect x="10" y="27" width="6" height="5" fill="${AM}"/><rect x="32" y="27" width="6" height="5" fill="${AM}"/><path d="M24 10V3" stroke="${K}" stroke-width="2"/><path d="M24 3h8l-2 3 2 3h-8" fill="#c0392b"/>`),
   truck: SI(`<rect x="4" y="18" width="24" height="16" rx="3" fill="${AM}" stroke="#7a5a1a" stroke-width="2"/><path d="M28 22h8l6 7v5H28z" fill="#d89a30" stroke="#7a5a1a" stroke-width="2"/><rect x="31" y="24" width="6" height="5" fill="#9ad4ff"/><circle cx="12" cy="37" r="5" fill="#2a2823" stroke="${K}" stroke-width="2"/><circle cx="34" cy="37" r="5" fill="#2a2823" stroke="${K}" stroke-width="2"/><path d="M8 18l6-10h6" stroke="#555" stroke-width="3"/>`),
@@ -865,14 +865,27 @@ function bldGeo(type, team) {
       // ladder
       for (let k = 0; k < 7; k++) B.box(0.5, 0.05, 0.05, 3.62, 0.6 + k * 0.5, 2.0, 0x8a8a84); B.box(0.05, 3.6, 0.05, 3.4, 2.3, 2.0, 0x8a8a84); B.box(0.05, 3.6, 0.05, 3.84, 2.3, 2.0, 0x8a8a84);
       break; }
-    case 'lab':
-      B.box(5.6, 2, 5.6, 0, -0.5, 0, conc); B.box(4.2, 2.2, 4.2, 0, 1.6, 0, T.body); B.box(4.25, 0.3, 4.25, 0, 2.4, 0, T.acc);
-      B.add(G.dome, 1.7, 1.4, 1.7, 0, 2.7, 0, 0x7fc4d8); B.add(G.cyl6, 0.08, 2.5, 0.08, 1.6, 4, 1.6, 0x333333);
-      B.box(1.6, 1.4, 1.2, -2.6, 1.2, 0, T.dark); B.box(1.2, 1.8, 0.15, 0, 1.4, 2.12, 0x24221f);
-      for (let k = 0; k < 6; k++) { const a = k / 6 * TAU; B.box(0.12, 1.4, 0.12, Math.sin(a) * 1.75, 3.0, Math.cos(a) * 1.75, 0xd8d4c8); }
-      B.box(4.25, 0.35, 0.6, 0, 1.9, 0, 0x7fc4d8); B.box(0.6, 0.35, 4.25, 0, 1.9, 0, 0x7fc4d8);
-      B.cyl(0.5, 1.4, 2.7, 0.9, 1.5, 0x8a8a84); B.cyl(0.5, 1.4, 2.7, 0.9, 0.3, 0x8a8a84); B.add(G.cyl6, 0.08, 1.4, 0.08, 2.7, 1.8, 0.9, 0x4a4a46, Math.PI / 2, 0, 0);
+    case 'lab': { // modern research facility: concrete + glass blocks, glowing reactor, rooftop gear
+      const GL = 0x5fb8d8, GLD = 0x2d6a86;
+      B.box(6.2, 1.6, 6.2, 0, -0.4, 0, conc); B.box(6.0, 0.12, 6.0, 0, 0.42, 0, 0x7a746a);
+      B.box(4.6, 2.0, 3.6, -0.5, 1.45, 0.4, T.body); B.box(4.65, 0.22, 3.65, -0.5, 2.5, 0.4, T.acc);           // main block
+      B.box(4.62, 0.5, 0.08, -0.5, 1.75, 2.22, GL); B.box(0.08, 0.5, 3.4, 1.82, 1.75, 0.4, GL);               // glass band
+      for (let k = -2; k <= 2; k++) B.box(0.08, 0.55, 0.1, -0.5 + k * 0.9, 1.75, 2.24, GLD);                   // mullions
+      B.box(1.2, 1.3, 0.12, -1.8, 1.1, 2.24, 0x24221f); B.box(1.4, 0.12, 0.6, -1.8, 1.82, 2.45, T.dark);        // door + canopy
+      B.box(3.0, 1.3, 2.4, -1.0, 3.25, 0.0, conc);                                                              // upper floor, set back
+      B.box(3.02, 0.9, 0.06, -1.0, 3.3, 1.22, GL); B.box(0.06, 0.9, 2.3, 0.52, 3.3, 0.0, GL);
+      B.box(3.1, 0.16, 2.5, -1.0, 3.98, 0.0, T.dark);
+      // reactor / particle chamber with glowing rings
+      B.add(G.cyl16, 1.05, 3.0, 1.05, 2.0, 1.9, -1.4, 0xb8bcc0); for (const y of [1.0, 1.9, 2.8]) B.add(G.cyl16, 1.12, 0.16, 1.12, 2.0, y, -1.4, 0x60e0ff);
+      B.add(G.dome, 1.05, 0.5, 1.05, 2.0, 3.4, -1.4, 0x9aa0a6); B.add(G.cyl10, 0.14, 0.6, 0.14, 2.0, 3.9, -1.4, 0x60e0ff);
+      B.add(G.cyl10, 0.16, 2.2, 0.16, 0.9, 2.2, -1.4, 0x8a8a84, 0, 0, Math.PI / 2);                            // pipe to building
+      // roof: solar panels, fans, antenna mast
+      for (let k = 0; k < 3; k++) B.box(0.8, 0.06, 1.0, -2.2 + k * 0.95, 4.2, -0.5, 0x1e3448, -0.35, 0, 0);
+      for (const fx2 of [-1.7, -0.3]) { B.add(G.cyl16, 0.42, 0.3, 0.42, fx2, 4.2, 0.65, 0x6a6a66); B.add(G.cyl16, 0.34, 0.05, 0.34, fx2, 4.36, 0.65, 0x22201d); }
+      B.add(G.cyl6, 0.05, 1.8, 0.05, 1.3, 3.4, 1.8, 0x333333); B.box(0.12, 0.12, 0.12, 1.3, 4.3, 1.8, 0xff3020);
+      { const d = new Builder(); d.add(G.cyl10, 0.08, 0.5, 0.08, 0, 0.25, 0, 0x4a4a46); d.add(G.dome, 0.75, 0.3, 0.75, 0, 0.55, 0, 0xe0ddd4, Math.PI * 0.7, 0, 0); d.add(G.cyl6, 0.03, 0.6, 0.03, 0, 0.75, 0.25, 0x333333, 0.6, 0, 0); anim.dish = d.build(); }
       break;
+    }
     case 'generator': {
       B.box(6.2, 2, 6.2, 0, -0.5, 0, conc); B.box(6, 0.12, 6, 0, 0.52, 0, 0x7a746a);
       B.box(3.2, 2.4, 2.6, -0.9, 1.7, 0.9, T.body); B.box(3.25, 0.3, 2.65, -0.9, 2.95, 0.9, T.acc);
@@ -1018,6 +1031,7 @@ function bldY(x, z, size) { const r = size * 0.4; let s = 0; const pts = [[0, 0]
 function makeBldMesh(type, team) { // team = colour palette index
   const g = bldGeo(type, team); const grp = new THREE.Group(); const main = new THREE.Mesh(g.geo, matVC); main.castShadow = true; main.receiveShadow = true; grp.add(main); const parts = {};
   if (type === 'hq') { const d = new THREE.Mesh(g.anim.dish, matVC); d.position.set(-1.2, 5.4, -1.2); grp.add(d); parts.dish = d; }
+  if (type === 'lab') { const d = new THREE.Mesh(g.anim.dish, matVC); d.position.set(-1.6, 4.05, 0.2); grp.add(d); parts.dish = d; }
   if (type === 'generator') { const f = new THREE.Mesh(g.anim.fan, matVC); f.position.set(-0.9, 3.15, 0.9); grp.add(f); parts.fan = f; const gl = new THREE.Mesh(g.anim.glow, matGlow); grp.add(gl); parts.glow = gl; }
   if (type === 'pump') { const b = new THREE.Mesh(g.anim.beam, matVC); b.position.set(0, 3.55, 0); grp.add(b); parts.beam = b; }
   if (type === 'radartower') { const d = new THREE.Mesh(g.anim.dish, matVC); d.position.set(0, 7.05, 0); grp.add(d); parts.dish = d; }
@@ -1391,7 +1405,7 @@ function updBld(b, dt) {
       if (NET.cl) b.prod = Math.min(b.prod, st.time); else if (b.prod >= st.time) { if (T.units < CAP) { b.queue.shift(); b.prod = 0; spawnFromFactory(b, d); } else b.prod = st.time; }
     }
   }
-  if (b.type === 'lab' && b.res) { b.resProg += dt * TEAMS[b.team].rsMul; if (Math.random() < dt * 2) fx('muzzle', b.x, b.y + 4.3, b.z, 1.5); if (!NET.cl && b.resProg >= b.res.time) { const id = b.res.id; b.res = null; b.resProg = 0; finishResearch(b.team, id); if (b.team === 0) teamToast(`🔬 Cercetare gata: ${RS.find(r => r.id === id).name}`, 'done'); } }
+  if (b.type === 'lab' && b.res) { b.resProg += dt * TEAMS[b.team].rsMul; if (Math.random() < dt * 2) fx('muzzle', b.x, b.y + 4.3, b.z, 1.5); if (!NET.cl && b.resProg >= b.res.time) { const id = b.res.id; b.res = null; b.resProg = 0; b.lastRes = id; finishResearch(b.team, id); if (b.team === 0) { techPopup(id); if (NET.host) NET.ev.push(['rd', id]); } } }
   if (b.type === 'repairbay' && !NET.cl) {
     b.acq -= dt; if (b.acq <= 0) { b.acq = 0.5; const fast = T.tech.has('repair2');
       for (const e of ents) if (e.alive && e.kind === 'unit' && e.team === b.team && e.hp < e.maxHp && Math.hypot(e.x - b.x, e.z - b.z) < 11) { e.hp = Math.min(e.maxHp, e.hp + (fast ? 40 : 25) * 0.5); if (Math.random() < 0.6) { tracer(b.x + 0.8, b.y + 3.6, b.z, e.x, e.y + 0.8, e.z); fx('spark', e.x, e.y + 0.9, e.z, 0.8); } } }
@@ -1481,6 +1495,15 @@ function execCmd(c, remote) {
       if (T.tech.has(r.id) || T.researching.has(r.id) || (r.req && !r.req.every(q => T.tech.has(q)))) break;
       if (T.energy >= r.cost) { T.energy -= r.cost; l.res = r; l.resProg = 0; T.researching.add(r.id); panelSig = ''; } else say('Energie insuficientă'); break; }
   }
+}
+// big "research complete" card with the technology's icon
+const techQ = []; let techBusy = false;
+function techPopup(id) { techQ.push(id); if (!techBusy) techNext(); }
+function techNext() {
+  const id = techQ.shift(); const el = $('techPop'); if (id === undefined || !el) { techBusy = false; return; } techBusy = true;
+  const r = RS.find(x => x.id === id); el.innerHTML = `<div class="tpi">${RICON[id] || ''}</div><div class="tpt"><small>🔬 Cercetare finalizată</small><b>${r ? r.name : id}</b></div>`;
+  el.classList.remove('show'); void el.offsetWidth; el.classList.add('show'); sfx('done');
+  setTimeout(() => { el.classList.remove('show'); setTimeout(techNext, 350); }, 2600);
 }
 function teamToast(msg, snd, x, z) { toast(msg); if (snd) sfx(snd); if (x !== undefined) pings.push({ x, z, t: 2 }); if (NET.host) NET.ev.push(['t', msg, snd || '', x, z]); }
 
@@ -1745,7 +1768,7 @@ function fmtTime(s) { s = Math.floor(s); return Math.floor(s / 60) + ':' + Strin
 function computeSig() {
   const T = TEAMS[0]; let s = (placing ? 'P' + placing.type + placing.valid : '') + '|' + sel.map(e => e.id).join(',') + '|' + T.tech.size + '|' + amoveNext + '|' + labCount();
   for (const e of sel) if (e.kind === 'bld') s += `|${e.complete}|${e.queue.length}|${e.res ? e.res.id : ''}|${[...T.researching].join()}`;
-  if (sel[0] && sel[0].type === 'lab') s += '|L' + ents.filter(e => e.alive && e.team === 0 && e.type === 'lab').map(e => e.id + (e.complete ? 'c' : '') + (e.res ? e.res.id : '')).join(',');
+  if (sel[0] && sel[0].type === 'lab') s += '|L' + ents.filter(e => e.alive && e.team === 0 && e.type === 'lab').map(e => e.id + (e.complete ? 'c' : '') + (e.res ? e.res.id : '') + (e.lastRes || '')).join(',');
   const costs = [35, 50, 65, 75, 100, 120, 130, 140, 150, 160, 180, 200, 220, 250, 300]; s += '|' + costs.map(c => T.energy >= c ? 1 : 0).join('');
   return s;
 }
@@ -1800,7 +1823,7 @@ function renderPanel() {
       const busy = labs.filter(l => l.res).length;
       const free = labs.filter(l => l.complete && !l.res).length;
       h += `<div class="labs"><div class="labsh">Laboratoare: <b>${labs.length}/${MAX_LABS}</b> · cercetări în paralel: <b>${busy}</b> · libere <b>${free}</b>${free ? ' — alege o cercetare, merge în primul laborator liber' : ''}</div>`;
-      labs.forEach((l, i) => { h += `<button class="labrow ${l === b ? 'cur' : ''} ${l.res ? '' : 'idle'}" data-act="sellab" data-v="${l.id}">${l.res ? RICON[l.res.id] : UIC.lab.replace('class="ui"', 'class="ric"')}<span class="ln">#${i + 1}</span><span class="lt"><b>${!l.complete ? 'În construcție' : l.res ? l.res.name : 'Liber — alege o cercetare'}</b>${l.res ? `<span class="bar b"><i id="labB${l.id}"></i></span>` : ''}</span><span class="lr" id="labT${l.id}"></span></button>`; });
+      labs.forEach((l, i) => { h += `<button class="labrow ${l === b ? 'cur' : ''} ${l.res ? '' : 'idle'}" data-act="sellab" data-v="${l.id}">${l.res ? RICON[l.res.id] : l.lastRes ? `<span class="lastico">${RICON[l.lastRes]}</span>` : UIC.lab.replace('class="ui"', 'class="ric"')}<span class="ln">#${i + 1}</span><span class="lt"><b>${!l.complete ? 'În construcție' : l.res ? l.res.name : l.lastRes ? '✔ ' + (RS.find(x => x.id === l.lastRes) || {}).name + ' — liber' : 'Liber — alege o cercetare'}</b>${l.res ? `<span class="bar b"><i id="labB${l.id}"></i></span>` : ''}</span><span class="lr" id="labT${l.id}"></span></button>`; });
       h += `</div>`;
       const avail = br => br.ids.filter(id => { const r = RS.find(x => x.id === id); return !T.tech.has(id) && !r.req.some(q => !T.tech.has(q)); }).length;
       h += `<div class="chips">${BRANCHES.map((br, i) => `<button data-act="rbr" data-v="${i}" class="${labBr === i ? 'on' : ''}">${br.name}${avail(br) ? ` <b class="cnt">${avail(br)}</b>` : ''}</button>`).join('')}</div>`;
@@ -2216,7 +2239,7 @@ function hostTick(dt) {
     if (e.kind === 'unit') m.u.push(e.id, Math.round(e.x * 10), Math.round(e.z * 10), Math.round(e.heading * 100), Math.round(e.turYaw * 100), Math.ceil(e.hp), (e.state === 'build' && e.buildTarget && Math.hypot(e.buildTarget.x - e.x, e.buildTarget.z - e.z) < e.buildTarget.r + 3 ? 1 : 0) | (e.stun > 0 ? 2 : 0) | ((e.rank || 0) << 2), Math.round(e.maxHp));
     else { const key = Math.ceil(e.hp) + ':' + Math.round(e.built * 100) + ':' + Math.round(e.turYaw * 20) + ':' + Math.round(e.maxHp);
       if (NET.lastBld.get(e.id) !== key) { NET.lastBld.set(e.id, key); m.b.push([e.id, Math.ceil(e.hp), Math.round(e.built * 1000), Math.round(e.turYaw * 100), Math.round(e.maxHp)]); }
-      if (labs && e.team === 0 && (e.type === 'lab' || e.type === 'factory')) m.L.push([e.id, e.res ? e.res.id : '', r1(e.resProg), e.queue.map(d => [d.ch, d.pr, d.wp]), r1(e.prod)]); }
+      if (labs && e.team === 0 && (e.type === 'lab' || e.type === 'factory')) m.L.push([e.id, e.res ? e.res.id : '', r1(e.resProg), e.queue.map(d => [d.ch, d.pr, d.wp]), r1(e.prod), e.lastRes || '']); }
   }
   for (const id of NET.lastBld.keys()) { const e = byId(id); if (!e || !e.alive) NET.lastBld.delete(id); }
   if (!m.nu.length) delete m.nu; if (!m.nb.length) delete m.nb; if (!m.b.length) delete m.b; if (!m.ev.length) delete m.ev;
@@ -2237,11 +2260,12 @@ function clientApply(m) {
     u.nx = m.u[i + 1] / 10; u.nz = m.u[i + 2] / 10; u.nh = m.u[i + 3] / 100; u.nt = m.u[i + 4] / 100; u.hp = m.u[i + 5]; u.weld = m.u[i + 6] & 1; u.stunV = m.u[i + 6] & 2; u.rank = (m.u[i + 6] >> 2) & 3; u.maxHp = m.u[i + 7]; }
   if (m.b) for (const [id, hp, built, ty, mhp] of m.b) { const b = byId(id); if (!b || b.kind !== 'bld') continue; b.hp = hp; b.maxHp = mhp; b.built = built / 1000; b.nYaw = ty / 100; if (!b.complete && built >= 1000) completeBld(b); }
   if (m.L) NET.lastL = m.L;
-  if (m.L) for (const [id, rid, prog, q, prod] of m.L) { const b = byId(id); if (!b) continue; const r = rid ? RS.find(x => x.id === rid) : null; if ((b.res && b.res.id) !== (r && r.id)) panelSig = ''; b.res = r; b.resProg = prog; if (b.queue.length !== q.length) panelSig = ''; b.queue = q.map(([ch, pr, wp]) => ({ ch, pr, wp })); b.prod = prod; }
+  if (m.L) for (const [id, rid, prog, q, prod, lr] of m.L) { const b = byId(id); if (!b) continue; const r = rid ? RS.find(x => x.id === rid) : null; if ((b.res && b.res.id) !== (r && r.id)) panelSig = ''; b.res = r; b.resProg = prog; if (lr && b.lastRes !== lr) { b.lastRes = lr; panelSig = ''; } if (b.queue.length !== q.length) panelSig = ''; b.queue = q.map(([ch, pr, wp]) => ({ ch, pr, wp })); b.prod = prod; }
   if (m.ev) for (const ev of m.ev) {
     if (ev[0] === 'f') { const src = byId(ev[1]), t = byId(ev[2]), w = WP[ev[3]]; if (src && t && w && src.alive && t.alive) fireWeapon(src, t, w, ev[4], ev[5], ev[6], ev[7]); }
     else if (ev[0] === 'k') { NET.dead.add(ev[1]); const e = byId(ev[1]); if (e && e.alive) kill(e); }
     else if (ev[0] === 't') { toast(ev[1]); if (ev[2]) sfx(ev[2]); if (ev[3] !== undefined && ev[3] !== null) pings.push({ x: ev[3], z: ev[4], t: 2 }); }
+    else if (ev[0] === 'rd') techPopup(ev[1]);
     else if (ev[0] === 'end') { S.stats = ev[2] || S.stats; S.time = m.time; endGame(ev[1]); }
   }
   S.time = m.time;
@@ -2409,7 +2433,7 @@ window.onBack = () => {
   if (S.paused || !$('pause').classList.contains('hidden')) return false;
   S.paused = !NET.on; $('pause').classList.remove('hidden'); return true;
 };
-window.__game = { killNear: () => { for (const e of ents) if (e.alive && e.team === 1 && Math.hypot(e.x - PLAYER2.x, e.z - PLAYER2.z) < 25) kill(e); }, NET, execCmd, doCmd, byId, PLAYER2, S, TEAMS, ents, cam, setSel, sel: () => sel, createUnit, createBuilding, sfx, AU, SB, buildSfx, projs: () => projs, BD, WP };
+window.__game = { killNear: () => { for (const e of ents) if (e.alive && e.team === 1 && Math.hypot(e.x - PLAYER2.x, e.z - PLAYER2.z) < 25) kill(e); }, NET, execCmd, doCmd, byId, PLAYER, PLAYER2, S, TEAMS, ents, cam, setSel, sel: () => sel, createUnit, createBuilding, sfx, AU, SB, buildSfx, projs: () => projs, BD, WP };
 
 resize(); updateCamera(0); requestAnimationFrame(loop);
 // background scene behind the intro

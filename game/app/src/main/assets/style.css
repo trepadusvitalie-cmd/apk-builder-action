@@ -306,3 +306,25 @@ i.eu { font-style: normal; color: var(--amber); font-size: .9em; margin-left: 1p
 .st > span:last-child { text-align: right; white-space: nowrap; }
 .cmpnote { font-size: 10px; color: #b8b2a4; margin-top: 2px; } .cmpnote i { display: inline-block; width: 2px; height: 10px; background: #e8e4da; vertical-align: middle; margin-right: 3px; }
 @media (max-height: 420px) { #dRadar { width: 80px; height: 70px; } #dName { font-size: 12.5px; } #dName small { font-size: 9.5px; } .st { grid-template-columns: 40px 1fr 56px !important; } }
+/* research complete card */
+#techPop { position: fixed; top: 92px; left: 50%; transform: translate(-50%, -24px) scale(.9); opacity: 0; pointer-events: none; z-index: 9;
+  display: flex; align-items: center; gap: 10px; padding: 8px 16px 8px 10px; border-radius: 12px;
+  background: linear-gradient(180deg, #3a3320f2, #241f14f2); border: 1px solid var(--amber); box-shadow: 0 0 22px #f0b44a66, 0 6px 18px #000a; transition: opacity .3s, transform .35s cubic-bezier(.2, 1.4, .4, 1); }
+#techPop.show { opacity: 1; transform: translate(-50%, 0) scale(1); }
+#techPop .tpi { width: 58px; height: 58px; border-radius: 10px; background: radial-gradient(circle, #f0b44a44, #0000 70%); display: flex; align-items: center; justify-content: center; }
+#techPop .tpi svg { width: 52px; height: 52px; filter: drop-shadow(0 0 6px #f0b44a99); }
+#techPop .tpt { display: flex; flex-direction: column; }
+#techPop .tpt small { color: #b8b2a4; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; }
+#techPop .tpt b { color: var(--amber); font-size: 18px; }
+.lastico { opacity: .75; filter: saturate(.7); display: contents; }
+/* compact top bar and messages */
+#top { font-size: 11.5px; gap: 8px; padding: 1px 3px 1px 8px; top: max(4px, env(safe-area-inset-top)); }
+#top small { font-size: 9.5px; }
+#top .ri svg.ui { width: 13px; height: 13px; }
+#top .ib { min-height: 21px; height: 21px; width: 26px; }
+#top .ib svg { width: 13px; height: 13px; }
+#toast { font-size: 11px; padding: 2px 9px; top: 32px; border-radius: 6px; }
+#techPop { top: 56px; padding: 5px 12px 5px 7px; gap: 7px; }
+#techPop .tpi { width: 42px; height: 42px; } #techPop .tpi svg { width: 38px; height: 38px; }
+#techPop .tpt b { font-size: 14px; } #techPop .tpt small { font-size: 9px; }
+#netSt { top: 58px; font-size: 11px; padding: 3px 10px; }

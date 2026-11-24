@@ -449,6 +449,7 @@ const WP = {
   rbattery: { name: 'Baterie Tunet', dmg: 26, rof: 9, range: 70, cost: 220, kind: 'salvo', splash: 3.4, n: 12, art: 'salvo', site: 1 },
   smissile: { name: 'Rachete Săgeată', dmg: 70, rof: 7, range: 60, cost: 260, kind: 'salvo', splash: 3.2, n: 4, art: 'salvo', site: 1 },
   omissile: { name: 'Rachetă Orizont', dmg: 380, rof: 18, range: 120, cost: 420, kind: 'salvo', splash: 9, n: 1, big: 1, art: 'salvo', site: 1 },
+  icbm: { name: 'Rachetă balistică strategică', dmg: 900, rof: 40, range: 9999, kind: 'salvo', splash: 16, n: 1, big: 1, site: 1 },
   flame: { name: 'Aruncător de flăcări', dmg: 10, rof: 0.16, range: 8, cost: 50, kind: 'flame' },
   laser: { name: 'Laser', dmg: 22, rof: 0.55, range: 17, cost: 80, kind: 'laser' },
   rockets: { name: 'Rachete', dmg: 30, rof: 2.4, range: 18, cost: 60, kind: 'rocket', splash: 2.8 },
@@ -471,6 +472,7 @@ const BD = {
   ptrap: { name: 'Arici antitanc', icon: '', hp: 380, cost: 15, size: 2.2, time: 5, h: 1.5, req: 'traps' },
   pwall: { name: 'Zid beton', icon: '', hp: 1400, cost: 40, size: 5, time: 10, h: 3, r: 2.7, req: 'traps' },
   repairbay: { name: 'Atelier reparații', icon: '', hp: 800, cost: 160, size: 5.5, time: 24, h: 4, req: 'repair' },
+  silo: { name: 'Siloz rachetă balistică', short: 'Siloz', icon: '', hp: 3200, cost: 900, size: 8, time: 60, h: 0.8, req: 'icbm' },
   radartower: { name: 'Turn radar', icon: '', hp: 600, cost: 140, size: 3.5, time: 20, h: 7, req: null },
   citadel: { name: 'CETATEA', icon: '🏰', hp: 6000, cost: 0, size: 10, time: 1, h: 9 },
   wall: { name: 'Zid', icon: '🧱', hp: 1400, cost: 0, size: 5, time: 1, h: 3, r: 2.7 },
@@ -531,6 +533,7 @@ const RS = [
   { id: 'rbattery', name: 'Baterie de rachete Tunet', cost: 280, time: 50, req: ['salvo', 'hardpoint'] },
   { id: 'smissile', name: 'Rachete ghidate Săgeată', cost: 340, time: 58, req: ['rbattery', 'laser'] },
   { id: 'omissile', name: 'Rachetă Orizont', cost: 480, time: 75, req: ['smissile', 'ballistic'] },
+  { id: 'icbm', name: 'Siloz de rachete balistice', cost: 600, time: 90, req: ['omissile'] },
   { id: 'viper', name: 'Rachete Viperă', cost: 300, time: 52, req: ['rockets', 'heavy'] },
   { id: 'nova', name: 'Șasiu Nova (auriu)', cost: 300, time: 52, req: ['titan', 'laser'] },
   { id: 'radar2', name: 'Radar avansat', cost: 180, time: 34, req: ['radar'] },
@@ -543,7 +546,7 @@ const BRANCHES = [
   { name: 'Mobilitate', ids: ['halftrack', 'tracks', 'hover', 'engine'] },
   { name: 'Corp și blindaj', ids: ['scout', 'medium', 'assault', 'heavy', 'armor', 'titan', 'nova'] },
   { name: 'Armament', ids: ['cannon', 'flame', 'rockets', 'viper', 'laser'] },
-  { name: 'Artilerie', ids: ['rbattery', 'smissile', 'omissile', 'mortar', 'imortar', 'empmortar', 'salvo', 'howitzer', 'ihowitzer', 'rhowitzer', 'hhowitzer', 'plasma', 'ballistic'] },
+  { name: 'Artilerie', ids: ['rbattery', 'smissile', 'omissile', 'icbm', 'mortar', 'imortar', 'empmortar', 'salvo', 'howitzer', 'ihowitzer', 'rhowitzer', 'hhowitzer', 'plasma', 'ballistic'] },
   { name: 'Sprijin', ids: ['radar', 'radar2', 'repair', 'repair2'] },
   { name: 'Apărare', ids: ['traps', 'tower2', 'bunker', 'hardpoint', 'fortress'] },
   { name: 'Industrie', ids: ['prod'] },
@@ -606,6 +609,7 @@ const RICON = {
   rbattery: SV(`<rect x="6" y="34" width="36" height="7" rx="2" fill="#3d432f"/><g transform="rotate(-28 24 26)"><rect x="5" y="16" width="12" height="14" fill="#7b7f82" stroke="#c9b48a" stroke-width="1.2"/><rect x="18" y="16" width="12" height="14" fill="#7b7f82" stroke="#c9b48a" stroke-width="1.2"/><rect x="31" y="16" width="12" height="14" fill="#7b7f82" stroke="#c9b48a" stroke-width="1.2"/><g fill="#111"><circle cx="9" cy="20" r="1.5"/><circle cx="13" cy="20" r="1.5"/><circle cx="9" cy="26" r="1.5"/><circle cx="13" cy="26" r="1.5"/><circle cx="22" cy="20" r="1.5"/><circle cx="26" cy="20" r="1.5"/><circle cx="22" cy="26" r="1.5"/><circle cx="26" cy="26" r="1.5"/><circle cx="35" cy="20" r="1.5"/><circle cx="39" cy="20" r="1.5"/><circle cx="35" cy="26" r="1.5"/><circle cx="39" cy="26" r="1.5"/></g></g><path d="M8 34h32" stroke="#e0b020" stroke-width="3" stroke-dasharray="3 3"/>`),
   smissile: SV(`<rect x="8" y="34" width="32" height="7" rx="2" fill="#3d432f"/><g transform="rotate(-30 24 24)"><rect x="4" y="27" width="38" height="3" fill="#5a5e60"/><g fill="#eef0f2" stroke="#c9b48a" stroke-width=".8"><rect x="6" y="11" width="30" height="3.4" rx="1.6"/><rect x="6" y="16" width="30" height="3.4" rx="1.6"/><rect x="6" y="21" width="30" height="3.4" rx="1.6"/></g><g fill="#3f9fe0"><path d="M36 11l5 1.7-5 1.7z"/><path d="M36 16l5 1.7-5 1.7z"/><path d="M36 21l5 1.7-5 1.7z"/></g></g>`),
   omissile: SV(`<rect x="6" y="36" width="36" height="7" rx="2" fill="#3d432f"/><rect x="8" y="22" width="5" height="14" fill="#6a6e70"/><rect x="35" y="22" width="5" height="14" fill="#6a6e70"/><g transform="rotate(-55 24 30)"><rect x="6" y="26" width="32" height="8" rx="4" fill="#2e3236" stroke="#c9b48a" stroke-width="1.2"/><path d="M38 26l8 4-8 4z" fill="#c8321e"/><path d="M14 26v8M22 26v8M30 26v8" stroke="#e0b020" stroke-width="2"/><path d="M6 26l-4-3M6 34l-4 3" stroke="#1e1e1e" stroke-width="2"/></g>`),
+  icbm: SV(`<rect x="4" y="36" width="40" height="7" fill="#8c867a" stroke="#c9b48a" stroke-width="1.2"/><path d="M8 36h7M33 36h7" stroke="#e0b020" stroke-width="3"/><rect x="15" y="34" width="18" height="4" fill="#111"/><rect x="20" y="10" width="8" height="26" rx="3" fill="#dfe3e6" stroke="#c9b48a" stroke-width="1"/><path d="M20 12l4-8 4 8z" fill="#2e3236"/><path d="M20 22h8" stroke="#c8321e" stroke-width="2"/><path d="M14 34l-4-6M34 34l4-6" stroke="#bbb" stroke-width="2" opacity=".7"/>`),
   ballistic: SV(`<path d="M10 42h28" stroke="#c9b48a" stroke-width="3"/><path d="M24 4c5 6 6 12 6 30h-12c0-18 1-24 6-30z" fill="#e8e8e8" stroke="#c9b48a" stroke-width="1.5"/><path d="M18 26l-5 8h5zM30 26l5 8h-5z" fill="#b8432c"/><path d="M20 34l4 7 4-7" fill="#ff9a2a"/><rect x="20" y="12" width="8" height="3" fill="#b8432c"/>`),
   flame: SV(`<rect x="6" y="20" width="9" height="18" rx="4.5" fill="#b8432c" stroke="#c9b48a" stroke-width="1.5"/><rect x="16" y="22" width="9" height="16" rx="4.5" fill="#b8432c" stroke="#c9b48a" stroke-width="1.5"/><path d="M24 28h8" stroke="#3a3a36" stroke-width="4"/><path d="M32 28c6-8 10-2 14-8-1 7-4 9-2 14-4-2-7 2-12-2z" fill="#ff8a2a"/><path d="M33 28c4-4 6-1 9-4-1 4-2 5-1 8-3-1-5 1-8-1z" fill="#ffe680"/>`),
   viper: SV(`<rect x="8" y="30" width="32" height="9" rx="3" fill="#3d432f"/><rect x="17" y="22" width="14" height="10" fill="#71804e" stroke="#c9b48a" stroke-width="1.5"/><path d="M17 30h14" stroke="#e0b020" stroke-width="3" stroke-dasharray="2.5 2.5"/><g transform="rotate(-14 24 22)"><rect x="3" y="14" width="22" height="4.5" rx="2" fill="#e8e8e8" stroke="#c9b48a" stroke-width="1"/><path d="M25 14l5 2.25-5 2.25z" fill="#e0402a"/><rect x="25" y="20" width="0" height="0"/><rect x="23" y="24" width="22" height="4.5" rx="2" fill="#e8e8e8" stroke="#c9b48a" stroke-width="1"/><path d="M45 24l3 2.25-3 2.25z" fill="#e0402a"/><path d="M3 14l-2-2M3 18.5l-2 2" stroke="#3a3a36" stroke-width="1.5"/></g>`),
@@ -622,6 +626,7 @@ const RICON = {
 const SI = (inner, cls = 'ui') => `<svg class="${cls}" viewBox="0 0 48 48" fill="none" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
 const K = '#c9b48a', OL = '#71804e', OD = '#3d432f', AM = '#f0b44a', BL = '#3f9fe0';
 const UIC = {
+  silo: SI(`<rect x="3" y="30" width="42" height="12" fill="#8c867a" stroke="${K}" stroke-width="2"/><ellipse cx="24" cy="31" rx="13" ry="4" fill="#222"/><rect x="6" y="27" width="14" height="5" fill="#6f7a52" stroke="${K}"/><rect x="28" y="27" width="14" height="5" fill="#6f7a52" stroke="${K}"/><rect x="21" y="6" width="6" height="23" rx="2" fill="#dfe3e6" stroke="${K}"/><path d="M21 8l3-6 3 6z" fill="#2e3236"/><path d="M4 42h40" stroke="#e0b020" stroke-width="2" stroke-dasharray="3 3"/>`),
   generator: SI(`<path d="M7 42c3-9 3-18 0-27h14c-3 9-3 18 0 27z" fill="#8c867a" stroke="${K}" stroke-width="2"/><path d="M24 42c3-9 3-18 0-27h14c-3 9-3 18 0 27z" fill="#a39d90" stroke="${K}" stroke-width="2"/><path d="M12 12q2-5 6-4M29 12q2-5 6-4" stroke="#ddd" stroke-width="2.5" opacity=".8"/><path d="M42 18l-6 10h5l-4 10" stroke="${AM}" stroke-width="3"/>`),
   factory: SI(`<path d="M4 42V24l10 6v-6l10 6v-6l10 6V10h8v32z" fill="${OL}" stroke="${K}" stroke-width="2"/><rect x="8" y="34" width="5" height="4" fill="${AM}"/><rect x="17" y="34" width="5" height="4" fill="${AM}"/><rect x="26" y="34" width="5" height="4" fill="${AM}"/><path d="M36 6q3-3 6-1" stroke="#ccc" stroke-width="2"/>`),
   lab: SI(`<rect x="6" y="22" width="26" height="18" rx="2" fill="#9ab0b8" stroke="${K}" stroke-width="2"/><rect x="9" y="26" width="20" height="5" fill="${BL}"/><rect x="32" y="14" width="10" height="26" rx="4" fill="#c9ced2" stroke="${K}" stroke-width="2"/><path d="M32 22h10M32 30h10" stroke="#60e0ff" stroke-width="2.5"/><rect x="10" y="16" width="16" height="6" fill="#7d8a90" stroke="${K}" stroke-width="1.5"/><rect x="4" y="40" width="40" height="4" rx="1" fill="${OD}"/>`),
@@ -671,7 +676,7 @@ const MSL_GEO = {};
 function missileGeo(kind) {
   if (MSL_GEO[kind]) return MSL_GEO[kind];
   const K = { rocket: [0.045, 0xeeeeee, 0xc8321e, 0x3a3a36, 0xc8321e], viper: [0.05, 0xeeeeee, 0xc8321e, 0x3a3a36, 0xc8321e], seeker: [0.04, 0x7d8a5c, 0x3f9fe0, 0x3a3a36, 0xcdbf92],
-    salvo: [0.06, 0xb8bcc0, 0xc8321e, 0x3a3a36, 0x5a5e60], orizont: [0.065, 0x5f6a48, 0xc8321e, 0x2e3328, 0xcdbf92], ballistic: [0.08, 0xe8e8e8, 0xb8432c, 0xb8432c, 0x3a3a36] }[kind] || [0.05, 0xeeeeee, 0xc8321e, 0x333333, 0xc8321e];
+    salvo: [0.06, 0xb8bcc0, 0xc8321e, 0x3a3a36, 0x5a5e60], orizont: [0.065, 0x5f6a48, 0xc8321e, 0x2e3328, 0xcdbf92], ballistic: [0.08, 0xe8e8e8, 0xb8432c, 0xb8432c, 0x3a3a36], icbm: [0.075, 0xdfe3e6, 0x2e3236, 0x3a3a36, 0xc8321e] }[kind] || [0.05, 0xeeeeee, 0xc8321e, 0x333333, 0xc8321e];
   const [r, body, nose, fin, band] = K, B = new Builder(), bl = 0.78;
   B.add(G.cyl16, r, bl, r, 0, -0.5 + bl / 2, 0, body);                                     // body (built along +y)
   B.add(G.cone, r, 1 - bl, r, 0, -0.5 + bl + (1 - bl) / 2, 0, nose);                         // nose
@@ -787,7 +792,7 @@ function unitGeo(d, team) {
     tb.hazard(0.55 * s, 0.1 * s, 0, 0.3 * s, 0.33 * s, 'z', 1); tb.box(0.16 * s, 0.08 * s, 0.03 * s, 0.12 * s, 0.5 * s, 0.33 * s, 0x3fb0ff);
     const a = 0.22, ca = Math.cos(a), sa = Math.sin(a);
     for (const sx of [-1, 1]) { const ax = sx * 0.62 * s;
-      tb.box(0.36 * s, 0.1 * s, 0.14 * s, sx * 0.4 * s, 0.48 * s, 0, 0x3a3a36);                       // arm
+      tb.box(0.36 * s, 0.1 * s, 0.14 * s, sx * 0.4 * s, 0.48 * s, 0, T.acc);                       // arm
       tb.box(0.42 * s, 0.08 * s, 1.5 * s, ax, 0.5 * s + 0.1 * s * sa, 0.15 * s, T.body, -a, 0, 0); tb.camo(0.42 * s, 0.1 * s, 1.5 * s, ax, 0.5 * s + 0.1 * s * sa, 0.15 * s, -a, 4);   // rail
       tb.hazard(0.42 * s, 0.06 * s, ax, 0.45 * s - 0.6 * s * sa, 0.15 * s - 0.6 * s * ca, 'z', -1);
       for (const ox of [-0.11, 0.11]) { const x = ax + ox * s, y = 0.62 * s, z = 0.12 * s, L = 1.7 * s;
@@ -818,7 +823,7 @@ function unitGeo(d, team) {
         for (const sx of [-1, 1]) tb.box(0.12 * s, 0.8 * s, 0.5 * s, sx * 0.55 * s, 0.6 * s, -0.1 * s, 0x4a4a46);
         for (let b = -1; b <= 1; b++) { const ox = b * 0.5 * s;
           { const [x, y, z] = P(ox, 0, 0); tb.box(0.46 * s, 0.5 * s, 1.5 * s, x, y, z, 0x6f7a52, -a, 0, 0); tb.camo(0.46 * s, 0.52 * s, 1.5 * s, x, y, z, -a, 5); }
-          { const [x, y, z] = P(ox, 0, -0.55 * s); tb.box(0.48 * s, 0.52 * s, 0.1 * s, x, y, z, T.body, -a, 0, 0); }
+          { const [x, y, z] = P(ox, 0, -0.55 * s); tb.box(0.48 * s, 0.52 * s, 0.1 * s, x, y, z, T.acc, -a, 0, 0); } { const [x, y, z] = P(ox, 0.26 * s, 0.3 * s); tb.box(0.47 * s, 0.03 * s, 0.25 * s, x, y, z, T.acc, -a, 0, 0); }
           for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) { const [x, y, z] = P(ox + (i - 1) * 0.13 * s, (j - 1) * 0.13 * s, 0.76 * s); tb.add(G.cyl10, 0.055 * s, 0.04 * s, 0.055 * s, x, y, z, 0x111111, Math.PI / 2 - a, 0, 0); } }
       } else if (d.wp === 'smissile') { // camouflaged launch box: 2x2 canisters, seeker tips peeking out of the openings
         const a = 0.45, ca = Math.cos(a), sa = Math.sin(a), P = (x, y, z) => [x, 0.78 * s + y * ca + z * sa, 0.05 * s - y * sa + z * ca];
@@ -826,7 +831,7 @@ function unitGeo(d, team) {
         for (const sx of [-1, 1]) tb.box(0.1 * s, 0.7 * s, 0.4 * s, sx * 0.5 * s, 0.55 * s, -0.15 * s, 0x3a3a36);
         { const [x, y, z] = P(0, 0, 0); tb.box(1.0 * s, 0.86 * s, 2.0 * s, x, y, z, 0x6f7a52, -a, 0, 0); tb.camo(1.0 * s, 0.88 * s, 2.0 * s, x, y, z, -a, 8); }
         { const [x, y, z] = P(0, 0.45 * s, -0.2 * s); tb.box(0.7 * s, 0.06 * s, 0.9 * s, x, y, z, 0x4f5f3c, -a, 0, 0); }                 // top hatch
-        for (const zz of [-0.6, 0.6]) { const [x, y, z] = P(0, 0, zz * s); tb.box(1.04 * s, 0.9 * s, 0.08 * s, x, y, z, 0x3a3a36, -a, 0, 0); } // reinforcing ribs
+        for (const zz of [-0.6, 0.6]) { const [x, y, z] = P(0, 0, zz * s); tb.box(1.04 * s, 0.9 * s, 0.1 * s, x, y, z, T.acc, -a, 0, 0); } // reinforcing ribs in team colour
         { const [x, y, z] = P(0, 0, 1.0 * s); tb.box(1.0 * s, 0.86 * s, 0.04 * s, x, y, z, 0x2e3328, -a, 0, 0); }                         // front face
         for (const ox of [-0.24, 0.24]) for (const oy of [-0.2, 0.2]) { const [x, y, z] = P(ox * s, oy * s, 1.02 * s); tb.add(G.cyl16, 0.15 * s, 0.05 * s, 0.15 * s, x, y, z, 0x111111, Math.PI / 2 - a, 0, 0);
           const [x2, y2, z2] = P(ox * s, oy * s, 1.0 * s); tb.add(G.cone, 0.09 * s, 0.22 * s, 0.09 * s, x2, y2, z2, 0x3f9fe0, Math.PI / 2 - a, 0, 0); }
@@ -836,7 +841,7 @@ function unitGeo(d, team) {
         for (const sx of [-1, 1]) { tb.box(0.16 * s, 0.9 * s, 0.5 * s, sx * 0.62 * s, 0.75 * s, -0.35 * s, 0x3a3a36); tb.add(G.cyl10, 0.06 * s, 1.4 * s, 0.06 * s, sx * 0.3 * s, 0.9 * s, -0.1 * s, 0xb8b8b0, 0.7, 0, 0); }
         const c0 = [0, 0.75 * s + sa * L * 0.42, -0.35 * s + ca * L * 0.42];
         tb.box(1.0 * s, 1.0 * s, L, c0[0], c0[1], c0[2], 0x6f7a52, -a, 0, 0); tb.camo(1.0 * s, 1.02 * s, L, c0[0], c0[1], c0[2], -a, 10);
-        for (const k of [-0.38, 0, 0.38]) tb.box(1.06 * s, 1.06 * s, 0.1 * s, c0[0], c0[1] + sa * L * k, c0[2] + ca * L * k, 0x3a3a36, -a, 0, 0);       // canister rings
+        for (const k of [-0.38, 0, 0.38]) tb.box(1.06 * s, 1.06 * s, 0.14 * s, c0[0], c0[1] + sa * L * k, c0[2] + ca * L * k, T.acc, -a, 0, 0);       // canister rings in team colour
         { const k = 0.505; tb.box(0.9 * s, 0.9 * s, 0.05 * s, c0[0], c0[1] + sa * L * k, c0[2] + ca * L * k, 0x2e3328, -a, 0, 0); tb.add(G.cyl16, 0.32 * s, 0.07 * s, 0.32 * s, c0[0], c0[1] + sa * L * (k + 0.01), c0[2] + ca * L * (k + 0.01), 0xc8321e, Math.PI / 2 - a, 0, 0); } // front cap
         msl = { kind: 'orizont', x: c0[0], y: c0[1], z: c0[2], a, len: L * 0.92 };
       } else if (w.big) { tb.box(0.25 * s, 0.9 * s, 0.25 * s, 0.35 * s, 0.5 * s, -0.2 * s, 0x5a564f); tb.box(0.5 * s, 0.12 * s, 2.0 * s, 0, 0.45 * s, 0.05 * s, 0x3a3a36, -0.62, 0, 0); msl = { kind: 'ballistic', x: 0, y: 0.8 * s, z: 0.15 * s, a: 0.62, len: 2.45 * s }; }
@@ -860,7 +865,7 @@ function unitGeo(d, team) {
       for (let i = 0; i < 9; i++) { const c = CAMO[i % 4]; tb.add(G.sph, 0.22 * s, 0.05 * s, 0.18 * s, (i % 3 - 1) * 0.42 * s, 0.4 * s + (i % 2) * 0.32 * s, (i / 9 - 0.5) * 0.9 * s, c, 0, i, 0); }
       for (const ox of [-0.3, 0, 0.3]) {
         const [x0, y0, z0] = along(0.5, ox * s); tb.add(G.cyl16, rr, Lb, rr, x0, y0, z0, 0x3a4436, Math.PI / 2 - ang, 0, 0);
-        const [x1, y1, z1] = along(0.18, ox * s); tb.add(G.cyl16, rr * 1.65, Lb * 0.3, rr * 1.65, x1, y1, z1, CAMO[1], Math.PI / 2 - ang, 0, 0);
+        const [x1, y1, z1] = along(0.18, ox * s); tb.add(G.cyl16, rr * 1.65, Lb * 0.3, rr * 1.65, x1, y1, z1, T.acc, Math.PI / 2 - ang, 0, 0);
         for (const k of [0.45, 0.68]) { const [xc, yc, zc] = along(k, ox * s); tb.add(G.cyl16, rr * 1.2, 0.12 * s, rr * 1.2, xc, yc, zc, CAMO[(k * 10 | 0) % 4], Math.PI / 2 - ang, 0, 0); }
         const [x2, y2, z2] = along(1.0, ox * s); tb.add(G.cyl16, rr * 1.5, 0.28 * s, rr * 1.5, x2, y2, z2, 0x2a2a26, Math.PI / 2 - ang, 0, 0);
         const [x3, y3, z3] = along(0.3, ox * s); tb.add(G.cyl10, rr * 0.45, Lb * 0.35, rr * 0.45, x3, y3 - 0.2 * s, z3, 0xb8b8b0, Math.PI / 2 - ang, 0, 0); // recoil cylinder
@@ -874,7 +879,7 @@ function unitGeo(d, team) {
       tb.add(G.cyl16, 0.6 * s, 0.14 * s, 0.6 * s, 0, 0.07 * s, 0, T.dark); tb.add(G.cyl16, 0.62 * s, 0.04 * s, 0.62 * s, 0, 0.15 * s, 0, T.acc);
       tb.box(1.0 * s, 0.5 * s, 1.15 * s, 0, 0.42 * s, -0.1 * s, T.body); tb.camo(1.02 * s, 0.5 * s, 1.15 * s, 0, 0.42 * s, -0.1 * s, 0, 7);                       // gun house
       tb.box(1.0 * s, 0.34 * s, 0.4 * s, 0, 0.5 * s, 0.52 * s, T.body, -0.55, 0, 0); tb.camo(1.0 * s, 0.36 * s, 0.4 * s, 0, 0.5 * s, 0.52 * s, -0.55, 3);            // sloped glacis
-      tb.box(0.94 * s, 0.08 * s, 1.1 * s, 0, 0.7 * s, -0.12 * s, T.dark);                       // roof
+      tb.box(0.94 * s, 0.08 * s, 1.1 * s, 0, 0.7 * s, -0.12 * s, T.dark); tb.box(1.04 * s, 0.07 * s, 1.2 * s, 0, 0.66 * s, -0.1 * s, T.acc);                       // roof + team band
       tb.add(G.cyl16, 0.16 * s, 0.1 * s, 0.16 * s, 0.25 * s, 0.78 * s, -0.35 * s, T.dark); tb.box(0.14 * s, 0.08 * s, 0.03 * s, -0.3 * s, 0.6 * s, 0.38 * s, 0x3fb0ff);
       tb.hazard(1.0 * s, 0.18 * s, 0, 0.26 * s, 0.47 * s, 'z', 1);
       for (const sx of [-1, 1]) tb.hazard(1.0 * s, 0.16 * s, sx * 0.505 * s, 0.24 * s, -0.1 * s, 'x', sx);
@@ -1045,6 +1050,16 @@ function bldGeo(type, team) {
       for (const sx of [-1, 1]) { B.add(G.cyl6, 0.08, 2.2, 0.08, sx * 3.3, 1.4, 3.3, 0x333333); B.add(G.sph, 0.22, 0.22, 0.22, sx * 3.3, 2.6, 3.3, 0x60ff90); }
       B.box(6.6, 0.25, 0.25, 0, 0.6, -3.4, T.acc);
       break;
+    case 'silo': { // everything sits flush with the ground: apron, rim, dark shaft, lid rails, small control bunker
+      B.box(9, 0.6, 9, 0, -0.15, 0, conc); B.box(8.6, 0.06, 8.6, 0, 0.17, 0, conc2);
+      B.add(G.cyl16, 2.9, 0.32, 2.9, 0, 0.3, 0, 0x6f6a61); B.add(G.cyl16, 2.25, 0.34, 2.25, 0, 0.31, 0, 0x0c0c0c);
+      for (const sz of [-1, 1]) { B.box(8.4, 0.16, 0.35, 0, 0.26, sz * 2.75, 0x4a4a46); for (let k = -4; k <= 4; k++) B.box(0.12, 0.2, 0.42, k * 1.0, 0.3, sz * 2.75, 0x2e2e2a); }
+      B.hazard(8.6, 0.12, 0, 0.12, 4.32, 'z', 1); B.hazard(8.6, 0.12, 0, 0.12, -4.32, 'z', -1); B.hazard(8.6, 0.12, 4.32, 0.12, 0, 'x', 1); B.hazard(8.6, 0.12, -4.32, 0.12, 0, 'x', -1);
+      B.box(1.8, 0.9, 1.4, 3.3, 0.6, 3.3, T.body); B.camo(1.8, 0.92, 1.4, 3.3, 0.6, 3.3, 0, 5); B.box(0.5, 0.08, 0.05, 3.3, 0.75, 4.01, 0x3fb0ff); B.add(G.cyl6, 0.03, 2.2, 0.03, 3.8, 2.0, 3.0, 0x222222);
+      for (const [vx, vz] of [[-3.4, 3.4], [-3.4, -3.4], [3.4, -3.4]]) { B.add(G.cyl10, 0.22, 0.5, 0.22, vx, 0.4, vz, 0x5a5a56); B.add(G.cyl10, 0.26, 0.06, 0.26, vx, 0.66, vz, 0x2e2e2a); }
+      for (const [lx, lz] of [[-4.1, 0], [4.1, 0], [0, -4.1], [0, 4.1]]) B.box(0.18, 0.12, 0.18, lx, 0.24, lz, 0xff4020);
+      { const d = new Builder(); d.box(2.9, 0.3, 5.4, 0, 0, 0, 0x6f7a52); d.camo(2.9, 0.32, 5.4, 0, 0, 0, 0, 6); d.box(0.3, 0.36, 5.4, 1.3, 0.02, 0, T.acc); d.hazard(2.9, 0.1, 0, 0.0, 2.72, 'z', 1); d.hazard(2.9, 0.1, 0, 0.0, -2.72, 'z', -1); anim.lid = d.build(); }
+      break; }
     case 'radartower':
       B.box(3.6, 1.2, 3.6, 0, -0.3, 0, conc); B.box(2.4, 1.6, 2.4, 0, 0.9, 0, T.body); B.box(2.5, 0.25, 2.5, 0, 1.75, 0, T.acc);
       for (const sx of [-1, 1]) for (const sz of [-1, 1]) B.box(0.18, 5.2, 0.18, sx * 0.8, 4.3, sz * 0.8, 0x6a6a64, sz * 0.08, 0, -sx * 0.08);
@@ -1152,6 +1167,8 @@ function makeBldMesh(type, team) { // team = colour palette index
   if (type === 'lab') { const d = new THREE.Mesh(g.anim.dish, matVC); d.position.set(-1.6, 4.05, 0.2); grp.add(d); parts.dish = d; }
   if (type === 'generator') { const f = new THREE.Mesh(g.anim.fan, matVC); f.position.set(-0.9, 3.15, 0.9); grp.add(f); parts.fan = f; const gl = new THREE.Mesh(g.anim.glow, matGlow); grp.add(gl); parts.glow = gl; }
   if (type === 'pump') { const b = new THREE.Mesh(g.anim.beam, matVC); b.position.set(0, 3.55, 0); grp.add(b); parts.beam = b; }
+  if (type === 'silo') { for (const sd of [-1, 1]) { const l = new THREE.Mesh(g.anim.lid, matVC); l.position.set(sd * 1.45, 0.5, 0); l.scale.x = sd; l.castShadow = true; grp.add(l); parts[sd < 0 ? 'lidL' : 'lidR'] = l; }
+    const L = 9; const m = new THREE.Mesh(missileGeo('icbm'), matVC); m.rotation.x = -Math.PI / 2; m.scale.setScalar(L); m.position.y = -L * 0.62; grp.add(m); parts.msl = m; parts.mslL = L; }
   if (type === 'radartower') { const d = new THREE.Mesh(g.anim.dish, matVC); d.position.set(0, 7.05, 0); grp.add(d); parts.dish = d; }
   if (type === 'tower' || BD[type].tw) {
     const t = new THREE.Group(); t.position.y = BD[type].ty || 3.3; t.scale.setScalar(BD[type].ts || 1); grp.add(t);
@@ -1251,24 +1268,31 @@ const RAYS = []; for (let i = 0; i < 20; i++) { const m = new THREE.Mesh(RAY_GEO
 let rayIdx = 0;
 // burning streamers: fly out along the rays, arc over and fall to the ground trailing black smoke
 const STREAM = [];
-function streamers(x, y, z, r) { const n = Math.max(4, Math.min(9, Math.round(r * 1.3))); const a0 = rand(0, TAU);
+function streamers(x, y, z, r) { const n = Math.max(3, Math.min(12, Math.round(r * 1.3))); const a0 = rand(0, TAU);
   for (let i = 0; i < n; i++) { if (STREAM.length > 90) STREAM.shift(); const a = a0 + (i / n) * TAU + rand(-0.25, 0.25), el = rand(0.35, 1.1), sp = r * rand(3.2, 4.6) + 4;
     STREAM.push({ x, y, z, vx: Math.cos(a) * Math.cos(el) * sp, vy: Math.sin(el) * sp, vz: Math.sin(a) * Math.cos(el) * sp, t: 0, life: rand(1.2, 1.9), tr: 0, s: Math.max(0.5, r * 0.16) }); } }
 function updStreamers(dt) { for (let i = STREAM.length - 1; i >= 0; i--) { const q = STREAM[i]; q.t += dt; q.vy -= 13 * dt; q.vx *= 1 - 0.6 * dt; q.vz *= 1 - 0.6 * dt;
   q.x += q.vx * dt; q.y += q.vy * dt; q.z += q.vz * dt; const gy = heightAt(q.x, q.z);
   q.tr -= dt; if (q.tr <= 0) { q.tr = 0.03; const k = q.t / q.life; fx('blacksmoke', q.x, q.y, q.z, q.s * (0.75 + k * 0.6)); if (k < 0.7) fx('fire', q.x, q.y, q.z, q.s * 0.55 * (1 - k)); }
   if (q.y <= gy + 0.2 || q.t >= q.life) { fx('smoke', q.x, gy + 0.3, q.z, q.s * 1.2); fx('fire', q.x, gy + 0.2, q.z, q.s * 0.6); STREAM.splice(i, 1); } } }
-function rays3D(x, y, z, r, life) { const f = RAYS[rayIdx = (rayIdx + 1) % RAYS.length]; f.t = 0; f.r = r; f.life = life || 0.35; f.m.position.set(x, y, z); f.m.rotation.y = rand(0, TAU); f.m.visible = true; f.m.scale.setScalar(0.01); f.m.material.opacity = 1; }
+function rays3D(x, y, z, r, life, tint) { const f = RAYS[rayIdx = (rayIdx + 1) % RAYS.length]; f.t = 0; f.r = r; f.life = life || 0.35; f.m.position.set(x, y, z); f.m.rotation.y = rand(0, TAU); f.m.visible = true; f.m.scale.setScalar(0.01); f.m.material.opacity = 1; const tt = tint || [1, 1, 1]; f.m.material.color.setRGB(tt[0], tt[1], tt[2]); }
 function updRays(dt) { for (const f of RAYS) { if (!f.m.visible) continue; f.t += dt; const k = f.t / f.life; if (k >= 1) { f.m.visible = false; continue; }
   f.m.scale.setScalar(f.r * (0.5 + 1.3 * (1 - Math.pow(1 - k, 3)))); f.m.material.opacity = k < 0.25 ? 1 : 1 - (k - 0.25) / 0.75; } }
-function fireball3D(x, y, z, r) { const f = FBALLS[fbIdx = (fbIdx + 1) % FBALLS.length]; f.t = 0; f.life = 0.45 + r * 0.04; f.r = r; f.m.position.set(x, y + r * 0.35, z); f.m.rotation.set(0, 0, 0); f.m.visible = true; f.m.scale.setScalar(r * 0.25); rays3D(x, y + r * 0.35, z, r * 1.5, f.life * 0.75); if (Math.abs(x - cam.x) < 110 && Math.abs(z - cam.z) < 110) streamers(x, y + r * 0.35, z, r); f.m.material.color.setRGB(1, 1, 1); f.m.material.opacity = 0.8; f.core.material.opacity = 1; f.m.material.depthWrite = false; f.core.visible = true; }
+function fireball3D(x, y, z, r, tint, str) { const f = FBALLS[fbIdx = (fbIdx + 1) % FBALLS.length]; f.t = 0; f.tint = tint || [1, 1, 1]; f.life = 0.45 + r * 0.04; f.r = r; f.m.position.set(x, y + r * 0.35, z); f.m.rotation.set(0, 0, 0); f.m.visible = true; f.m.scale.setScalar(r * 0.25); rays3D(x, y + r * 0.35, z, r * 1.5, f.life * 0.75, f.tint); if (str !== 0 && Math.abs(x - cam.x) < 110 && Math.abs(z - cam.z) < 110) streamers(x, y + r * 0.35, z, r * (str || 1)); f.m.material.color.setRGB(f.tint[0], f.tint[1], f.tint[2]); f.core.material.color.setRGB(Math.min(1, f.tint[0] + 0.3), Math.min(1, f.tint[1] + 0.3), Math.min(1, f.tint[2] + 0.4)); f.m.material.opacity = 0.7; f.core.material.opacity = 0.85; f.m.material.depthWrite = false; f.core.visible = true; }
 function updFireballs(dt) { for (const f of FBALLS) { if (!f.m.visible) continue; f.t += dt; const k = f.t / f.life; if (k >= 1) { f.m.visible = false; continue; }
   const grow = k < 0.3 ? 1 - Math.pow(1 - k / 0.3, 3) : 1; f.m.scale.setScalar(f.r * (0.25 + 0.75 * grow + 0.15 * k)); f.m.position.y += dt * f.r * 0.6;
-  const dark = k < 0.45 ? 0 : (k - 0.45) / 0.55; f.m.material.color.setRGB(1, 1 - dark * 0.55, 1 - dark * 0.85); f.core.material.opacity = Math.max(0, 1 - k * 1.8); f.core.visible = k < 0.55;
-  f.m.material.opacity = 0.8 * (k < 0.6 ? 1 : 1 - (k - 0.6) / 0.4); } }
-function impactFx(x, y, z, sz, big) {
+  const dark = k < 0.45 ? 0 : (k - 0.45) / 0.55; f.m.material.color.setRGB(f.tint[0] * (1 - dark * 0.1), f.tint[1] * (1 - dark * 0.55), f.tint[2] * (1 - dark * 0.85)); f.core.material.opacity = Math.max(0, 1 - k * 1.8); f.core.visible = k < 0.55;
+  f.m.material.opacity = 0.7 * (k < 0.6 ? 1 : 1 - (k - 0.6) / 0.4); } }
+const XST = { shell: { t: [1, 0.85, 0.55], str: 0.6 }, rocket: { t: [1, 0.6, 0.35], str: 1 }, mortar: { t: [1, 0.78, 0.42], str: 0.9, dirt: 1 }, how: { t: [1, 0.7, 0.35], str: 1.3, dirt: 1.5 },
+  salvo: { t: [1, 0.62, 0.3], str: 0.8 }, fire: { t: [1, 0.32, 0.12], str: 1.4, flames: 1 }, emp: { t: [0.3, 0.65, 1], str: 0, sparks: 1 }, plasma: { t: [0.5, 0.78, 1], str: 0.6, sparks: 1 },
+  heavy: { t: [1, 0.42, 0.18], str: 1.7, dirt: 2 }, icbm: { t: [1, 0.95, 0.85], str: 2, dirt: 3 }, def: { t: [1, 1, 1], str: 1 } };
+const xstyle = p => { const W = p.w; if (!W) return p.kind === 'shell' ? XST.shell : XST.rocket; return W.emp ? XST.emp : W.plasma ? XST.plasma : W.fire ? XST.fire : W.id === 'icbm' ? XST.icbm : W.big ? XST.heavy : W.art === 'how' ? XST.how : W.kind === 'salvo' ? XST.salvo : W.kind === 'rocket' ? XST.rocket : XST.mortar; };
+function impactFx(x, y, z, sz, big, st) { st = st || XST.def;
   const near = Math.abs(x - cam.x) < 110 && Math.abs(z - cam.z) < 110;
-  fx('flash', x, y, z, sz * 1.2); fireball3D(x, y, z, sz * 1.1); fx('blastball', x, y + 0.35 * sz, z, sz * 0.8); fx('fire', x, y, z, sz * 0.5);
+  fx('flash', x, y, z, sz * 1.2); fireball3D(x, y, z, sz * 1.1, st.t, st.str); if (st !== XST.emp && st !== XST.plasma) fx('blastball', x, y + 0.35 * sz, z, sz * 0.8); fx('fire', x, y, z, sz * 0.5);
+  if (st.dirt) for (let k = 0; k < 3 + st.dirt * 2; k++) fx('dust', x + rand(-1, 1) * sz * 0.3, y + rand(0.3, 1.6) * sz * 0.5, z + rand(-1, 1) * sz * 0.3, sz * (0.5 + st.dirt * 0.25));
+  if (st.flames) for (let k = 0; k < 6; k++) fx('flame', x + rand(-1, 1) * sz * 0.5, y + 0.3, z + rand(-1, 1) * sz * 0.5, sz * 0.5);
+  if (st.sparks) for (let k = 0; k < 14; k++) fx('spark', x, y + 0.5, z, 1.6);
   if (!near) { fx('smoke', x, y + 0.5, z, sz * 0.9); return; }
   for (let i = 0; i < 2; i++) fx('fireball', x + rand(-0.4, 0.4) * sz, y + rand(0.1, 0.5) * sz, z + rand(-0.4, 0.4) * sz, sz * 0.7);
   fx('smoke', x, y + 0.5 * sz, z, sz * 0.9); fx('smoke', x + rand(-1, 1) * sz * 0.4, y + 0.9 * sz, z + rand(-1, 1) * sz * 0.4, sz * 0.7); fx('blacksmoke', x, y + 0.4 * sz, z, sz * 0.55);
@@ -1319,6 +1343,7 @@ function beam(x1, y1, z1, x2, y2, z2) { const t = beams[bmIdx = (bmIdx + 1) % be
 function tracer(x1, y1, z1, x2, y2, z2) { const t = tracers[trIdx = (trIdx + 1) % tracers.length]; const d = Math.hypot(x2 - x1, y2 - y1, z2 - z1); t.m.position.set((x1 + x2) / 2, (y1 + y2) / 2, (z1 + z2) / 2); t.m.lookAt(x2, y2, z2); t.m.scale.set(1, 1, d); t.m.visible = true; t.life = 0.06; }
 const plasmaMat = new THREE.MeshBasicMaterial({ color: 0x9affb8 });
 const shellGeo = new THREE.SphereGeometry(0.2, 6, 4), rocketGeo = new THREE.ConeGeometry(0.18, 1.0, 6).rotateX(Math.PI / 2);
+const artShellGeo = (() => { const B = new Builder(); B.add(G.cyl16, 0.16, 0.5, 0.16, 0, 0, 0, 0x1c1c1c); B.add(G.cone, 0.16, 0.32, 0.16, 0, 0.41, 0, 0x262626); B.add(G.cyl16, 0.17, 0.06, 0.17, 0, -0.12, 0, 0x6a5a3a); B.add(G.cyl16, 0.12, 0.1, 0.12, 0, -0.3, 0, 0x111111); const g = B.build(); g.rotateX(Math.PI / 2); return g; })();
 const shellMat = new THREE.MeshBasicMaterial({ color: 0xffd27a }), rocketMat = new THREE.MeshBasicMaterial({ color: 0xe8e8e8 });
 const mslExh = new THREE.ConeGeometry(0.07, 0.7, 8).rotateX(-Math.PI / 2).translate(0, 0, -0.85), mslExhCore = new THREE.ConeGeometry(0.035, 0.4, 8).rotateX(-Math.PI / 2).translate(0, 0, -0.7);
 const exhGeo = new THREE.ConeGeometry(0.12, 1.1, 6).rotateX(-Math.PI / 2).translate(0, 0, -0.85), exhCoreGeo = new THREE.ConeGeometry(0.06, 0.6, 6).rotateX(-Math.PI / 2).translate(0, 0, -0.6);
@@ -1326,9 +1351,10 @@ const exhMat = new THREE.MeshBasicMaterial({ color: 0xff7a1a, transparent: true,
 const projs = [];
 function spawnProj(kind, src, tgt, dmg, splash, ox, oy, oz, w, realT, mlen, lift) {
   const rk = kind === 'rocket' || (w && w.kind === 'salvo'); let m;
-  if (rk && !(w && w.plasma)) { const mk = !w ? 'rocket' : w.id === 'viper' ? 'viper' : w.id === 'smissile' ? 'seeker' : w.id === 'omissile' ? 'orizont' : w.id === 'ballistic' ? 'ballistic' : w.kind === 'salvo' ? 'salvo' : 'rocket';
+  if (rk && !(w && w.plasma)) { const mk = !w ? 'rocket' : w.id === 'viper' ? 'viper' : w.id === 'smissile' ? 'seeker' : w.id === 'omissile' ? 'orizont' : w.id === 'ballistic' ? 'ballistic' : w.id === 'icbm' ? 'icbm' : w.kind === 'salvo' ? 'salvo' : 'rocket';
     m = new THREE.Mesh(missileGeo(mk), matVC); m.add(new THREE.Mesh(mslExh, exhMat)); m.add(new THREE.Mesh(mslExhCore, exhCoreMat));
     m.scale.setScalar(mlen || ({ rocket: 1.5, viper: 2.3, seeker: 2.0, orizont: 4.5, ballistic: 3, salvo: 1.4 })[mk]); }
+  else if (kind === 'mortar' && !(w && w.plasma)) { m = new THREE.Mesh(artShellGeo, matVC); m.scale.setScalar(w && w.big ? 2.6 : w && w.art === 'how' ? 2.0 : 1.7); }
   else { m = new THREE.Mesh(shellGeo, w && w.plasma ? plasmaMat : shellMat); if (kind === 'mortar') m.scale.setScalar(w && w.big ? 2.6 : w && w.plasma ? 2.4 : 1.6); }
   scene.add(m); if (lift) m.position.set(ox, oy, oz);
   const tx = tgt.x, tz = tgt.z, ty = tgt.y + (tgt.kind === 'bld' ? 1.5 : 0.8); const d = Math.hypot(tx - ox, tz - oz); const spd = kind === 'shell' ? 34 : kind === 'mortar' ? 26 : 22;
@@ -1348,12 +1374,12 @@ function updProjs(dt) {
     const k = Math.min(1, p.lift ? Math.pow(p.t, 1.6) : p.t); const x = lerp(p.ox, p.tx, k), z = lerp(p.oz, p.tz, k), y = lerp(p.oy, p.ty, k) + Math.sin(k * Math.PI) * p.arc;
     const px = p.m.position.x, py = p.m.position.y, pz = p.m.position.z;
     p.m.position.set(x, y, z); if (p.w && p.w.plasma && Math.random() < 0.5) fx('spark', x, y, z, 0.6); if (p.kind === 'rocket' || (p.w && p.w.kind === 'salvo')) { p.m.lookAt(x + (x - px), y + (y - py), z + (z - pz)); p.smokeT -= dt; if (p.smokeT <= 0) { const hv = p.w && (p.w.heavy || p.w.big); p.smokeT = 0.035; fx('trail', x, y, z, p.big ? 1.8 : hv ? 0.75 : 0.55); fx('fire', x, y, z, p.big ? 1.0 : hv ? 0.45 : 0.32); if (p.big && Math.random() < 0.3) fx('blacksmoke', x, y, z, 0.8); } }
-    else if (p.kind === 'mortar' && !(p.w && p.w.plasma)) { p.smokeT -= dt; if (p.smokeT <= 0) { p.smokeT = 0.045; fx('trail', x, y, z, p.w && p.w.big ? 0.6 : 0.45); if (Math.random() < 0.35) fx('fire', x, y, z, 0.25); } }
+    else if (p.kind === 'mortar' && !(p.w && p.w.plasma)) { p.m.lookAt(x + (x - px), y + (y - py), z + (z - pz)); p.smokeT -= dt; if (p.smokeT <= 0) { p.smokeT = 0.045; fx('trail', x, y, z, p.w && p.w.big ? 0.6 : 0.45); if (Math.random() < 0.35) fx('fire', x, y, z, 0.25); } }
     if (p.kind === 'mortar' && !p.wh && p.dur > 1.2 && (1 - p.t) * p.dur < 0.95 && !(p.w && (p.w.plasma || p.w.kind === 'salvo' || p.w.id === 'ballistic'))) { p.wh = 1; sfx('whistle', p.tx, p.tz); }
     if (k >= 1) {
       scene.remove(p.m); projs.splice(i, 1);
       { const big = p.w && p.w.big; const base = p.kind === 'shell' ? 1 : p.kind === 'rocket' ? (p.w && p.w.heavy ? 1.3 : 1) : p.w && p.w.kind === 'salvo' ? (big ? 2.6 : 1.2) : big ? 2.6 : 1.5;
-        impactFx(x, y, z, Math.min(6.5, base * EXPL), big); }
+        impactFx(x, y, z, p.w && p.w.id === 'icbm' ? 11 : Math.min(6.5, base * EXPL), big, xstyle(p)); if (p.w && p.w.id === 'icbm') { for (let k = 0; k < 8; k++) fx('blacksmoke', x + rand(-4, 4), y + 4 + k * 2.2, z + rand(-4, 4), 4 + k * 0.4); fireball3D(x, y + 8, z, 7); } }
       sfx(p.kind === 'shell' ? 'imp_shell' : p.kind === 'rocket' ? 'imp_rocket' : (p.w && IMP_SND[p.w.id]) || 'imp_mortar', x, z); if (p.kind !== 'mortar' && p.tgt.alive) sfx('hit', x, z);
       if (p.w && p.w.fire) fireZones.push({ x, z, r: p.splash, t: 5, dps: p.w.fire, team: p.team, src: p.src, fxT: 0 });
       if (p.w && p.w.emp) { sfx('art_emp', x, z); for (const e of ents) if (e.alive && e.kind === 'unit' && e.team !== p.team && Math.hypot(e.x - x, e.z - z) < p.splash) e.stun = p.w.emp; for (let s = 0; s < 6; s++) fx('spark', x + rand(-2, 2), y + rand(0, 2), z + rand(-2, 2), 1.2); }
@@ -1585,6 +1611,20 @@ function truckAuto(u) {
 }
 
 function localToWorld(b, lx, lz) { const c = Math.cos(b.rot), s = Math.sin(b.rot); return [b.x + lx * c + lz * s, b.z - lx * s + lz * c]; }
+// strategic missile silo: lids slide open, missile rises out of the shaft, hot launch, lids close, long reload
+function siloTarget(b) { let t = nearestSpotted(b.team, b.x, b.z, 1e9); if (t) return t; let best = null, bd = 1e9;
+  for (const e of ents) if (e.alive && e.team !== b.team && e.kind === 'bld' && (e.team === 0 || e.team === 1)) { const d = Math.hypot(e.x - b.x, e.z - b.z); if (d < bd) { bd = d; best = e; } } return best; }
+function siloTick(b, dt) { const P = b.parts, L = P.mslL, w = WP.icbm; if (b.sPh === undefined) { b.sPh = 'idle'; b.sT = 6; }
+  b.sT -= dt; const lid = k => { P.lidL.position.x = -1.45 - 2.7 * k; P.lidR.position.x = 1.45 + 2.7 * k; };
+  if (b.sPh === 'idle') { if (b.sT <= 0 && !NET.cl) { const t = siloTarget(b); if (t) { b.sTarget = t; b.sPh = 'open'; b.sT = 1.4; sfx('art_hhow', b.x, b.z); } else b.sT = 2; } }
+  else if (b.sPh === 'open') { lid(1 - Math.max(0, b.sT) / 1.4); if (b.sT <= 0) { b.sPh = 'rise'; b.sT = 1.6; P.msl.visible = true; } }
+  else if (b.sPh === 'rise') { const k = 1 - Math.max(0, b.sT) / 1.6; P.msl.position.y = -L * 0.62 + L * 0.72 * (1 - Math.pow(1 - k, 2));
+    if (Math.random() < 0.5) fx('steam', b.x + rand(-2, 2), b.y + 0.6, b.z + rand(-2, 2), 1.6);
+    if (b.sT <= 0) { const t = b.sTarget && b.sTarget.alive ? b.sTarget : siloTarget(b);
+      if (t) { fireWeapon(b, t, w, b.x, b.y + 4, b.z, 1); for (let i = 0; i < 10; i++) { const a = i / 10 * TAU; fx('blacksmoke', b.x + Math.sin(a) * 3, b.y + 0.8, b.z + Math.cos(a) * 3, 3.2); fx('dust', b.x + Math.sin(a) * 4.5, b.y + 0.4, b.z + Math.cos(a) * 4.5, 3); }
+        fx('fireball', b.x, b.y + 1.5, b.z, 3); fx('flash', b.x, b.y + 2, b.z, 4); shockwave(b.x, b.z, 5); shake = Math.max(shake, 0.5 * Math.max(0, 1 - Math.hypot(b.x - cam.x, b.z - cam.z) / 120)); }
+      P.msl.visible = false; P.msl.position.y = -L * 0.62; b.sPh = 'close'; b.sT = 1.6; } }
+  else if (b.sPh === 'close') { lid(Math.max(0, b.sT) / 1.6); if (b.sT <= 0) { lid(0); b.sPh = 'idle'; b.sT = w.rof * (TEAMS[b.team].rof.art || 1); P.msl.visible = true; } } }
 function updBld(b, dt) {
   if (!b.complete) { b.mesh.scale.y = 0.12 + 0.88 * b.built; return; }
   b.anim += dt; const T = TEAMS[b.team];
@@ -1607,6 +1647,7 @@ function updBld(b, dt) {
     b.acq -= dt; if (b.acq <= 0) { b.acq = 0.5; const fast = T.tech.has('repair2');
       for (const e of ents) if (e.alive && e.kind === 'unit' && e.team === b.team && e.hp < e.maxHp && Math.hypot(e.x - b.x, e.z - b.z) < 11) { e.hp = Math.min(e.maxHp, e.hp + (fast ? 40 : 25) * 0.5); if (Math.random() < 0.6) { tracer(b.x + 0.8, b.y + 3.6, b.z, e.x, e.y + 0.8, e.z); fx('spark', e.x, e.y + 0.9, e.z, 0.8); } } }
   }
+  if (b.type === 'silo' && b.parts.msl && b.complete) siloTick(b, dt);
   if (b.type === 'radartower' && !NET.cl) {
     b.acq -= dt; if (b.acq <= 0) { b.acq = 0.5; const adv = T.tech.has('radar2'), ar = adv ? 44 : 34;
       for (const e of ents) if (e.alive && e.kind === 'unit' && e.team === b.team && e.st.w.dmg > 0 && Math.hypot(e.x - b.x, e.z - b.z) < ar) { e.rb = adv ? 1.35 : 1.25; e.rbT = 1.2; } }
@@ -1974,7 +2015,7 @@ let buildTab = 'base', defCls = 'tower', labBr = 0;
 function buildMenu(T) {
   let h = `<div class="tabs"><button data-act="btab" data-v="base" class="${buildTab === 'base' ? 'on' : ''}">${UIC.factory}Bază</button><button data-act="btab" data-v="def" class="${buildTab === 'def' ? 'on' : ''}">${UIC.tower}Apărare</button></div>`;
   if (buildTab === 'base') {
-    h += `<div class="grid">${bdBtn('generator')}${bdBtn('factory')}${bdBtn('lab')}${['repairbay', 'radartower'].filter(k => !BD[k].req || T.tech.has(BD[k].req)).map(bdBtn).join('')}${ents.some(e => e.alive && e.team === 0 && e.type === 'hq') ? '' : bdBtn('hq')}</div>`;
+    h += `<div class="grid">${bdBtn('generator')}${bdBtn('factory')}${bdBtn('lab')}${['repairbay', 'radartower', 'silo'].filter(k => !BD[k].req || T.tech.has(BD[k].req)).map(bdBtn).join('')}${ents.some(e => e.alive && e.team === 0 && e.type === 'hq') ? '' : bdBtn('hq')}</div>`;
   } else {
     const cls = Object.keys(DCLASS).filter(c => !DCLASS[c].req || T.tech.has(DCLASS[c].req)); if (!cls.includes(defCls)) defCls = 'tower';
     h += `<div class="chips">${cls.map(c => `<button data-act="dcls" data-v="${c}" class="${defCls === c ? 'on' : ''}">${DCLASS[c].name}</button>`).join('')}</div>`;
@@ -2707,7 +2748,7 @@ window.onBack = () => {
   if (S.paused || !$('pause').classList.contains('hidden')) return false;
   S.paused = !NET.on; $('pause').classList.remove('hidden'); return true;
 };
-window.__game = { SPOT, nearestSpotted, WP,  killNear: () => { for (const e of ents) if (e.alive && e.team === 1 && Math.hypot(e.x - PLAYER2.x, e.z - PLAYER2.z) < 25) kill(e); }, NET, execCmd, doCmd, byId, PLAYER, PLAYER2, S, TEAMS, ents, cam, setSel, sel: () => sel, createUnit, createBuilding, sfx, AU, SB, buildSfx, projs: () => projs, BD, WP };
+window.__game = { SPOT, nearestSpotted, WP, impactFx, XST, heightAt,  killNear: () => { for (const e of ents) if (e.alive && e.team === 1 && Math.hypot(e.x - PLAYER2.x, e.z - PLAYER2.z) < 25) kill(e); }, NET, execCmd, doCmd, byId, PLAYER, PLAYER2, S, TEAMS, ents, cam, setSel, sel: () => sel, createUnit, createBuilding, sfx, AU, SB, buildSfx, projs: () => projs, BD, WP };
 
 resize(); updateCamera(0); requestAnimationFrame(loop);
 // background scene behind the intro

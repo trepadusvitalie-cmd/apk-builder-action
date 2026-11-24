@@ -1264,7 +1264,7 @@ const RAY_GEO = [0, 1, 2].map(v => { const B = new Builder(), up = new THREE.Vec
     const L = 0.6 + Math.abs(Math.sin(i * 2.9 + v)) * 0.6; q.setFromUnitVectors(up, d); e.setFromQuaternion(q);
     B.add(G.cone, 0.045, L, 0.045, d.x * L / 2, d.y * L / 2, d.z * L / 2, i % 3 ? 0xffe9a0 : 0xffffff, e.x, e.y, e.z); }
   return B.build(); });
-const RAYS = []; for (let i = 0; i < 20; i++) { const m = new THREE.Mesh(RAY_GEO[i % 3], new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, toneMapped: false })); m.visible = false; m.renderOrder = 3; scene.add(m); RAYS.push({ m, t: 0, life: 0.32, r: 1 }); }
+const RAYS = []; for (let i = 0; i < 20; i++) { const m = new THREE.Mesh(RAY_GEO[i % 3], new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, fog: false, toneMapped: false })); m.visible = false; m.renderOrder = 3; scene.add(m); RAYS.push({ m, t: 0, life: 0.32, r: 1 }); }
 let rayIdx = 0;
 // burning streamers: fly out along the rays, arc over and fall to the ground trailing black smoke
 const STREAM = [];
@@ -1275,9 +1275,9 @@ function updStreamers(dt) { for (let i = STREAM.length - 1; i >= 0; i--) { const
   q.x += q.vx * dt; q.y += q.vy * dt; q.z += q.vz * dt; const gy = heightAt(q.x, q.z);
   q.tr -= dt; if (q.tr <= 0) { q.tr = 0.03; const k = q.t / q.life; fx('blacksmoke', q.x, q.y, q.z, q.s * (0.75 + k * 0.6)); if (k < 0.7) fx('fire', q.x, q.y, q.z, q.s * 0.55 * (1 - k)); }
   if (q.y <= gy + 0.2 || q.t >= q.life) { fx('smoke', q.x, gy + 0.3, q.z, q.s * 1.2); fx('fire', q.x, gy + 0.2, q.z, q.s * 0.6); STREAM.splice(i, 1); } } }
-function rays3D(x, y, z, r, life, tint) { const f = RAYS[rayIdx = (rayIdx + 1) % RAYS.length]; f.t = 0; f.r = r; f.life = life || 0.35; f.m.position.set(x, y, z); f.m.rotation.y = rand(0, TAU); f.m.visible = true; f.m.scale.setScalar(0.01); f.m.material.opacity = 0.7; const tt = tint || [1, 1, 1]; f.m.material.color.setRGB(tt[0], tt[1], tt[2]); }
+function rays3D(x, y, z, r, life, tint) { const f = RAYS[rayIdx = (rayIdx + 1) % RAYS.length]; f.t = 0; f.r = r; f.life = life || 0.35; f.m.position.set(x, y, z); f.m.rotation.y = rand(0, TAU); f.m.visible = true; f.m.scale.setScalar(0.01); f.m.material.opacity = 0.4; const tt = tint || [1, 1, 1]; f.m.material.color.setRGB(tt[0], tt[1], tt[2]); }
 function updRays(dt) { for (const f of RAYS) { if (!f.m.visible) continue; f.t += dt; const k = f.t / f.life; if (k >= 1) { f.m.visible = false; continue; }
-  f.m.scale.setScalar(f.r * (0.5 + 1.3 * (1 - Math.pow(1 - k, 3)))); f.m.material.opacity = 0.7 * (k < 0.25 ? 1 : 1 - (k - 0.25) / 0.75); } }
+  f.m.scale.setScalar(f.r * (0.5 + 1.3 * (1 - Math.pow(1 - k, 3)))); f.m.material.opacity = 0.4 * (k < 0.25 ? 1 : 1 - (k - 0.25) / 0.75); } }
 function fireball3D(x, y, z, r, tint, str) { const f = FBALLS[fbIdx = (fbIdx + 1) % FBALLS.length]; f.t = 0; f.tint = tint || [1, 1, 1]; f.life = 0.45 + r * 0.04; f.r = r; f.m.position.set(x, y + r * 0.35, z); f.m.rotation.set(0, 0, 0); f.m.visible = true; f.m.scale.setScalar(r * 0.25); rays3D(x, y + r * 0.35, z, r * 1.5, f.life * 0.75, f.tint); if (str !== 0 && Math.abs(x - cam.x) < 110 && Math.abs(z - cam.z) < 110) streamers(x, y + r * 0.35, z, r * (str || 1)); f.m.material.color.setRGB(f.tint[0], f.tint[1], f.tint[2]); f.core.material.color.setRGB(Math.min(1, f.tint[0] + 0.3), Math.min(1, f.tint[1] + 0.3), Math.min(1, f.tint[2] + 0.4)); f.m.material.opacity = 0.7; f.core.material.opacity = 0.85; f.m.material.depthWrite = false; f.core.visible = true; }
 function updFireballs(dt) { for (const f of FBALLS) { if (!f.m.visible) continue; f.t += dt; const k = f.t / f.life; if (k >= 1) { f.m.visible = false; continue; }
   const grow = k < 0.3 ? 1 - Math.pow(1 - k / 0.3, 3) : 1; f.m.scale.setScalar(f.r * (0.25 + 0.75 * grow + 0.15 * k)); f.m.position.y += dt * f.r * 0.6;

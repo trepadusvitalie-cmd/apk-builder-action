@@ -504,6 +504,8 @@ const RNG_T = clamp((MAP - 300) / 1700, 0, 1), RNG_D = 1 + (500 / WP.cannon.rang
 for (const k in WP) { const w = WP[k]; if (!w.range || w.range >= 9999 || w.kind === 'bomb') continue;
   if (w.art) { w.sight = Math.round(w.sight * RNG_A); w.range = w.sight * 3; } else w.range = Math.round(w.range * (w.kind === 'flame' ? Math.sqrt(RNG_D) : RNG_D)); }
 const wfam = w => w.art ? 'art' : w.fam || w.id;
+// long-range weapons fire at anything their side can see (units, buildings or radar spot it), out to 2 km
+const LONG_R = 2000; for (const k of ['hhowitzer', 'rbattery', 'smissile', 'ballistic', 'omissile']) if (WP[k]) WP[k].long = 1;
 const BASE_SPEED = 5.4;
 const BD = {
   hq: { name: 'Cartier General', icon: '🏛', hp: 1600, cost: 300, size: 6.5, time: 40, h: 5.5 },
@@ -1757,9 +1759,11 @@ function updWrecks(dt) {
 // ================= COMBAT =================
 let heat = 0, lastAlert = -99;
 const pings = [];
+const BATTLES = [];   // recent fighting spots for the radar: merged within 30 m, fade 4 s after the last hit
+function battleMark(x, z) { for (const b of BATTLES) if (Math.abs(b.x - x) < 30 && Math.abs(b.z - z) < 30) { b.t = 4; b.n = Math.min(b.n + 1, 40); return; } if (BATTLES.length < 16) BATTLES.push({ x, z, t: 4, n: 1 }); }
 function damage(e, amt, src) {
   if (!e.alive || S.over) return;
-  e.hp -= amt; e.lastHit = S.time;
+  e.hp -= amt; e.lastHit = S.time; battleMark(e.x, e.z);
   heat = Math.min(1.5, heat + amt * (e.team === 0 ? 0.01 : 0.005));
   if (e.team === 0 && S.time - lastAlert > 25) { lastAlert = S.time; teamToast('⚠ Ești atacat!', 'alert', e.x, e.z); }
   if (e.kind === 'unit' && src && src.alive && e.st.range > 0 && (e.state === 'idle' || e.state === 'patrol') && e.fire !== 2) { e.target = src; e.state = 'engage'; e.lx = e.x; e.lz = e.z; }
@@ -1778,19 +1782,32 @@ function kill(e) {
 const timers = []; function later(t, fn) { timers.push({ t: S.time + t, fn }); }
 
 // radar spotting: enemies near a friendly radar tower / radar vehicle can be shelled by artillery emplacements from afar
-const SPOT = [[], []]; let spotT = 0;
+const SPOT = [[], []], SPOTSET = [new Set(), new Set()]; let spotT = 0;
+// what each side can see: radar towers and radar units far, every other unit and building around itself
 function updSpot(dt) { spotT -= dt; if (spotT > 0) return; spotT = 0.5;
-  for (let t = 0; t < 2; t++) { const src = []; const adv = TEAMS[t].tech.has('radar2');
-    for (const e of ents) if (e.alive && e.team === t && ((e.type === 'radartower' && e.complete) || (e.kind === 'unit' && e.st.w.kind === 'radar'))) src.push([e.x, e.z, e.kind === 'bld' ? (adv ? 80 : 60) : (adv ? 52 : 40)]);
-    const out = []; if (src.length) for (const e of ents) { if (!e.alive || e.team === t || (e.team !== 0 && e.team !== 1)) continue; for (const [x, z, r] of src) if (Math.hypot(e.x - x, e.z - z) < r) { out.push(e); break; } }
-    SPOT[t] = out; } }
+  const C = 40;
+  for (let t = 0; t < 2; t++) { const adv = TEAMS[t].tech.has('radar2'); const grid = new Map(); let maxR = 0;
+    for (const e of ents) { if (!e.alive || e.team !== t) continue; let r;
+      if (e.type === 'radartower' && e.complete) r = adv ? 80 : 60;
+      else if (e.kind === 'unit') r = e.st.w.kind === 'radar' ? (adv ? 52 : 40) : (e.st.w.art ? e.st.w.sight : e.st.range) + 10;
+      else if (e.kind === 'bld' && e.complete) r = 22; else continue;
+      maxR = Math.max(maxR, r); const k = Math.floor(e.x / C) + ',' + Math.floor(e.z / C); let a = grid.get(k); if (!a) grid.set(k, a = []); a.push(e.x, e.z, r); }
+    const out = [], set = new Set(), reach = Math.ceil(maxR / C);
+    if (grid.size) for (const e of ents) { if (!e.alive || e.team === t || (e.team !== 0 && e.team !== 1)) continue;
+      const cx = Math.floor(e.x / C), cz = Math.floor(e.z / C); let seen = false;
+      for (let i = -reach; i <= reach && !seen; i++) for (let j = -reach; j <= reach && !seen; j++) { const a = grid.get((cx + i) + ',' + (cz + j)); if (!a) continue;
+        for (let q = 0; q < a.length; q += 3) { const dx = e.x - a[q], dz = e.z - a[q + 1], r = a[q + 2]; if (dx * dx + dz * dz < r * r) { seen = true; break; } } }
+      if (seen) { out.push(e); set.add(e); } }
+    SPOT[t] = out; SPOTSET[t] = set; } }
+const spotted = (team, e) => SPOTSET[team] && SPOTSET[team].has(e);
+const effRange = (u, t) => u.st.w.long && t && spotted(u.team, t) ? LONG_R : u.st.range * (u.rb || 1);
 function nearestSpotted(team, x, z, range) { let best = null, bd = 1e9; for (const e of SPOT[team] || []) { if (!e.alive || flying(e)) continue; const d = Math.hypot(e.x - x, e.z - z) - e.r; if (d < range && d < bd) { bd = d; best = e; } } return best; }
 function nearestEnemy(team, x, z, range, w) {
   let best = null, bd = 1e9; const na = w && !canHitAir(w), ao = w && w.aa;
   for (const e of ents) { if (!e.alive || e.team === team || (na && flying(e)) || (ao && !flying(e))) continue; const d = Math.hypot(e.x - x, e.z - z) - e.r; if (d > range) continue; const s = d + (e.kind === 'bld' ? 5 : 0); if (s < bd) { bd = s; best = e; } }
   return best;
 }
-function inRange(u, t, extra) { return Math.hypot(t.x - u.x, t.z - u.z) - t.r <= u.st.range * (u.rb || 1) + (extra || 0); }
+function inRange(u, t, extra) { return Math.hypot(t.x - u.x, t.z - u.z) - t.r <= effRange(u, t) + (extra || 0); }
 
 function fireWeapon(src, t, w, mx, my, mz, mul) {
   const dmg = w.dmg * (mul || 1) * (TEAMS[src.team].dmg[wfam(w)] || 1) * (1 + 0.1 * (src.rank || 0));
@@ -1970,7 +1987,7 @@ function updUnit(u, dt) {
     u.acq = 0.35 + SR() * 0.15;
     const passive = u.state === 'move'; const vis = (w.art ? w.sight : u.st.range) + (passive || u.mvo === 2 ? 0 : 9);
     if (!u.target || !inRange(u, u.target)) {
-      const t = nearestEnemy(u.team, u.x, u.z, vis, w) || (w.art && !passive ? nearestSpotted(u.team, u.x, u.z, u.st.range) : null);
+      const t = nearestEnemy(u.team, u.x, u.z, vis, w) || (w.art && !passive ? nearestSpotted(u.team, u.x, u.z, w.long ? LONG_R : u.st.range) : null);
       if (t) { u.target = t; if (u.state === 'idle' || u.state === 'amove' || u.state === 'patrol') { if (u.state === 'idle') { u.lx = u.x; u.lz = u.z; } u.state = 'engage'; } }
       else if (passive && u.target && !inRange(u, u.target, 4)) u.target = null;
     }
@@ -1991,13 +2008,13 @@ function updUnit(u, dt) {
       break; }
     case 'engage': case 'attack': {
       const t = u.target; if (!t || !t.alive) { u.state = resume(u); u.target = null; break; }
-      const d = Math.hypot(t.x - u.x, t.z - u.z) - t.r;
+      const d = Math.hypot(t.x - u.x, t.z - u.z) - t.r, R = effRange(u, t);
       if (u.state === 'engage') {
-        if (u.mvo === 2 && d > u.st.range) { u.target = null; u.state = resume(u); break; }
+        if (u.mvo === 2 && d > R) { u.target = null; u.state = resume(u); break; }
         const over = u.mvo === 0 ? 45 : 14, leash = u.mvo === 0 ? 80 : 24;
-        if (d > u.st.range + over || (!u.amove && !u.pat && Math.hypot(u.x - u.lx, u.z - u.lz) > leash)) { u.target = null; if (u.amove || u.pat) u.state = resume(u); else { u.state = 'move'; u.tx = u.lx; u.tz = u.lz; } break; }
+        if (d > R + over || (!u.amove && !u.pat && Math.hypot(u.x - u.lx, u.z - u.lz) > leash)) { u.target = null; if (u.amove || u.pat) u.state = resume(u); else { u.state = 'move'; u.tx = u.lx; u.tz = u.lz; } break; }
       }
-      if (d > u.st.range * 0.9 && !(u.mvo === 2 && u.state === 'engage')) { mx = t.x; mz = t.z; arrive = 0; }
+      if (d > R * 0.9 && !(u.mvo === 2 && u.state === 'engage')) { mx = t.x; mz = t.z; arrive = 0; }
       break;
     }
     case 'build': {
@@ -2112,8 +2129,8 @@ function updBld(b, dt) {
     const wk = b.def.tw || (b.tier !== undefined ? TIERS[b.tier].tower : (T.tech.has('tower2') ? 'cannon' : 'mg'));
     for (const k of b.parts.wl) b.parts[k].visible = k === wk; const w = WP[wk]; const range = w.range + (b.def.rb !== undefined ? b.def.rb : 2);
     {
-    b.acq -= dt; if (b.acq <= 0) { b.acq = 0.4; if (!b.target || !b.target.alive || Math.hypot(b.target.x - b.x, b.target.z - b.z) - b.target.r > (b.tgtR || range)) { const own = w.art ? w.sight + (b.def.rb || 0) : range; b.target = nearestEnemy(b.team, b.x, b.z, own, w); b.tgtR = own;
-      if (!b.target && w.art) { const er = w.id === 'omissile' ? 1e9 : range; b.target = nearestSpotted(b.team, b.x, b.z, er); if (b.target) b.tgtR = er; } } }
+    b.acq -= dt; if (b.acq <= 0) { b.acq = 0.4; if (!b.target || !b.target.alive || Math.hypot(b.target.x - b.x, b.target.z - b.z) - b.target.r > (b.tgtR || range) || (b.tgtR > range && !spotted(b.team, b.target))) { const own = w.art ? w.sight + (b.def.rb || 0) : range; b.target = nearestEnemy(b.team, b.x, b.z, own, w); b.tgtR = own;
+      if (!b.target && w.art) { const er = w.long ? LONG_R : range; b.target = nearestSpotted(b.team, b.x, b.z, er); if (b.target) b.tgtR = er; } } }
     b.cd -= dt;
     if (b.target && b.target.alive) {
       const a = Math.atan2(b.target.x - b.x, b.target.z - b.z); const local = angDiff(b.rot, a); b.turYaw += clamp(angDiff(b.turYaw, local), -4 * dt, 4 * dt);
@@ -2564,7 +2581,7 @@ function renderPanel() {
       }
     } else if (b.type === 'generator') { h += `<div class="hint">Extrage petrol din sondă și produce +${(4 * T.powMul).toFixed(1)} ⚡/s.</div>`; }
     else if (b.type === 'repairbay') h += `<div class="hint">Repară automat unitățile tale aflate la mai puțin de 11 m.</div>`;
-    else if (b.type === 'radartower') h += `<div class="hint">Unitățile tale din jur (${T.tech.has('radar2') ? 44 : 34} m) trag mai departe și mai tare. Inamicii văzuți de radar (${T.tech.has('radar2') ? 80 : 60} m) pot fi loviți de artilerie de la distanță: toată artileria până la bătaia ei maximă (de 3× mai mare decât ce vede singură), Rachetă Orizont fără limită.</div>`;
+    else if (b.type === 'radartower') h += `<div class="hint">Unitățile tale din jur (${T.tech.has('radar2') ? 44 : 34} m) trag mai departe și mai tare. Inamicii văzuți de radar (${T.tech.has('radar2') ? 80 : 60} m) pot fi loviți de artilerie de la distanță: toată artileria până la bătaia ei maximă (de 3× mai mare decât ce vede singură), iar armele cu rază lungă (obuzier greu, Tunet, Săgeată, balistică, Orizont) până la 2 km. Orice unitate de-a ta vede și ea inamicii din jurul ei.</div>`;
     else if (b.def.tw) h += `<div class="hint">${b.def.name}: ${WP[b.def.tw].name.toLowerCase()}, rază ${WP[b.def.tw].range + (b.def.rb || 0)} m. Atacă automat inamicii din apropiere.</div>`;
     else if (b.type === 'tower') h += `<div class="hint">Atacă automat inamicii din apropiere. ${TEAMS[0].tech.has('tower2') ? 'Armă: tun.' : 'Armă: mitralieră (cercetează „Turnuri cu tun”).'}</div>`;
     else if (b.type === 'hq') h += `<div class="hint">Centrul de comandă. Dă +1.5 ⚡/s. Nu-l pierde!</div>`;
@@ -2792,26 +2809,56 @@ function updatePreview() {
   } catch (e) { prevR = null; }
 }
 
-// minimap
-const mini = $('mini'), mctx = mini.getContext('2d'); const MS = 150; let miniBg;
+// minimap: a military radar screen — dark phosphor terrain, range rings, rotating sweep, red blinking battle spots
+const mini = $('mini'), mctx = mini.getContext('2d'); const MS = 220; let miniBg;
+mini.width = mini.height = 240;
 function buildMiniBg() {
   const c = document.createElement('canvas'); c.width = c.height = MS; const g = c.getContext('2d'); const img = g.createImageData(MS, MS);
-  for (let j = 0; j < MS; j++) for (let i = 0; i < MS; i++) { const x = (i / MS - 0.5) * MAP, z = (j / MS - 0.5) * MAP; const h = heightAt(x, z); const w = biomeW(x, z); const v = clamp(0.75 + h * 0.02, 0.4, 1.2); const k = (j * MS + i) * 4; const snowy = h > 16 ? 1 : 0;
-    const r = 90 * w.green + 220 * w.sand + 230 * w.snow + 125 * w.mtn, g = 125 * w.green + 185 * w.sand + 236 * w.snow + 118 * w.mtn, b = 60 * w.green + 120 * w.sand + 245 * w.snow + 108 * w.mtn;
-    img.data[k] = snowy ? 240 : r * v; img.data[k + 1] = snowy ? 244 : g * v; img.data[k + 2] = snowy ? 250 : b * v; img.data[k + 3] = 255; }
-  g.putImageData(img, 0, 0); g.fillStyle = 'rgba(70,66,60,.9)'; for (const o of OBST) { if (o.mtn) continue; g.beginPath(); g.arc((o.x / MAP + 0.5) * MS, (o.z / MAP + 0.5) * MS, Math.max(1, o.r / MAP * MS), 0, TAU); g.fill(); }
+  const hs = []; for (let j = 0; j < MS; j++) for (let i = 0; i < MS; i++) hs.push(heightAt((i / MS - 0.5) * MAP, (j / MS - 0.5) * MAP));
+  for (let j = 0; j < MS; j++) for (let i = 0; i < MS; i++) { const k = j * MS + i, h = hs[k];
+    const hx = i < MS - 1 ? hs[k + 1] - h : 0, hz = j < MS - 1 ? hs[k + MS] - h : 0; const shade = clamp(0.5 + (hx + hz) * 0.25, 0.15, 1);   // hill shading
+    const contour = Math.abs((h / 4) - Math.round(h / 4)) < 0.06 ? 1 : 0;                                                                // height lines every 4 m
+    const v = clamp(0.18 + h * 0.012, 0.08, 0.55) * shade + contour * 0.18; const q = k * 4;
+    img.data[q] = 10 + v * 40; img.data[q + 1] = 30 + v * 150; img.data[q + 2] = 18 + v * 60; img.data[q + 3] = 255; }
+  g.putImageData(img, 0, 0);
+  g.fillStyle = 'rgba(120,200,120,.35)'; for (const o of OBST) { if (o.mtn) continue; g.beginPath(); g.arc((o.x / MAP + 0.5) * MS, (o.z / MAP + 0.5) * MS, Math.max(0.6, o.r / MAP * MS), 0, TAU); g.fill(); }
   miniBg = c;
 }
-let miniView = null, miniViewT = 0;
+let miniView = null, miniViewT = 0, sweep = 0, blink = 0;
 function drawMini(dt) {
-  const W = mini.width; mctx.save(); mctx.clearRect(0, 0, W, W); mctx.beginPath(); mctx.arc(W / 2, W / 2, W / 2, 0, TAU); mctx.clip();
-  mctx.translate(W / 2, W / 2); mctx.rotate(cam.yaw); mctx.translate(-W / 2, -W / 2);
-  mctx.drawImage(miniBg, 0, 0, W, W); const k = W / MAP; const P = (x) => (x + HALF) * k;
-  for (const w of WELLS) { mctx.fillStyle = w.pump ? TEAMC[w.pump.pal].mini : '#111'; mctx.fillRect(P(w.x) - 2, P(w.z) - 2, 4, 4); }
-  for (const e of ents) { if (!e.alive) continue; mctx.fillStyle = e.selected ? '#fff' : TEAMC[e.pal].mini; const s = e.kind === 'bld' ? 5 : 3; mctx.fillRect(P(e.x) - s / 2, P(e.z) - s / 2, s, s); }
-  for (let i = pings.length - 1; i >= 0; i--) { const p = pings[i]; p.t -= dt; if (p.t <= 0) { pings.splice(i, 1); continue; } mctx.strokeStyle = 'rgba(255,80,40,' + p.t / 2 + ')'; mctx.lineWidth = 2; mctx.beginPath(); mctx.arc(P(p.x), P(p.z), (2 - p.t) * 12 + 3, 0, TAU); mctx.stroke(); }
+  const W = mini.width, R = W / 2; sweep = (sweep + dt * 1.6) % TAU; blink += dt;
+  mctx.save(); mctx.clearRect(0, 0, W, W); mctx.beginPath(); mctx.arc(R, R, R, 0, TAU); mctx.clip();
+  mctx.fillStyle = '#04100a'; mctx.fillRect(0, 0, W, W);
+  mctx.save(); mctx.translate(R, R); mctx.rotate(cam.yaw); mctx.translate(-R, -R);
+  mctx.globalAlpha = 0.95; mctx.drawImage(miniBg, 0, 0, W, W); mctx.globalAlpha = 1; const k = W / MAP; const P = (x) => (x + HALF) * k;
+  for (const w of WELLS) { mctx.fillStyle = w.pump ? TEAMC[w.pump.pal].mini : '#0a0a0a'; mctx.strokeStyle = '#6a8a6a'; mctx.lineWidth = 1; mctx.beginPath(); mctx.arc(P(w.x), P(w.z), 2.6, 0, TAU); mctx.fill(); mctx.stroke(); }
+  // your base: soft zone around the HQ and a gold command star
+  for (const e of ents) if (e.alive && e.type === 'hq' && e.team === 0) { const x = P(e.x), z = P(e.z);
+    const gr = mctx.createRadialGradient(x, z, 0, x, z, 22); gr.addColorStop(0, 'rgba(90,200,255,.35)'); gr.addColorStop(1, 'rgba(90,200,255,0)'); mctx.fillStyle = gr; mctx.beginPath(); mctx.arc(x, z, 22, 0, TAU); mctx.fill();
+    mctx.strokeStyle = 'rgba(140,220,255,.7)'; mctx.lineWidth = 1; mctx.setLineDash([3, 3]); mctx.beginPath(); mctx.arc(x, z, 16, 0, TAU); mctx.stroke(); mctx.setLineDash([]); }
+  for (const e of ents) { if (!e.alive) continue; const x = P(e.x), z = P(e.z), c = e.selected ? '#ffffff' : e.team === 1 ? '#c8643c' : TEAMC[e.pal].mini;
+    if (e.kind === 'bld') { const s = e.type === 'citadel' ? 9 : e.type === 'wall' || e.type === 'pwall' ? 3 : 5; mctx.fillStyle = c; mctx.fillRect(x - s / 2, z - s / 2, s, s); mctx.strokeStyle = 'rgba(0,0,0,.7)'; mctx.lineWidth = 1; mctx.strokeRect(x - s / 2, z - s / 2, s, s); }
+    else { mctx.fillStyle = c; mctx.beginPath(); mctx.arc(x, z, flying(e) ? 1.8 : 2.2, 0, TAU); mctx.fill(); } }
+  for (const e of ents) if (e.alive && e.type === 'hq' && e.team === 0) { const x = P(e.x), z = P(e.z); mctx.fillStyle = '#ffd23a'; mctx.strokeStyle = '#000'; mctx.lineWidth = 1.2; mctx.beginPath();
+    for (let i = 0; i < 10; i++) { const a = i / 10 * TAU - Math.PI / 2, r = i % 2 ? 3 : 7.5; mctx.lineTo(x + Math.cos(a) * r, z + Math.sin(a) * r); } mctx.closePath(); mctx.fill(); mctx.stroke(); }
+  // battles: red blinking dot with an expanding ring
+  for (let i = BATTLES.length - 1; i >= 0; i--) { const b = BATTLES[i]; b.t -= dt; if (b.t <= 0) { BATTLES.splice(i, 1); continue; }
+    const x = P(b.x), z = P(b.z), on = Math.sin(blink * 10) > -0.2, ph = (blink * 1.4 + i * 0.3) % 1, a = Math.min(1, b.t / 1.5);
+    mctx.strokeStyle = `rgba(255,50,40,${(1 - ph) * a})`; mctx.lineWidth = 2.5; mctx.beginPath(); mctx.arc(x, z, 6 + ph * 18, 0, TAU); mctx.stroke();
+    if (on) { mctx.fillStyle = `rgba(255,40,30,${a})`; mctx.shadowColor = '#ff2010'; mctx.shadowBlur = 8; mctx.beginPath(); mctx.arc(x, z, 5.5 + Math.min(3, b.n / 10), 0, TAU); mctx.fill(); mctx.shadowBlur = 0; mctx.fillStyle = `rgba(255,230,210,${a})`; mctx.beginPath(); mctx.arc(x, z, 2, 0, TAU); mctx.fill(); } }
+  for (let i = pings.length - 1; i >= 0; i--) { const p = pings[i]; p.t -= dt; if (p.t <= 0) { pings.splice(i, 1); continue; } mctx.strokeStyle = 'rgba(255,80,40,' + p.t / 2 + ')'; mctx.lineWidth = 2; mctx.beginPath(); mctx.arc(P(p.x), P(p.z), (2 - p.t) * 16 + 4, 0, TAU); mctx.stroke(); }
   miniViewT -= dt; if (miniViewT <= 0) { miniViewT = 0.2; const pts = [[0, 0], [innerWidth, 0], [innerWidth, innerHeight], [0, innerHeight]].map(p => screenToGround(p[0], p[1])); miniView = pts.every(p => p) ? pts : null; }
-  if (miniView) { mctx.strokeStyle = 'rgba(255,255,255,.8)'; mctx.lineWidth = 1.2; mctx.beginPath(); miniView.forEach((p, i) => i ? mctx.lineTo(P(p.x), P(p.z)) : mctx.moveTo(P(p.x), P(p.z))); mctx.closePath(); mctx.stroke(); }
+  if (miniView) { mctx.strokeStyle = 'rgba(230,255,230,.85)'; mctx.lineWidth = 1.4; mctx.beginPath(); miniView.forEach((p, i) => i ? mctx.lineTo(P(p.x), P(p.z)) : mctx.moveTo(P(p.x), P(p.z))); mctx.closePath(); mctx.stroke(); }
+  mctx.restore();
+  // radar overlay (screen-fixed): range rings, cross hairs, bearing ticks, rotating sweep with a fading trail
+  mctx.strokeStyle = 'rgba(110,255,140,.22)'; mctx.lineWidth = 1;
+  for (const f of [0.33, 0.66]) { mctx.beginPath(); mctx.arc(R, R, R * f, 0, TAU); mctx.stroke(); }
+  mctx.beginPath(); mctx.moveTo(R, 4); mctx.lineTo(R, W - 4); mctx.moveTo(4, R); mctx.lineTo(W - 4, R); mctx.stroke();
+  mctx.strokeStyle = 'rgba(140,255,160,.55)'; for (let i = 0; i < 36; i++) { const a = i / 36 * TAU, l = i % 9 === 0 ? 10 : i % 3 === 0 ? 6 : 3; mctx.beginPath(); mctx.moveTo(R + Math.cos(a) * (R - 1), R + Math.sin(a) * (R - 1)); mctx.lineTo(R + Math.cos(a) * (R - l), R + Math.sin(a) * (R - l)); mctx.stroke(); }
+  if (mctx.createConicGradient) { const cg = mctx.createConicGradient(sweep - 1.2, R, R); cg.addColorStop(0, 'rgba(80,255,120,0)'); cg.addColorStop(0.19, 'rgba(80,255,120,.22)'); cg.addColorStop(0.191, 'rgba(80,255,120,0)'); cg.addColorStop(1, 'rgba(80,255,120,0)');
+    mctx.fillStyle = cg; mctx.fillRect(0, 0, W, W); }
+  mctx.strokeStyle = 'rgba(150,255,170,.85)'; mctx.lineWidth = 1.6; mctx.beginPath(); mctx.moveTo(R, R); mctx.lineTo(R + Math.cos(sweep) * R, R + Math.sin(sweep) * R); mctx.stroke();
+  const vg = mctx.createRadialGradient(R, R, R * 0.7, R, R, R); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,.55)'); mctx.fillStyle = vg; mctx.fillRect(0, 0, W, W);   // glass vignette
   mctx.restore();
 }
 function miniTap(e) { const r = mini.getBoundingClientRect(); let px = (e.clientX - r.left) / r.width - 0.5, py = (e.clientY - r.top) / r.height - 0.5; const c = Math.cos(-cam.yaw), s = Math.sin(-cam.yaw); const x = px * c - py * s, y = px * s + py * c; cam.x = x * MAP; cam.z = y * MAP; }

@@ -443,3 +443,6 @@ img.ui { width: 18px; height: 18px; flex: none; vertical-align: -4px; object-fit
 #buyBox .buyl { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px; margin: 10px 0; }
 #buyBox .bi { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 12px; }
 #buyBox .bi .ric { width: 54px; height: 54px; }
+
+/* radar screen bezel */
+#mini { background: #04100a; border: 3px solid #3c4434; box-shadow: 0 0 0 2px #0b0d09, 0 0 0 5px #5b6450, 0 0 0 7px #1a1d16, 0 0 14px rgba(80,255,120,.35), inset 0 0 12px #000; }

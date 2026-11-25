@@ -185,7 +185,6 @@ const G = {
   dome: new THREE.SphereGeometry(1, 12, 6, 0, TAU, 0, Math.PI / 2).toNonIndexed(),
   ico: new THREE.IcosahedronGeometry(1, 0).toNonIndexed(),
   hull: prismX([[-0.5, -0.5], [0.36, -0.5], [0.5, -0.12], [0.5, 0.0], [0.18, 0.5], [-0.44, 0.5], [-0.5, 0.3]]),
-  delta: prismY([[0, 0.5], [0.5, -0.32], [0.44, -0.5], [-0.44, -0.5], [-0.5, -0.32]]),
   wedge: prismY([[-0.5, -0.5], [0.5, -0.5], [0.5, 0.18], [0.24, 0.5], [-0.24, 0.5], [-0.5, 0.18]]),
 };
 // side profile (z forward, y up) extruded across x, centred, size 1
@@ -476,7 +475,6 @@ const WP = {
   ballistic: { name: 'Rachetă balistică', dmg: 220, rof: 12, range: 60, cost: 320, kind: 'salvo', splash: 7.5, n: 1, big: 1, art: 'salvo' },
   rbattery: { name: 'Baterie Tunet', dmg: 26, rof: 9, range: 70, cost: 220, kind: 'salvo', splash: 3.4, n: 12, art: 'salvo', site: 1 },
   smissile: { name: 'Rachete Săgeată', dmg: 70, rof: 7, range: 60, cost: 260, kind: 'salvo', splash: 3.2, n: 4, art: 'salvo', site: 1 },
-  kdrone: { name: 'Dronă kamikaze Lăstun', dmg: 150, rof: 13, range: 95, cost: 240, kind: 'salvo', splash: 4.8, n: 2, art: 'salvo', drone: 1 },
   omissile: { name: 'Rachetă Orizont', dmg: 380, rof: 18, range: 120, cost: 420, kind: 'salvo', splash: 9, n: 1, big: 1, art: 'salvo', site: 1 },
   icbm: { name: 'Rachetă balistică strategică', dmg: 900, rof: 40, range: 9999, kind: 'salvo', splash: 16, n: 1, big: 1, site: 1 },
   flame: { name: 'Aruncător de flăcări', dmg: 10, rof: 0.16, range: 8, cost: 50, kind: 'flame' },
@@ -526,9 +524,9 @@ const DCLASS = {
   pit: { name: 'Amplasament', hp: 700, cost: 80, size: 3.6, time: 18, h: 1.5, ty: 0.75, ts: 1.1, rb: 0, dm: 1.4, req: null, wps: ['mortar', 'imortar', 'empmortar', 'salvo', 'howitzer', 'ihowitzer', 'rhowitzer', 'hhowitzer', 'plasma', 'ballistic', 'rbattery', 'smissile', 'omissile'] },
 };
 const IMP_SND = { mortar: 'imp_mortar', rmortar: 'imp_mortar', imortar: 'imp_inc', ihowitzer: 'imp_inc', empmortar: 'imp_salvo', salvo: 'imp_salvo', howitzer: 'imp_how', rhowitzer: 'imp_how', hhowitzer: 'imp_hhow', ballistic: 'imp_hhow', plasma: 'imp_plasma', rbattery: 'imp_salvo', smissile: 'imp_rocket', omissile: 'imp_hhow' };
-const ART_SND = { kdrone: 'art_salvo', mortar: 'art_mortar', imortar: 'art_inc', empmortar: 'art_emp', rmortar: 'art_rmortar', salvo: 'art_salvo', howitzer: 'art_how', ihowitzer: 'art_inc', rhowitzer: 'art_rhow', hhowitzer: 'art_hhow', plasma: 'art_plasma', ballistic: 'art_ball', rbattery: 'art_salvo', smissile: 'art_salvo', omissile: 'art_ball' };
-const ART_W = ['mortar', 'imortar', 'empmortar', 'salvo', 'kdrone', 'howitzer', 'ihowitzer', 'rhowitzer', 'hhowitzer', 'plasma', 'ballistic'];
-const WSHORT = { kdrone: 'drone kamikaze', mg: 'mitralieră', cannon: 'tun', flame: 'flăcări', rockets: 'rachete', viper: 'rachete Viperă', rbattery: 'baterie Tunet', smissile: 'rachete Săgeată', omissile: 'rachetă Orizont', laser: 'laser', mortar: 'mortier', imortar: 'mortier incendiar', empmortar: 'mortier IEM', salvo: 'salve', howitzer: 'obuzier', ihowitzer: 'obuzier incendiar', rhowitzer: 'obuzier rapid', hhowitzer: 'obuzier greu', plasma: 'plasmă', ballistic: 'rachetă balistică' };
+const ART_SND = { mortar: 'art_mortar', imortar: 'art_inc', empmortar: 'art_emp', rmortar: 'art_rmortar', salvo: 'art_salvo', howitzer: 'art_how', ihowitzer: 'art_inc', rhowitzer: 'art_rhow', hhowitzer: 'art_hhow', plasma: 'art_plasma', ballistic: 'art_ball', rbattery: 'art_salvo', smissile: 'art_salvo', omissile: 'art_ball' };
+const ART_W = ['mortar', 'imortar', 'empmortar', 'salvo', 'howitzer', 'ihowitzer', 'rhowitzer', 'hhowitzer', 'plasma', 'ballistic'];
+const WSHORT = { mg: 'mitralieră', cannon: 'tun', flame: 'flăcări', rockets: 'rachete', viper: 'rachete Viperă', rbattery: 'baterie Tunet', smissile: 'rachete Săgeată', omissile: 'rachetă Orizont', laser: 'laser', mortar: 'mortier', imortar: 'mortier incendiar', empmortar: 'mortier IEM', salvo: 'salve', howitzer: 'obuzier', ihowitzer: 'obuzier incendiar', rhowitzer: 'obuzier rapid', hhowitzer: 'obuzier greu', plasma: 'plasmă', ballistic: 'rachetă balistică' };
 for (const [ck, c] of Object.entries(DCLASS)) for (const w of c.wps) BD['d_' + ck + '_' + w] = { short: WSHORT[w][0].toUpperCase() + WSHORT[w].slice(1), name: `${c.name} ${WSHORT[w]}`, icon: '', hp: c.hp, cost: c.cost + (WP[w].site ? Math.round(WP[w].cost * 0.8) : 0), size: c.size, time: c.time, h: c.h, tw: w, cls: ck, req: c.req, ty: c.ty, ts: c.ts, rb: c.rb, dm: c.dm };
 // enemy technology tiers: 0 = outer ring (weak) … 3 = citadel (latest technology)
 const TIERS = [
@@ -569,7 +567,6 @@ const RS = [
   { id: 'imortar', name: 'Mortier incendiar', cost: 170, time: 32, req: ['mortar', 'flame'] },
   { id: 'empmortar', name: 'Mortier IEM', cost: 220, time: 40, req: ['imortar', 'radar'] },
   { id: 'salvo', name: 'Lansator salve', cost: 190, time: 36, req: ['mortar', 'rockets'] },
-  { id: 'kdrone', name: 'Drone kamikaze Lăstun', cost: 320, time: 52, req: ['salvo', 'drone'] },
   { id: 'howitzer', name: 'Obuzier', cost: 230, time: 42, req: ['mortar', 'heavy'] },
   { id: 'ihowitzer', name: 'Obuzier incendiar', cost: 250, time: 44, req: ['howitzer', 'imortar'] },
   { id: 'rhowitzer', name: 'Obuzier rapid', cost: 280, time: 48, req: ['howitzer', 'prod'] },
@@ -597,7 +594,7 @@ const BRANCHES = [
   { name: 'Artilerie', ids: ['rbattery', 'smissile', 'omissile', 'icbm', 'mortar', 'imortar', 'empmortar', 'salvo', 'howitzer', 'ihowitzer', 'rhowitzer', 'hhowitzer', 'plasma', 'ballistic'] },
   { name: 'Sprijin', ids: ['radar', 'radar2', 'repair', 'repair2'] },
   { name: 'Apărare', ids: ['traps', 'tower2', 'bunker', 'hardpoint', 'fortress'] },
-  { name: 'Aviație și cyborgi', ids: ['cyborg', 'hcyborg', 'drone', 'kdrone', 'vtol', 'bomb', 'fbomb', 'hbomb'] },
+  { name: 'Aviație și cyborgi', ids: ['cyborg', 'hcyborg', 'drone', 'vtol', 'bomb', 'fbomb', 'hbomb'] },
   { name: 'Industrie', ids: ['prod'] },
 ];
 // ---- upgrade lines Mk I-III (generated) ----
@@ -628,7 +625,6 @@ function scaleHp(team, k, kind) { for (const e of ents) if (e.alive && e.team ==
 const RICON = {
   cyborg: SV(`<circle cx="24" cy="9" r="5" fill="#71804e" stroke="#c9b48a" stroke-width="2"/><rect x="20" y="9" width="8" height="3" fill="#3f9fe0"/><path d="M16 16h16l-2 14H18z" fill="#71804e" stroke="#c9b48a" stroke-width="2"/><path d="M19 30l-3 14M29 30l3 14" stroke="#c9b48a" stroke-width="4"/><path d="M32 18l6 8h6" stroke="#3a3a36" stroke-width="3"/><path d="M16 18l-5 9" stroke="#c9b48a" stroke-width="3"/>`),
   hcyborg: SV(`<circle cx="24" cy="9" r="5" fill="#3d432f" stroke="#c9b48a" stroke-width="2"/><rect x="20" y="9" width="8" height="3" fill="#e0402a"/><path d="M12 15h24l-3 16H15z" fill="#71804e" stroke="#c9b48a" stroke-width="2"/><rect x="9" y="14" width="8" height="7" rx="2" fill="#f0b44a"/><rect x="31" y="14" width="8" height="7" rx="2" fill="#f0b44a"/><path d="M18 31l-3 13M30 31l3 13" stroke="#c9b48a" stroke-width="5"/><path d="M36 22l6 6h5" stroke="#3a3a36" stroke-width="4"/>`),
-  kdrone: SV(`<path d="M24 6l18 26-4 4H10l-4-4z" fill="#a8aca2" stroke="#3a3a36" stroke-width="2"/><path d="M24 6v30" stroke="#5a5e56" stroke-width="3"/><path d="M8 30l-2 8M40 30l2 8" stroke="#3a3a36" stroke-width="3"/><circle cx="24" cy="40" r="5" fill="none" stroke="#c9b48a" stroke-width="2"/><path d="M24 6l-3 6h6z" fill="#c8321e"/>`),
   drone: SV(`<path d="M12 12l24 24M36 12L12 36" stroke="#c9b48a" stroke-width="3"/><ellipse cx="24" cy="24" rx="7" ry="5" fill="#71804e" stroke="#c9b48a" stroke-width="2"/><circle cx="24" cy="28" r="2" fill="#3f9fe0"/>${[[10, 10], [38, 10], [10, 38], [38, 38]].map(([x, y]) => `<ellipse cx="${x}" cy="${y}" rx="8" ry="2.5" fill="#3a3a36" opacity=".7"/><circle cx="${x}" cy="${y}" r="2" fill="#f0b44a"/>`).join('')}`),
   vtol: SV(`<path d="M24 4l4 12 16 10v4l-16-4-1 10 6 5v3l-9-3-9 3v-3l6-5-1-10-16 4v-4l16-10z" fill="#71804e" stroke="#c9b48a" stroke-width="2"/><rect x="21" y="10" width="6" height="6" rx="2" fill="#3f9fe0"/><path d="M16 46l2-6M32 46l-2-6" stroke="#f0b44a" stroke-width="3"/>`),
   fbomb: SV(`<path d="M24 46c-9 0-13-6-11-12 2 3 4 3 5 1-1-5 2-9 6-11-1 4 2 6 4 7 1-2 1-4 0-6 5 3 8 8 7 13 0 5-4 8-11 8z" fill="#e0602a" stroke="#f0b44a" stroke-width="1.5"/><ellipse cx="24" cy="14" rx="6" ry="10" fill="#a83a26" stroke="#c9b48a" stroke-width="2"/><rect x="18" y="10" width="12" height="3" fill="#f0b44a"/>`),
@@ -744,18 +740,6 @@ function designName(d) { return d.wp === 'truck' && d.ch === 'light' && d.pr ===
 // ================= GEOMETRY CACHES =================
 const geoCache = {};
 const MSL_GEO = {};
-// kamikaze drone: delta wing, slim fuselage, fins on the wing tips, pusher propeller; nose along +z like the missiles
-let DRONE_GEO = null;
-function droneGeo() {
-  if (DRONE_GEO) return DRONE_GEO; const B = new Builder();
-  B.add(G.delta, 1, 0.05, 1, 0, -0.02, 0, 0x8a8e86);                         // wing
-  B.add(G.cyl10, 0.08, 0.95, 0.08, 0, 0.03, 0.02, 0x8e9288, Math.PI / 2, 0, 0); // fuselage
-  B.add(G.cone, 0.08, 0.16, 0.08, 0, 0.03, 0.57, 0x9a3024, Math.PI / 2, 0, 0);  // warhead nose
-  for (const sx of [-1, 1]) B.box(0.02, 0.16, 0.16, sx * 0.44, 0.08, -0.4, 0x5a5e56);  // tip fins
-  B.add(G.cyl10, 0.02, 0.06, 0.02, 0, 0.03, -0.49, 0x2a2a28, Math.PI / 2, 0, 0);
-  B.box(0.3, 0.02, 0.015, 0, 0.03, -0.52, 0x2a2a28); B.box(0.015, 0.3, 0.015, 0, 0.03, -0.52, 0x2a2a28);   // propeller
-  return DRONE_GEO = B.build();
-}
 function missileGeo(kind) {
   if (MSL_GEO[kind]) return MSL_GEO[kind];
   const K = { rocket: [0.045, 0xeeeeee, 0xc8321e, 0x3a3a36, 0xc8321e], viper: [0.05, 0xeeeeee, 0xc8321e, 0x3a3a36, 0xc8321e], seeker: [0.04, 0x7d8a5c, 0x3f9fe0, 0x3a3a36, 0xcdbf92],
@@ -1002,13 +986,6 @@ function unitGeo(d, team) {
         for (const k of [-0.38, 0, 0.38]) tb.box(1.06 * s, 1.06 * s, 0.14 * s, c0[0], c0[1] + sa * L * k, c0[2] + ca * L * k, T.acc, -a, 0, 0);       // canister rings in team colour
         { const k = 0.505; tb.box(0.9 * s, 0.9 * s, 0.05 * s, c0[0], c0[1] + sa * L * k, c0[2] + ca * L * k, 0x2e3328, -a, 0, 0); tb.add(G.cyl16, 0.32 * s, 0.07 * s, 0.32 * s, c0[0], c0[1] + sa * L * (k + 0.01), c0[2] + ca * L * (k + 0.01), 0xc8321e, Math.PI / 2 - a, 0, 0); } // front cap
         msl = { kind: 'orizont', x: c0[0], y: c0[1], z: c0[2], a, len: L * 0.92 };
-      } else if (w.drone) { // camouflaged launch container, five drone cells, tilted up
-        const a = 0.32, ca = Math.cos(a), sa = Math.sin(a), P = (x, y, z) => [x, 0.72 * s + y * ca + z * sa, -0.2 * s - y * sa + z * ca];
-        tb.box(1.2 * s, 0.3 * s, 1.1 * s, 0, 0.18 * s, -0.2 * s, 0x5f6a48); tb.camo(1.22 * s, 0.32 * s, 1.12 * s, 0, 0.18 * s, -0.2 * s, 0, 5);
-        for (const sx of [-1, 1]) tb.box(0.12 * s, 0.5 * s, 0.6 * s, sx * 0.5 * s, 0.45 * s, -0.35 * s, 0x4a4a46);
-        { const [x, y, z] = P(0, 0.3 * s, 0.05 * s); tb.box(1.35 * s, 0.75 * s, 2.0 * s, x, y, z, 0x5f6a48, -a, 0, 0); tb.camo(1.37 * s, 0.77 * s, 2.02 * s, x, y, z, -a, 12); }
-        for (let i = 0; i < 5; i++) { const [x, y, z] = P((i - 2) * 0.26 * s, 0.3 * s, 1.06 * s); tb.box(0.22 * s, 0.62 * s, 0.03 * s, x, y, z, 0x2e3328, -a, 0, 0); }   // cell doors
-        for (const zz of [-0.65, 0.25]) { const [x, y, z] = P(0, 0.3 * s, zz * s); tb.box(1.39 * s, 0.79 * s, 0.06 * s, x, y, z, 0x3a3a30, -a, 0, 0); }
       } else if (w.big) { tb.box(0.25 * s, 0.9 * s, 0.25 * s, 0.35 * s, 0.5 * s, -0.2 * s, 0x5a564f); tb.box(0.5 * s, 0.12 * s, 2.0 * s, 0, 0.45 * s, 0.05 * s, 0x3a3a36, -0.62, 0, 0); msl = { kind: 'ballistic', x: 0, y: 0.8 * s, z: 0.15 * s, a: 0.62, len: 2.45 * s }; }
       else { // multiple rocket launcher on open rails: a big tilted frame, two tiers of eight rails, a long rocket on each
         const a = 0.42, ca = Math.cos(a), sa = Math.sin(a), P = (x, y, z) => [x, 0.78 * s + y * ca + z * sa, -0.15 * s - y * sa + z * ca];
@@ -1596,8 +1573,7 @@ const exhMat = new THREE.MeshBasicMaterial({ color: 0xff7a1a, transparent: true,
 const projs = [];
 function spawnProj(kind, src, tgt, dmg, splash, ox, oy, oz, w, realT, mlen, lift) {
   const rk = kind === 'rocket' || (w && w.kind === 'salvo'); let m;
-  if (w && w.drone) { m = new THREE.Mesh(droneGeo(), matVC); m.scale.setScalar(2.4); }
-  else if (rk && !(w && w.plasma)) { const mk = !w ? 'rocket' : w.id === 'viper' ? 'viper' : w.id === 'smissile' ? 'seeker' : w.id === 'omissile' ? 'orizont' : w.id === 'ballistic' ? 'ballistic' : w.id === 'icbm' ? 'icbm' : w.kind === 'salvo' ? 'salvo' : 'rocket';
+  if (rk && !(w && w.plasma)) { const mk = !w ? 'rocket' : w.id === 'viper' ? 'viper' : w.id === 'smissile' ? 'seeker' : w.id === 'omissile' ? 'orizont' : w.id === 'ballistic' ? 'ballistic' : w.id === 'icbm' ? 'icbm' : w.kind === 'salvo' ? 'salvo' : 'rocket';
     m = new THREE.Mesh(missileGeo(mk), matVC); m.add(new THREE.Mesh(mslExh, exhMat)); m.add(new THREE.Mesh(mslExhCore, exhCoreMat));
     m.scale.setScalar(mlen || ({ rocket: 1.5, viper: 2.3, seeker: 2.0, orizont: 4.5, ballistic: 3, salvo: 1.4 })[mk]); }
   else if (kind === 'shell') { m = new THREE.Mesh(artShellGeo, matVC); m.scale.setScalar(1.5); const g = new THREE.Mesh(shellGeo, shellMat); g.scale.setScalar(0.9); g.position.z = -0.45; m.add(g); }
@@ -1605,7 +1581,7 @@ function spawnProj(kind, src, tgt, dmg, splash, ox, oy, oz, w, realT, mlen, lift
   else { m = new THREE.Mesh(shellGeo, w && w.plasma ? plasmaMat : shellMat); if (kind === 'mortar') m.scale.setScalar(w && w.big ? 2.6 : w && w.plasma ? 2.4 : 1.6); }
   scene.add(m); if (lift) m.position.set(ox, oy, oz);
   const tx = tgt.x, tz = tgt.z, ty = tgt.y + (tgt.kind === 'bld' ? 1.5 : 0.8); const d = Math.hypot(tx - ox, tz - oz); const spd = (kind === 'shell' ? 26 : kind === 'mortar' ? 26 : 22) * (kind === 'mortar' ? Math.sqrt(RNG_A) : PROJ_SPD);
-  projs.push({ kind, m, team: src.team, src, tgt, ox, oy, oz, tx, ty, tz, t: 0, dur: w && w.drone ? Math.max(1.5, d / 15) : w && w.kind === 'bomb' ? 0.75 : Math.max(0.12, kind === 'mortar' ? Math.min(d / spd, 3 + d / 120) : d / spd), arc: w && w.drone ? 7 + d * 0.06 : w && w.kind === 'bomb' ? 0 : kind === 'shell' ? d * 0.05 : kind === 'mortar' ? Math.min(d * 0.55, 60 + d * 0.1) : d * 0.13, dmg, splash, smokeT: 0, w, realT, lift: !!lift, big: !!(w && w.big) });
+  projs.push({ kind, m, team: src.team, src, tgt, ox, oy, oz, tx, ty, tz, t: 0, dur: w && w.kind === 'bomb' ? 0.75 : Math.max(0.12, kind === 'mortar' ? Math.min(d / spd, 3 + d / 120) : d / spd), arc: w && w.kind === 'bomb' ? 0 : kind === 'shell' ? d * 0.05 : kind === 'mortar' ? Math.min(d * 0.55, 60 + d * 0.1) : d * 0.13, dmg, splash, smokeT: 0, w, realT, lift: !!lift, big: !!(w && w.big) });
 }
 const fireZones = [];
 function updFireZones(dt) {
@@ -1620,8 +1596,7 @@ function updProjs(dt) {
     if (p.tgt.alive) { p.tx = p.tgt.x; p.tz = p.tgt.z; p.ty = p.tgt.y + (p.tgt.kind === 'bld' ? 1.5 : 0.8); }
     const k = Math.min(1, p.lift ? Math.pow(p.t, 1.6) : p.t); const x = lerp(p.ox, p.tx, k), z = lerp(p.oz, p.tz, k), y = lerp(p.oy, p.ty, k) + Math.sin(k * Math.PI) * p.arc;
     const px = p.m.position.x, py = p.m.position.y, pz = p.m.position.z;
-    p.m.position.set(x, y, z); if (p.w && p.w.plasma && Math.random() < 0.5) fx('spark', x, y, z, 0.6); if (p.w && p.w.drone) { p.m.lookAt(x + (x - px), y + (y - py), z + (z - pz)); p.m.rotateZ(Math.sin(p.t * 9 + p.ox) * 0.25); p.smokeT -= dt; if (p.smokeT <= 0) { p.smokeT = 0.12; fx('trail', x, y, z, 0.35); } }
-    else if (p.kind === 'rocket' || (p.w && p.w.kind === 'salvo')) { p.m.lookAt(x + (x - px), y + (y - py), z + (z - pz)); p.smokeT -= dt; if (p.smokeT <= 0) { const hv = p.w && (p.w.heavy || p.w.big); p.smokeT = 0.035; fx('trail', x, y, z, p.big ? 1.8 : hv ? 0.75 : 0.55); fx('fire', x, y, z, p.big ? 1.0 : hv ? 0.45 : 0.32); if (p.big && Math.random() < 0.3) fx('blacksmoke', x, y, z, 0.8); } }
+    p.m.position.set(x, y, z); if (p.w && p.w.plasma && Math.random() < 0.5) fx('spark', x, y, z, 0.6); if (p.kind === 'rocket' || (p.w && p.w.kind === 'salvo')) { p.m.lookAt(x + (x - px), y + (y - py), z + (z - pz)); p.smokeT -= dt; if (p.smokeT <= 0) { const hv = p.w && (p.w.heavy || p.w.big); p.smokeT = 0.035; fx('trail', x, y, z, p.big ? 1.8 : hv ? 0.75 : 0.55); fx('fire', x, y, z, p.big ? 1.0 : hv ? 0.45 : 0.32); if (p.big && Math.random() < 0.3) fx('blacksmoke', x, y, z, 0.8); } }
     else if (p.kind === 'shell') { p.m.lookAt(x + (x - px), y + (y - py), z + (z - pz)); p.smokeT -= dt; if (p.smokeT <= 0) { p.smokeT = 0.03; fx('trail', x, y, z, 0.5); fx('fire', x, y, z, 0.28); } }
     else if (p.kind === 'mortar' && !(p.w && p.w.plasma)) { p.m.lookAt(x + (x - px), y + (y - py), z + (z - pz)); p.sd = (p.sd || 0) + Math.hypot(x - px, y - py, z - pz); const gap = p.w && p.w.big ? 2.2 : 1.7; if (p.sd >= gap && p.w.kind !== 'bomb') { p.sd = 0; fx('mtrail', x, y, z, p.w && p.w.big ? 1.25 : 1); } }
     if (p.kind === 'mortar' && !p.wh && p.dur > 1.2 && (1 - p.t) * p.dur < 0.95 && !(p.w && (p.w.plasma || p.w.kind === 'salvo' || p.w.id === 'ballistic'))) { p.wh = 1; sfx('whistle', p.tx, p.tz); }
@@ -1720,7 +1695,7 @@ function fireWeapon(src, t, w, mx, my, mz, mul) {
   else if (w.kind === 'salvo') { sfx(ART_SND[w.id], mx, mz);
     const ms = w.n === 1 ? (src.mslMesh || (src.parts && src.parts.msl)) : null; let mlen = 0;
     if (ms && S.time >= (src.mslT || 0)) { const v = new THREE.Vector3(); ms.getWorldPosition(v); mx = v.x; my = v.y; mz = v.z; mlen = ms.getWorldScale(v).x; ms.visible = false; src.mslT = S.time + w.rof * 0.7; reloadVis.push({ m: ms, t: src.mslT }); }
-    for (let i = 0; i < w.n; i++) later(i * (w.drone ? 1.1 : 0.12), () => { if (src.alive && t.alive) { spawnProj('mortar', src, { ...t, x: t.x + srand(-2.5, 2.5) * (w.n > 1 ? 1 : 0), z: t.z + srand(-2.5, 2.5) * (w.n > 1 ? 1 : 0), alive: false, kind: t.kind, y: t.y }, dmg, w.splash, mx, my, mz, w, t, mlen, !!mlen); fx('fire', mx, my, mz, w.big ? 1.4 : 0.55); fx('smoke', mx, my - 0.3, mz, w.big ? 3 : 1.4); fx('trail', mx, my, mz, w.big ? 2.6 : 1.2); if (w.big) fx('dust', src.x, src.y + 0.3, src.z, 4); } }); }
+    for (let i = 0; i < w.n; i++) later(i * 0.12, () => { if (src.alive && t.alive) { spawnProj('mortar', src, { ...t, x: t.x + srand(-2.5, 2.5) * (w.n > 1 ? 1 : 0), z: t.z + srand(-2.5, 2.5) * (w.n > 1 ? 1 : 0), alive: false, kind: t.kind, y: t.y }, dmg, w.splash, mx, my, mz, w, t, mlen, !!mlen); fx('fire', mx, my, mz, w.big ? 1.4 : 0.55); fx('smoke', mx, my - 0.3, mz, w.big ? 3 : 1.4); fx('trail', mx, my, mz, w.big ? 2.6 : 1.2); if (w.big) fx('dust', src.x, src.y + 0.3, src.z, 4); } }); }
   else if (w.kind === 'flame') { const ty = t.y + (t.kind === 'bld' ? 1.2 : 0.6);
     for (let k = 1; k <= 5; k++) { const f = k / 5; fx('flame', lerp(mx, t.x, f) + rand(-0.3, 0.3), lerp(my, ty, f) + rand(-0.2, 0.3), lerp(mz, t.z, f) + rand(-0.3, 0.3), 0.6 + f * 1.1); }
     if (Math.random() < 0.4) fx('smoke', t.x, ty + 1, t.z, 0.7); damage(t, dmg, src);
@@ -2610,7 +2585,7 @@ const ICON3D = {
   vtol: { ch: 'medium', pr: 'vtol', wp: 'rockets' }, bomb: { ch: 'medium', pr: 'vtol', wp: 'bomb' }, fbomb: { ch: 'medium', pr: 'vtol', wp: 'fbomb' }, hbomb: { ch: 'heavy', pr: 'vtol', wp: 'hbomb' },
   mg: { ch: 'light', pr: 'wheels', wp: 'mg' }, tower2: 'tower', bunker: 'd_bunker_flame', hardpoint: 'd_hard_cannon', fortress: 'd_fort_laser', traps: 'ptrap', icbm: 'silo', radar2: 'radartower', repair2: 'repairbay', prod: 'factory', armor: { ch: 'heavy', pr: 'tracks', wp: 'mg' }
 };
-for (const w of ['cannon', 'rockets', 'kdrone', 'mortar', 'imortar', 'empmortar', 'salvo', 'howitzer', 'ihowitzer', 'rhowitzer', 'hhowitzer', 'plasma', 'ballistic', 'flame', 'laser', 'rbattery', 'smissile', 'omissile', 'viper', 'radar', 'repair']) if (!ICON3D[w]) ICON3D[w] = { ch: 'medium', pr: 'tracks', wp: w };
+for (const w of ['cannon', 'rockets', 'mortar', 'imortar', 'empmortar', 'salvo', 'howitzer', 'ihowitzer', 'rhowitzer', 'hhowitzer', 'plasma', 'ballistic', 'flame', 'laser', 'rbattery', 'smissile', 'omissile', 'viper', 'radar', 'repair']) if (!ICON3D[w]) ICON3D[w] = { ch: 'medium', pr: 'tracks', wp: w };
 function unitModel(d, pal) {
   const grp = new THREE.Group(); const g = unitGeo(d, pal); grp.add(new THREE.Mesh(g.body, matUnit)); const t = new THREE.Mesh(g.tur, matUnit); t.position.y = g.turY; grp.add(t); attachMissile(t, g);
   if (g.legGeo) for (const h of g.hips) { const l = new THREE.Mesh(g.legGeo, matUnit); l.position.set(h[0], h[1], h[2]); grp.add(l); }

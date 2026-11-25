@@ -21,6 +21,10 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
+          cache: gradle
+          cache-dependency-path: |
+            game/**/*.gradle*
+            game/**/gradle-wrapper.properties
 
       - name: Build debug APK
         working-directory: game

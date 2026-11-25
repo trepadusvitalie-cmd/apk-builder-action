@@ -436,7 +436,9 @@ const TEAMC = [
   { body: 0x3e5a3e, dark: 0x1f2d1f, acc: 0xa8ff3a, mini: '#b0ff50', name: 'Aliat (verde-lime)' },
   { body: 0x2e3e5e, dark: 0x171f2f, acc: 0x4a8cff, mini: '#5a9aff', name: 'Aliat (bleumarin)' },
   { body: 0x6a5a48, dark: 0x352d24, acc: 0xb0d8f0, mini: '#b8e0f8', name: 'Aliat (maro-argintiu)' },
+  { body: 0x8e949b, dark: 0x3c4046, acc: 0xf0b44a, mini: '#c8ccd0', name: 'Iconițe (oțel)' },   // only for the research pictures
 ];
+const ICON_PAL = TEAMC.length - 1;
 const CH = {
   scout: { name: 'Cercetaș', hp: 80, cost: 25, spd: 1.25, size: 0.8, hue: 0xb8a868 },
   light: { name: 'Ușor', hp: 110, cost: 35, spd: 1, size: 0.9 },
@@ -596,7 +598,7 @@ const BRANCHES = [
   { name: 'Industrie', ids: ['prod'] },
 ];
 // ---- upgrade lines Mk I-III (generated) ----
-const ROM = ['I', 'II', 'III'];
+const ROM = ['I', 'II', 'III', 'IV', 'V'];
 const FAMS = { mg: ['Mitralieră', 'mg', null], cannon: ['Tun', 'cannon', 'cannon'], flame: ['Flăcări', 'flame', 'flame'], rockets: ['Rachete', 'rockets', 'rockets'], laser: ['Laser', 'laser', 'laser'], art: ['Artilerie', 'howitzer', 'mortar'] };
 const UPG = {};
 function addUpg(id, name, base, req, cost, time, kind, fx, branch) { RS.push({ id, name, cost, time, req: req.filter(Boolean) }); UPG[id] = { base, kind, fx }; (BRANCHES.find(b => b.name === branch) || BRANCHES[0]).ids.push(id); }
@@ -2570,6 +2572,57 @@ $('designer').addEventListener('click', ev => {
   const a = b.dataset.d; if (a === 'close') $('designer').classList.add('hidden');
   if ((a === 'q1' || a === 'q5') && dsgFactory && dsgFactory.alive) { queueUnit(dsgFactory, { ...dsg }, a === 'q1' ? 1 : 5); $('designer').classList.add('hidden'); }
 });
+// research icons rendered from the game's own 3D models, lit by a low sun (done once, replaces the flat drawings)
+const ICON3D = {
+  scout: { ch: 'scout', pr: 'wheels', wp: 'mg' }, medium: { ch: 'medium', pr: 'tracks', wp: 'cannon' }, heavy: { ch: 'heavy', pr: 'tracks', wp: 'cannon' },
+  assault: { ch: 'assault', pr: 'tracks', wp: 'cannon' }, titan: { ch: 'titan', pr: 'tracks', wp: 'cannon' }, nova: { ch: 'nova', pr: 'tracks', wp: 'laser' },
+  halftrack: { ch: 'medium', pr: 'halftrack', wp: 'mg' }, tracks: { ch: 'medium', pr: 'tracks', wp: 'mg' }, hover: { ch: 'medium', pr: 'hover', wp: 'mg' },
+  cyborg: { ch: 'cyborg', pr: 'legs', wp: 'mg' }, hcyborg: { ch: 'hcyborg', pr: 'legs', wp: 'cannon' }, drone: { ch: 'drone', pr: 'rotor', wp: 'mg' },
+  vtol: { ch: 'medium', pr: 'vtol', wp: 'rockets' }, bomb: { ch: 'medium', pr: 'vtol', wp: 'bomb' }, fbomb: { ch: 'medium', pr: 'vtol', wp: 'fbomb' }, hbomb: { ch: 'heavy', pr: 'vtol', wp: 'hbomb' },
+  mg: { ch: 'light', pr: 'wheels', wp: 'mg' }, tower2: 'tower', bunker: 'd_bunker_flame', hardpoint: 'd_hard_cannon', fortress: 'd_fort_laser', traps: 'ptrap', icbm: 'silo', radar2: 'radartower', repair2: 'repairbay', prod: 'factory', armor: { ch: 'heavy', pr: 'tracks', wp: 'mg' }
+};
+for (const w of ['cannon', 'rockets', 'mortar', 'imortar', 'empmortar', 'salvo', 'howitzer', 'ihowitzer', 'rhowitzer', 'hhowitzer', 'plasma', 'ballistic', 'flame', 'laser', 'rbattery', 'smissile', 'omissile', 'viper', 'radar', 'repair']) if (!ICON3D[w]) ICON3D[w] = { ch: 'medium', pr: 'tracks', wp: w };
+function unitModel(d, pal) {
+  const grp = new THREE.Group(); const g = unitGeo(d, pal); grp.add(new THREE.Mesh(g.body, matUnit)); const t = new THREE.Mesh(g.tur, matUnit); t.position.y = g.turY; grp.add(t); attachMissile(t, g);
+  if (g.legGeo) for (const h of g.hips) { const l = new THREE.Mesh(g.legGeo, matUnit); l.position.set(h[0], h[1], h[2]); grp.add(l); }
+  if (g.rotors) for (const r of g.rotors) { const bl = new THREE.Mesh(g.bladeGeo, matUnit); bl.position.set(r[0], r[1], r[2]); grp.add(bl); }
+  return grp;
+}
+let icons3dDone = false;
+function make3DIcons() {
+  if (icons3dDone) return; icons3dDone = true;
+  let r = null; const D = {};
+  try {
+    const S = 112, cv = document.createElement('canvas'); cv.width = cv.height = S;
+    r = new THREE.WebGLRenderer({ canvas: cv, antialias: true, alpha: true, preserveDrawingBuffer: true }); r.setPixelRatio(1); r.setSize(S, S, false);
+    r.toneMapping = renderer.toneMapping; r.toneMappingExposure = renderer.toneMappingExposure; if ('outputColorSpace' in renderer) r.outputColorSpace = renderer.outputColorSpace;
+    const sc = new THREE.Scene();
+    sc.add(new THREE.HemisphereLight(0xdce8ff, 0x40382a, 1.5));
+    const sun = new THREE.DirectionalLight(0xfff0d0, 3.4); sun.position.set(-5, 8, 6); sc.add(sun);
+    const rim = new THREE.DirectionalLight(0x9fdcff, 1.4); rim.position.set(6, 3, -5); sc.add(rim);
+    const cam = new THREE.PerspectiveCamera(28, 1, 0.05, 400), box = new THREE.Box3(), c = new THREE.Vector3(), sz = new THREE.Vector3();
+    const dir = new THREE.Vector3(1, 0.8, 1.25).normalize();
+    for (const [id, spec] of Object.entries(ICON3D)) {
+      try {
+        let grp;
+        if (typeof spec === 'string') { const m = makeBldMesh(spec, ICON_PAL); grp = m.grp; if (m.parts.wl) { const k = BD[spec].tw || 'cannon'; for (const w of m.parts.wl) m.parts[w].visible = w === k; } }
+        else grp = unitModel(spec, ICON_PAL);
+        grp.rotation.y = -0.35; sc.add(grp); grp.updateMatrixWorld(true);
+        box.setFromObject(grp); box.getCenter(c); box.getSize(sz); const rad = sz.length() * 0.5;
+        cam.position.copy(c).addScaledVector(dir, rad / Math.sin(cam.fov * Math.PI / 360) * 0.92); cam.lookAt(c);
+        r.render(sc, cam); const url = cv.toDataURL('image/png'); D[id] = url; RICON[id] = `<img class="ric r3d" alt="" src="${url}">`;
+        sc.remove(grp);
+      } catch (e) { }
+    }
+  } catch (e) { }
+  if (r) { r.dispose(); try { r.forceContextLoss(); } catch (e) { } }
+  // upgrade lines (Mk I-IV) reuse the rendered picture of what they improve, with the same badge as before
+  const BASE3 = { mg: 'mg', cannon: 'cannon', flame: 'flame', rockets: 'rockets', laser: 'laser', art: 'howitzer', armor: 'armor', hardpoint: 'hardpoint', prod: 'prod' };
+  for (const [id, u] of Object.entries(UPG)) { const src = D[BASE3[u.base]]; if (!src) continue; const lvl = +id.match(/(\d)$/)[1];
+    const badge = u.kind === 'dmg' ? '#e0402a' : u.kind === 'rof' ? '#3f9fe0' : '#7fb84a';
+    RICON[id] = SV(`<image href="${src}" x="0" y="3" width="42" height="42"/><circle cx="38" cy="10" r="9" fill="${badge}" stroke="#fff" stroke-width="1.5"/><text x="38" y="14" font-size="${u.kind === 'up' ? 9 : 10}" text-anchor="middle" fill="#fff" font-family="sans-serif" font-weight="bold">${u.kind === 'dmg' ? '+' : u.kind === 'rof' ? '»' : '▲'}</text><text x="38" y="45" font-size="9" text-anchor="middle" fill="#f0b44a" font-family="sans-serif" font-weight="bold" stroke="#000" stroke-width="2" paint-order="stroke">${ROM[lvl - 1] || ''}</text>`).replace('class="ric"', 'class="ric r3d"'); }
+  panelSig = '';
+}
 let prevR = null, prevScene, prevCam, prevGrp;
 function updatePreview() {
   try {
@@ -3005,7 +3058,7 @@ function hostStart() {
 function lsBegin(pl) {
   if (NET.started || !NET.prepared) return; NET.started = true; NET.players = (pl || []).map(Number);
   $('mp').classList.add('hidden'); netStatus(''); $('hud').classList.remove('hidden');
-  setupForces(); S.running = true; LS.lastT = performance.now();
+  setupForces(); S.running = true; LS.lastT = performance.now(); setTimeout(make3DIcons, 400);
   const GB = GUEST_BASE[NET.me] || PLAYER2; cam.x = GB.x; cam.z = GB.z - 8;
   toast(`👥 Tu: ${TEAMC[palOf(NET.me)].name.replace('Aliat ', '')} · Gazda: verde-albastru`);
 }
@@ -3150,7 +3203,7 @@ addEventListener('resize', resize);
 // buttons
 try { const d0 = localStorage.getItem('ironfall.diff'); if (d0 !== null) { S.diff = +d0; document.querySelectorAll('#diff button').forEach(x => x.classList.toggle('on', +x.dataset.v === S.diff)); } } catch (e) {}
 document.querySelectorAll('#diff button').forEach(b => b.addEventListener('click', () => { document.querySelectorAll('#diff button').forEach(x => x.classList.remove('on')); b.classList.add('on'); S.diff = +b.dataset.v; }));
-function startGame() { audioInit(); $('intro').classList.add('hidden'); $('hud').classList.remove('hidden'); setupGame(); S.running = true; toast('Construiește generatoare pe sondele de petrol! ⚡'); }
+function startGame() { audioInit(); $('intro').classList.add('hidden'); $('hud').classList.remove('hidden'); setupGame(); S.running = true; toast('Construiește generatoare pe sondele de petrol! ⚡'); setTimeout(make3DIcons, 400); }
 $('bPlay').addEventListener('click', startGame);
 $('bMp').addEventListener('click', () => { audioInit(); mpOpen(); });
 $('mp').addEventListener('click', mpClick);

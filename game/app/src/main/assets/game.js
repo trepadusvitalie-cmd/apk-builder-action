@@ -1263,8 +1263,9 @@ function bldGeo(type, team) {
       // rotating search radar on top of the deck
       B.add(G.cyl16, 0.7, 0.5, 0.7, 0.9, 6.55, 0.9, 0x3c3e3a); B.add(G.cyl16, 0.5, 0.25, 0.5, 0.9, 6.9, 0.9, 0x2a2d30);   // radar turntable
       // rooftop helipad
-      B.add(G.cyl16, 1.1, 0.08, 1.1, -1.55, 3.75, -1.55, 0x2c2e2b); B.add(G.cyl16, 1.14, 0.05, 1.14, -1.55, 3.74, -1.55, 0xe8c02a);
-      B.box(0.14, 0.02, 0.9, -1.83, 3.8, -1.55, 0xf0f0f0); B.box(0.14, 0.02, 0.9, -1.27, 3.8, -1.55, 0xf0f0f0); B.box(0.56, 0.02, 0.14, -1.55, 3.8, -1.55, 0xf0f0f0);
+      B.box(5.0, 0.1, 1.9, 0, 3.74, -1.7, 0xe8c02a); B.box(4.8, 0.12, 1.7, 0, 3.75, -1.7, 0x2c2e2b);   // landing pad across the full roof width
+      B.box(0.16, 0.02, 1.2, -0.45, 3.82, -1.7, 0xf0f0f0); B.box(0.16, 0.02, 1.2, 0.45, 3.82, -1.7, 0xf0f0f0); B.box(0.9, 0.02, 0.16, 0, 3.82, -1.7, 0xf0f0f0);   // big H
+      for (const sx of [-1, 1]) for (let k = 0; k < 3; k++) B.box(0.22, 0.03, 0.08, sx * (1.9 + k * 0.08), 3.82, -1.7 + (k - 1) * 0.5, 0x9fe0ff);   // pad lights
       // armoured entrance with hazard frame and floodlights
       B.box(2.0, 1.8, 0.25, 0, 1.75, 2.85, steel); B.box(0.06, 1.7, 0.05, 0, 1.75, 2.99, 0x22241f);
       for (let k = 0; k < 8; k++) B.box(0.3, 0.18, 0.08, -1.05 + k * 0.3, 2.75, 2.98, k % 2 ? 0x1c1c1c : 0xe8c02a, 0, 0, 0.5);

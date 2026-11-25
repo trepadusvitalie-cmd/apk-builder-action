@@ -1888,6 +1888,8 @@ function nearestEnemy(team, x, z, range, w, eye) {
 }
 function inRange(u, t, extra) { return Math.hypot(t.x - u.x, t.z - u.z) - t.r <= effRange(u, t) + (extra || 0); }
 
+// tip of a raised artillery barrel relative to the turret base, in units of the chassis size: [height, forward]
+const artMuzzle = w => w.kind !== 'mortar' ? null : w.id === 'hhowitzer' ? [2.1, 2.77] : w.art === 'how' ? (w.big ? [1.87, 2.83] : [1.63, 2.39]) : w.art === 'mortar' || w.id === 'mortar' ? [1.0, 0.6] : null;
 function fireWeapon(src, t, w, mx, my, mz, mul) {
   const dmg = w.dmg * (mul || 1) * (TEAMS[src.team].dmg[wfam(w)] || 1) * (1 + 0.1 * (src.rank || 0));
   if (src.kind === 'unit') src.kv = (src.kv || 0) + (w.kind === 'shell' ? 3.2 : w.kind === 'mortar' ? (w.art === 'how' ? 4 : 2.2) : w.kind === 'rocket' || w.kind === 'missile' ? 1 : 0.35) / Math.max(0.8, CH[src.d.ch].size);
@@ -2132,7 +2134,7 @@ function updUnit(u, dt) {
       const wy = u.heading + u.turYaw; const s = CH[u.d.ch].size;
       const ml = (w.kind === 'shell' ? 2.2 : w.kind === 'laser' ? 0.9 : w.kind === 'flame' ? 1.5 : w.kind === 'mortar' ? (w.art === 'how' ? 2.2 : 1.2) : 1.6) * s;
       // raised artillery barrels: smoke and shell leave from the real muzzle tip, high up at the end of the barrel
-      const MZ = w.kind !== 'mortar' ? null : w.id === 'hhowitzer' ? [2.1, 2.77] : w.art === 'how' ? (w.big ? [1.87, 2.83] : [1.63, 2.39]) : w.art === 'mortar' || w.id === 'mortar' ? [1.0, 0.6] : null;
+      const MZ = artMuzzle(w);
       const mf = MZ ? MZ[1] * s : ml, mY = MZ ? u.y + u.h - 0.6 + MZ[0] * s : u.y + u.h - 0.3;
       fireWeapon(u, t, w, u.x + Math.sin(wy) * mf, mY, u.z + Math.cos(wy) * mf, u.rb > 1.3 ? 1.25 : u.rb > 1 ? 1.15 : 1);
       u.cd = u.cdMax = w.rof * srand(0.9, 1.1) * (TEAMS[u.team].rof[wfam(w)] || 1);
@@ -2224,7 +2226,7 @@ function updBld(b, dt) {
     b.cd -= dt;
     if (b.target && b.target.alive) {
       const a = Math.atan2(b.target.x - b.x, b.target.z - b.z); const local = angDiff(b.rot, a); b.turYaw += clamp(angDiff(b.turYaw, local), -4 * dt, 4 * dt);
-      if (b.cd <= 0 && Math.abs(angDiff(b.turYaw, local)) < 0.2) { const wy = b.rot + b.turYaw; const ts = b.def.ts || 1; fireWeapon(b, b.target, w, b.x + Math.sin(wy) * 2 * ts, b.y + (b.def.ty || 3.3) + 0.3 * ts, b.z + Math.cos(wy) * 2 * ts, b.def.dm || 1.3); b.cd = w.rof * (TEAMS[b.team].rof[wfam(w)] || 1); }
+      if (b.cd <= 0 && Math.abs(angDiff(b.turYaw, local)) < 0.2) { const wy = b.rot + b.turYaw; const ts = b.def.ts || 1, MZ = artMuzzle(w), k = CH.heavy.size * ts, fw = MZ ? MZ[1] * k : 2 * ts; fireWeapon(b, b.target, w, b.x + Math.sin(wy) * fw, b.y + (b.def.ty || 3.3) + (MZ ? MZ[0] * k : 0.3 * ts), b.z + Math.cos(wy) * fw, b.def.dm || 1.3); b.cd = w.rof * (TEAMS[b.team].rof[wfam(w)] || 1); }
     }
     b.parts.tur.rotation.y = b.turYaw; }
   }

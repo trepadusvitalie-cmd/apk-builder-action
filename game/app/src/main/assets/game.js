@@ -804,7 +804,7 @@ function unitGeo(d, team) {
   const hu = CH[d.ch].hue; const tn = (c, k) => new THREE.Color(c).lerp(new THREE.Color(hu), 0.65).multiplyScalar(k).getHex(); const tk = hu ? 1 : 1;
   const T = CH[d.ch].gold ? { ...TEAMC[team], body: 0xd4a832, dark: 0x5e4c1c } : hu ? { ...TEAMC[team], body: tn(TEAMC[team].body, 1), dark: tn(TEAMC[team].dark, 0.55) } : TEAMC[team], s = CH[d.ch].size, B = new Builder(), tb = new Builder(); B.uvScale = tb.uvScale = 1.1;
   if (d.pr === 'rotor' || d.pr === 'legs') return geoCache[key] = smallUnitGeo(d, T, s, B, tb);
-  const VT = d.pr === 'vtol'; const L = (VT ? 3.5 : 2.4) * s, W = (VT ? 1.0 : 1.65) * s, H = (d.pr === 'tracks' || d.pr === 'halftrack' ? 0.6 : 0.72) * s; const PI2 = Math.PI / 2;
+  const VT = d.pr === 'vtol'; const HULL_L = { omissile: 3.9, ballistic: 3.3, hhowitzer: 3.3, rbattery: 3.1, salvo: 3.0, smissile: 2.9, howitzer: 2.9, ihowitzer: 2.9, rhowitzer: 2.9, plasma: 2.8 }; const L = (VT ? 3.5 : d.pr === 'wheels' || d.pr === 'tracks' || d.pr === 'halftrack' || d.pr === 'hover' ? (HULL_L[d.wp] || 2.4) : 2.4) * s, W = (VT ? 1.0 : 1.65) * s, H = (d.pr === 'tracks' || d.pr === 'halftrack' ? 0.6 : 0.72) * s; const PI2 = Math.PI / 2;
   let by, msl = null;
   const wheel = (r, wd, x, y, z, sx) => { // chunky off-road tyre: tread rings, deep rim, coloured hub
     B.add(G.cyl16, r, wd, r, x, y, z, 0x1b1a18, 0, 0, PI2);
@@ -990,15 +990,18 @@ function unitGeo(d, team) {
         { const [x, y, z] = P(0, 0, 1.0 * s); tb.box(1.0 * s, 0.86 * s, 0.04 * s, x, y, z, 0x2e3328, -a, 0, 0); }                         // front face
         for (const ox of [-0.24, 0.24]) for (const oy of [-0.2, 0.2]) { const [x, y, z] = P(ox * s, oy * s, 1.02 * s); tb.add(G.cyl16, 0.15 * s, 0.05 * s, 0.15 * s, x, y, z, 0x111111, Math.PI / 2 - a, 0, 0);
           const [x2, y2, z2] = P(ox * s, oy * s, 1.0 * s); tb.add(G.cone, 0.09 * s, 0.22 * s, 0.09 * s, x2, y2, z2, 0x3f9fe0, Math.PI / 2 - a, 0, 0); }
-      } else if (d.wp === 'omissile') { // one huge missile sealed in a camouflaged canister on an erector
-        const a = 0.62, L = 3.6 * s, ca = Math.cos(a), sa = Math.sin(a);
-        tb.box(1.3 * s, 0.4 * s, 1.3 * s, 0, 0.25 * s, 0, 0x5f6a48); tb.camo(1.3 * s, 0.42 * s, 1.3 * s, 0, 0.25 * s, 0, 0, 6); tb.hazard(1.3 * s, 0.14 * s, 0, 0.25 * s, 0.655 * s, 'z', 1);
-        for (const sx of [-1, 1]) { tb.box(0.16 * s, 0.9 * s, 0.5 * s, sx * 0.62 * s, 0.75 * s, -0.35 * s, 0x3a3a36); tb.add(G.cyl10, 0.06 * s, 1.4 * s, 0.06 * s, sx * 0.3 * s, 0.9 * s, -0.1 * s, 0xb8b8b0, 0.7, 0, 0); }
-        const c0 = [0, 0.75 * s + sa * L * 0.42, -0.35 * s + ca * L * 0.42];
-        tb.box(1.0 * s, 1.0 * s, L, c0[0], c0[1], c0[2], 0x6f7a52, -a, 0, 0); tb.camo(1.0 * s, 1.02 * s, L, c0[0], c0[1], c0[2], -a, 10);
-        for (const k of [-0.38, 0, 0.38]) tb.box(1.06 * s, 1.06 * s, 0.14 * s, c0[0], c0[1] + sa * L * k, c0[2] + ca * L * k, T.acc, -a, 0, 0);       // canister rings in team colour
-        { const k = 0.505; tb.box(0.9 * s, 0.9 * s, 0.05 * s, c0[0], c0[1] + sa * L * k, c0[2] + ca * L * k, 0x2e3328, -a, 0, 0); tb.add(G.cyl16, 0.32 * s, 0.07 * s, 0.32 * s, c0[0], c0[1] + sa * L * (k + 0.01), c0[2] + ca * L * (k + 0.01), 0xc8321e, Math.PI / 2 - a, 0, 0); } // front cap
-        msl = { kind: 'orizont', x: c0[0], y: c0[1], z: c0[2], a, len: L * 0.92 };
+      } else if (d.wp === 'omissile') { // transporter-erector: one long canister lying along the whole (lengthened) hull, raised a little at the back pivot
+        const a = 0.2, L = 3.9 * s, ca = Math.cos(a), sa = Math.sin(a), pz = -1.85 * s, py = 0.55 * s;
+        const at = k => [0, py + sa * L * k, pz + ca * L * k];
+        tb.box(1.5 * s, 0.3 * s, 1.0 * s, 0, 0.18 * s, -1.6 * s, 0x4f5a3c);                                                  // pivot deck at the rear
+        for (const sx of [-1, 1]) tb.box(0.14 * s, 0.5 * s, 0.6 * s, sx * 0.6 * s, 0.4 * s, -1.75 * s, 0x3a3a36);             // pivot brackets
+        { const [x, y, z] = at(0.62); tb.box(0.9 * s, 0.25 * s, 0.3 * s, x, 0.3 * s, z, 0x3a3a36); tb.add(G.cyl10, 0.07 * s, 0.6 * s, 0.07 * s, 0, 0.5 * s, z, 0xb8b8b0); } // front rest + ram
+        const [cx, cy, cz] = at(0.5);
+        tb.box(1.05 * s, 0.95 * s, L, cx, cy, cz, 0x56603e, -a, 0, 0); tb.camo(1.07 * s, 0.97 * s, L + 0.02 * s, cx, cy, cz, -a, 12);   // canister
+        for (const k of [0.12, 0.38, 0.64, 0.9]) { const [x, y, z] = at(k); tb.box(1.11 * s, 1.01 * s, 0.1 * s, x, y, z, 0x34382a, -a, 0, 0); } // dark steel straps
+        { const [x, y, z] = at(1.005); tb.box(0.95 * s, 0.85 * s, 0.05 * s, x, y, z, 0x2e3328, -a, 0, 0); }                    // front cap
+        { const [x, y, z] = at(-0.005); tb.box(0.95 * s, 0.85 * s, 0.05 * s, x, y, z, 0x2e3328, -a, 0, 0); }                   // rear cap
+        msl = { kind: 'orizont', x: cx, y: cy, z: cz, a, len: L * 0.92 };
       } else if (w.big) { // launcher pod: a big camouflaged box raised steeply on hydraulic rams, the missile sealed inside
         const a = 0.95, ca = Math.cos(a), sa = Math.sin(a), PL = 2.7 * s, P = (y, z) => [0.6 * s + y * ca + z * sa, -0.9 * s - y * sa + z * ca];
         tb.box(1.3 * s, 0.35 * s, 1.4 * s, 0, 0.2 * s, -0.6 * s, 0x5f6a48); tb.camo(1.32 * s, 0.37 * s, 1.42 * s, 0, 0.2 * s, -0.6 * s, 0, 5);  // turntable deck

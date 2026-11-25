@@ -437,8 +437,9 @@ const TEAMC = [
   { body: 0x2e3e5e, dark: 0x171f2f, acc: 0x4a8cff, mini: '#5a9aff', name: 'Aliat (bleumarin)' },
   { body: 0x6a5a48, dark: 0x352d24, acc: 0xb0d8f0, mini: '#b8e0f8', name: 'Aliat (maro-argintiu)' },
   { body: 0x8e949b, dark: 0x3c4046, acc: 0xf0b44a, mini: '#c8ccd0', name: 'Iconițe (oțel)' },   // only for the research pictures
+  { body: 0x9c3528, dark: 0x4a1812, acc: 0xf0b44a, mini: '#e06050', name: 'Iconițe (roșu avansat)' },
 ];
-const ICON_PAL = TEAMC.length - 1;
+const ICON_PAL = TEAMC.length - 2, ICON_RED = TEAMC.length - 1;
 const CH = {
   scout: { name: 'Cercetaș', hp: 80, cost: 25, spd: 1.25, size: 0.8, hue: 0xb8a868 },
   light: { name: 'Ușor', hp: 110, cost: 35, spd: 1, size: 0.9 },
@@ -2606,15 +2607,17 @@ function make3DIcons() {
     const rim = new THREE.DirectionalLight(0x9fdcff, 1.4); rim.position.set(6, 3, -5); sc.add(rim);
     const cam = new THREE.PerspectiveCamera(28, 1, 0.05, 400), box = new THREE.Box3(), c = new THREE.Vector3(), sz = new THREE.Vector3();
     const dir = new THREE.Vector3(1, 0.8, 1.25).normalize();
-    for (const [id, spec] of Object.entries(ICON3D)) {
+    const BASE3 = { mg: 'mg', cannon: 'cannon', flame: 'flame', rockets: 'rockets', laser: 'laser', art: 'howitzer', armor: 'armor', hardpoint: 'hardpoint', prod: 'prod' }, redBase = new Set(Object.values(BASE3));
+    const jobs = []; for (const [id, spec] of Object.entries(ICON3D)) { const adv = (RS_DEPTH[id] || 0) >= 4; jobs.push([id, spec, adv]); if (!adv && redBase.has(id)) jobs.push([id + '#r', spec, true]); }
+    for (const [id, spec, adv] of jobs) {
       try {
-        let grp;
-        if (typeof spec === 'string') { const m = makeBldMesh(spec, ICON_PAL); grp = m.grp; if (m.parts.wl) { const k = BD[spec].tw || 'cannon'; for (const w of m.parts.wl) m.parts[w].visible = w === k; } }
-        else grp = unitModel(spec, ICON_PAL);
+        let grp; const pal = adv ? ICON_RED : ICON_PAL;
+        if (typeof spec === 'string') { const m = makeBldMesh(spec, pal); grp = m.grp; if (m.parts.wl) { const k = BD[spec].tw || 'cannon'; for (const w of m.parts.wl) m.parts[w].visible = w === k; } }
+        else grp = unitModel(spec, pal);
         grp.rotation.y = -0.35; sc.add(grp); grp.updateMatrixWorld(true);
         box.setFromObject(grp); box.getCenter(c); box.getSize(sz); const rad = sz.length() * 0.5;
         cam.position.copy(c).addScaledVector(dir, rad / Math.sin(cam.fov * Math.PI / 360) * 0.92); cam.lookAt(c);
-        r.render(sc, cam); const url = cv.toDataURL('image/png'); D[id] = url; RICON[id] = `<img class="ric r3d" alt="" src="${url}">`;
+        r.render(sc, cam); const url = cv.toDataURL('image/png'); D[id] = url; if (!id.endsWith('#r')) RICON[id] = `<img class="ric r3d${adv ? ' adv' : ''}" alt="" src="${url}">`;
         sc.remove(grp);
       } catch (e) { }
     }
@@ -2622,7 +2625,7 @@ function make3DIcons() {
   if (r) { r.dispose(); try { r.forceContextLoss(); } catch (e) { } }
   // upgrade lines (Mk I-IV) reuse the rendered picture of what they improve, with the same badge as before
   const BASE3 = { mg: 'mg', cannon: 'cannon', flame: 'flame', rockets: 'rockets', laser: 'laser', art: 'howitzer', armor: 'armor', hardpoint: 'hardpoint', prod: 'prod' };
-  for (const [id, u] of Object.entries(UPG)) { const src = D[BASE3[u.base]]; if (!src) continue; const lvl = +id.match(/(\d)$/)[1];
+  for (const [id, u] of Object.entries(UPG)) { const lvl = +id.match(/(\d)$/)[1], b3 = BASE3[u.base]; const src = lvl >= 3 ? (D[b3 + '#r'] || D[b3]) : D[b3]; if (!src) continue;
     const badge = u.kind === 'dmg' ? '#e0402a' : u.kind === 'rof' ? '#3f9fe0' : '#7fb84a';
     RICON[id] = SV(`<image href="${src}" x="0" y="3" width="42" height="42"/><circle cx="38" cy="10" r="9" fill="${badge}" stroke="#fff" stroke-width="1.5"/><text x="38" y="14" font-size="${u.kind === 'up' ? 9 : 10}" text-anchor="middle" fill="#fff" font-family="sans-serif" font-weight="bold">${u.kind === 'dmg' ? '+' : u.kind === 'rof' ? '»' : '▲'}</text><text x="38" y="45" font-size="9" text-anchor="middle" fill="#f0b44a" font-family="sans-serif" font-weight="bold" stroke="#000" stroke-width="2" paint-order="stroke">${ROM[lvl - 1] || ''}</text>`).replace('class="ric"', 'class="ric r3d"'); }
   panelSig = '';
@@ -3284,7 +3287,7 @@ window.onBack = () => {
   if (S.paused || !$('pause').classList.contains('hidden')) return false;
   S.paused = !NET.on; $('pause').classList.remove('hidden'); return true;
 };
-window.__game = { RICON, RS, LS, worldHash, bombFx, fireball3D, kill, wrecks, FBALLS, updFireballs, SPOT, nearestSpotted, WP, impactFx, XST, heightAt,  killNear: () => { for (const e of ents) if (e.alive && e.team === 1 && Math.hypot(e.x - PLAYER2.x, e.z - PLAYER2.z) < 25) kill(e); }, NET, execCmd, doCmd, byId, PLAYER, PLAYER2, S, TEAMS, ents, cam, setSel, sel: () => sel, createUnit, createBuilding, sfx, AU, SB, buildSfx, projs: () => projs, BD, WP };
+window.__game = { RS_DEPTH, RICON, RS, LS, worldHash, bombFx, fireball3D, kill, wrecks, FBALLS, updFireballs, SPOT, nearestSpotted, WP, impactFx, XST, heightAt,  killNear: () => { for (const e of ents) if (e.alive && e.team === 1 && Math.hypot(e.x - PLAYER2.x, e.z - PLAYER2.z) < 25) kill(e); }, NET, execCmd, doCmd, byId, PLAYER, PLAYER2, S, TEAMS, ents, cam, setSel, sel: () => sel, createUnit, createBuilding, sfx, AU, SB, buildSfx, projs: () => projs, BD, WP };
 
 resize(); updateCamera(0); requestAnimationFrame(loop);
 // background scene behind the intro

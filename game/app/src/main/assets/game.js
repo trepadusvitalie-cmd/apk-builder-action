@@ -48,6 +48,8 @@ if (!NETCFG && MC.seed !== null && MC.seed !== undefined) SEED = MC.seed;
 const MAP = MC.size, HALF = MAP / 2, EDGE = HALF - 9, SC = MAP / 300;
 const PLAYER = { x: 0, z: HALF - 26 };
 const PLAYER2 = { x: Math.round(52 * Math.min(SC, 1.3)), z: HALF - 34 }; // second commander's base (co-op)
+const PLAYER3 = { x: -PLAYER2.x, z: PLAYER2.z }, PLAYER4 = { x: PLAYER2.x * 2, z: HALF - 40 }; // third and fourth commanders (4-player co-op)
+const GUEST_BASE = [PLAYER, PLAYER2, PLAYER3, PLAYER4];
 const CENTER = { x: 0, z: 0 };
 const BASES = [PLAYER, CENTER];
 const RINGS = MC.rings.map(([r, n, tier, gap]) => ({ r, n, tier, gap }));
@@ -61,13 +63,13 @@ RINGS.forEach((R, ri) => {
   }
 });
 OUTPOSTS.push({ x: 0, z: 0, tier: 3, a: 0, prodT: 0, nextWave: 0, citadel: true });
-const FLAT = [{ x: PLAYER.x, z: PLAYER.z - 8, r: 44 }, { x: PLAYER2.x, z: PLAYER2.z, r: 28 }, { x: 0, z: 0, r: 34 }, ...OUTPOSTS.filter(o => !o.citadel).map(o => ({ x: o.x, z: o.z, r: 16 }))];
-const WELL_POS = [[-14, PLAYER.z + 12], [16, PLAYER.z + 10], [0, PLAYER.z - 16], [PLAYER2.x + 12, PLAYER2.z + 9], ...[[-40, 118], [42, 116], [-70, 95], [72, 92], [0, 70], [-95, 40], [96, 30], [-20, -96], [30, -120], [-110, -40], [110, -70], [-60, -130], [70, 60], [-60, 60]].map(([x, z]) => [x * SC, z * SC])];
+const FLAT = [{ x: PLAYER.x, z: PLAYER.z - 8, r: 44 }, { x: PLAYER2.x, z: PLAYER2.z, r: 28 }, { x: PLAYER3.x, z: PLAYER3.z, r: 28 }, { x: PLAYER4.x, z: PLAYER4.z, r: 28 }, { x: 0, z: 0, r: 34 }, ...OUTPOSTS.filter(o => !o.citadel).map(o => ({ x: o.x, z: o.z, r: 16 }))];
+const WELL_POS = [[-14, PLAYER.z + 12], [16, PLAYER.z + 10], [0, PLAYER.z - 16], [PLAYER2.x + 12, PLAYER2.z + 9], [PLAYER3.x - 12, PLAYER3.z + 9], [PLAYER4.x - 12, PLAYER4.z + 9], ...[[-40, 118], [42, 116], [-70, 95], [72, 92], [0, 70], [-95, 40], [96, 30], [-20, -96], [30, -120], [-110, -40], [110, -70], [-60, -130], [70, 60], [-60, 60]].map(([x, z]) => [x * SC, z * SC])];
 { let k = 0; const extra = Math.min(170, Math.round(16 * (SC * SC - 1) + (MC.custom ? 14 * Math.min(SC * SC, 11) * (MC.oil - 1) : 0))); for (let t = 0; k < extra && t < 9000; t++) { const x = (hash2(t, 7) - 0.5) * (MAP - 40), z = (hash2(t, 13) - 0.5) * (MAP - 40);
-  if (Math.hypot(x, z) < 40 || Math.hypot(x - PLAYER.x, z - PLAYER.z) < 35 || Math.hypot(x - PLAYER2.x, z - PLAYER2.z) < 30 || OUTPOSTS.some(o => Math.hypot(o.x - x, o.z - z) < 24) || WELL_POS.some(w => Math.hypot(w[0] - x, w[1] - z) < 30)) continue; WELL_POS.push([x, z]); k++; } }
+  if (Math.hypot(x, z) < 40 || Math.hypot(x - PLAYER.x, z - PLAYER.z) < 35 || Math.hypot(x - PLAYER2.x, z - PLAYER2.z) < 30 || Math.hypot(x - PLAYER3.x, z - PLAYER3.z) < 30 || Math.hypot(x - PLAYER4.x, z - PLAYER4.z) < 30 || OUTPOSTS.some(o => Math.hypot(o.x - x, o.z - z) < 24) || WELL_POS.some(w => Math.hypot(w[0] - x, w[1] - z) < 30)) continue; WELL_POS.push([x, z]); k++; } }
 for (const o of OUTPOSTS) if (!o.citadel) { const a = o.a + 0.18; const r = Math.hypot(o.x, o.z) + 9; WELL_POS.push([Math.sin(a) * r, Math.cos(a) * r]); }
 WELL_POS.push([14, 8], [-14, -8]);
-for (let i = WELL_POS.length - 1; i >= 4; i--) { const [x, z] = WELL_POS[i]; if (Math.abs(x) > EDGE - 6 || Math.abs(z) > EDGE - 6 || (MC.custom && MC.oil < 1 && hash2(i, 31) > MC.oil)) WELL_POS.splice(i, 1); }
+for (let i = WELL_POS.length - 1; i >= 6; i--) { const [x, z] = WELL_POS[i]; if (Math.abs(x) > EDGE - 6 || Math.abs(z) > EDGE - 6 || (MC.custom && MC.oil < 1 && hash2(i, 31) > MC.oil)) WELL_POS.splice(i, 1); }
 
 function biomeW(x, z) {
   const a = Math.atan2(x, z) + (fbm(x * 0.008 + 7, z * 0.008) - 0.5) * 1.6;
@@ -416,7 +418,9 @@ function buildGroundCover() {
 const TEAMC = [
   { body: 0x71804e, dark: 0x3d432f, acc: 0x3f9fe0, mini: '#5fc0ff', name: 'Tu' },
   { body: 0x7e5544, dark: 0x3d2a23, acc: 0xe0402a, mini: '#ff5a3a', name: 'Inamic' },
-  { body: 0x4e6a8a, dark: 0x27364a, acc: 0xffc832, mini: '#ffd23a', name: 'Aliat' }, // co-op guest commander
+  { body: 0x4e6a8a, dark: 0x27364a, acc: 0xffc832, mini: '#ffd23a', name: 'Aliat (albastru-galben)' }, // co-op guest commanders
+  { body: 0x8a7348, dark: 0x463a24, acc: 0x30e0b0, mini: '#30e0b0', name: 'Aliat (nisip-turcoaz)' },
+  { body: 0x5c5f66, dark: 0x2c2e33, acc: 0xc068ff, mini: '#c068ff', name: 'Aliat (gri-violet)' },
 ];
 const CH = {
   scout: { name: 'Cercetaș', hp: 80, cost: 25, spd: 1.25, size: 0.8, hue: 0xb8a868 },
@@ -1285,7 +1289,7 @@ function bldGeo(type, team) {
 // ================= ENTITIES =================
 const ents = []; let uid = 1; const EID = new Map(); const byId = id => EID.get(id);
 const glowDisc = new THREE.CircleGeometry(1, 16).rotateX(-Math.PI / 2);
-const glowMat = [new THREE.MeshBasicMaterial({ color: 0x66ccff, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false }), new THREE.MeshBasicMaterial({ color: 0xff7040, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false }), new THREE.MeshBasicMaterial({ color: 0xffd040, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false })];
+const glowMat = [new THREE.MeshBasicMaterial({ color: 0x66ccff, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false }), new THREE.MeshBasicMaterial({ color: 0xff7040, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false }), new THREE.MeshBasicMaterial({ color: 0xffd040, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false }), new THREE.MeshBasicMaterial({ color: 0x30e0b0, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false }), new THREE.MeshBasicMaterial({ color: 0xc068ff, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false })];
 
 function createUnit(team, d, x, z, tier, pal) {
   if (pal === undefined) pal = team;
@@ -1622,7 +1626,7 @@ function nearestEnemy(team, x, z, range, w) {
 function inRange(u, t, extra) { return Math.hypot(t.x - u.x, t.z - u.z) - t.r <= u.st.range * (u.rb || 1) + (extra || 0); }
 
 function fireWeapon(src, t, w, mx, my, mz, mul) {
-  if (NET.host && (Math.abs(src.x - NET.ccx) < 90 && Math.abs(src.z - NET.ccz) < 90)) NET.ev.push(['f', src.id, t.id, w.id, r1(mx), r1(my), r1(mz), mul || 1]);
+  if (NET.host && Object.values(NET.cams).some(c => Math.abs(src.x - c.x) < 90 && Math.abs(src.z - c.z) < 90)) NET.ev.push(['f', src.id, t.id, w.id, r1(mx), r1(my), r1(mz), mul || 1]);
   if (NET.cl) heat = Math.min(1.5, heat + 0.01);
   const dmg = w.dmg * (mul || 1) * (TEAMS[src.team].dmg[wfam(w)] || 1) * (1 + 0.1 * (src.rank || 0));
   if (src.kind === 'unit') src.kv = (src.kv || 0) + (w.kind === 'shell' ? 3.2 : w.kind === 'mortar' ? (w.art === 'how' ? 4 : 2.2) : w.kind === 'rocket' || w.kind === 'missile' ? 1 : 0.35) / Math.max(0.8, CH[src.d.ch].size);
@@ -1972,7 +1976,7 @@ function execCmd(c, remote) {
       if (!canPlace(type, x, z, 0)) { say('Nu se poate construi aici'); break; }
       if (type === 'lab' && labCount() >= MAX_LABS) { say(`Maxim ${MAX_LABS} laboratoare`); break; }
       if (T.energy < def.cost) { say('Energie insuficientă'); break; }
-      T.energy -= def.cost; const b = createBuilding(0, type, x, z, false, undefined, undefined, remote ? 2 : 0); for (const u of U(ids)) if (u.isTruck) { u.state = 'build'; u.buildTarget = b; u.target = null; } break; }
+      T.energy -= def.cost; const b = createBuilding(0, type, x, z, false, undefined, undefined, remote ? (remote === true ? 2 : remote) : 0); for (const u of U(ids)) if (u.isTruck) { u.state = 'build'; u.buildTarget = b; u.target = null; } break; }
     case 'ra': { const f = byId(c[1]); if (f && f.team === 0) f.rally = { x: c[2], z: c[3] }; break; }
     case 'q': { const f = byId(c[1]); if (!f || !f.alive || f.team !== 0 || !FACT_TYPES.has(f.type)) break; const d = c[2]; if (!validDesign(d) || facFor(d) !== f.type) break;
       let k = 0; for (let i = 0; i < Math.min(5, c[3] | 0); i++) { const cost = unitStats(d, 0).cost; if (T.energy < cost || f.queue.length >= 8) break; T.energy -= cost; f.queue.push({ ch: d.ch, pr: d.pr, wp: d.wp }); k++; }
@@ -2666,88 +2670,101 @@ function sfx(type, x, z) {
 // Phones meet through the room server (room code); then talk directly (WebRTC) or, if a network blocks
 // that, through the server.
 const NET_URL = (() => { try { return localStorage.getItem('ironfall.server') || 'https://easofty.com/ironfall/api.php'; } catch (e) { return 'https://easofty.com/ironfall/api.php'; } })();
-const NET = { on: false, host: false, cl: false, room: '', after: 0, pc: null, dc: null, ev: [], out: [], slot: null, snapSeq: 0, ccx: 0, ccz: 0, known: new Set(), dead: new Set(), lastRx: 0, dcRx: 0, sendT: 0, started: false, peerOk: false, loopT: null, lastBld: new Map(), bTime: new Map(), aliveT: 0, rtcT: 0, fails: 0, nextSend: 0 };
+const NET = { on: false, host: false, cl: false, room: '', after: 0, me: 1, peers: {}, guests: [], ready: new Set(), cams: {}, rx: {}, ev: [], out: [], slot: null, snapSeq: 0, snapT: 0, known: new Set(), dead: new Set(), lastRx: 0, sendT: 0, started: false, loopT: null, lastBld: new Map(), bTime: new Map(), aliveT: 0, fails: 0, nextSend: 0 };
+// up to 4 commanders: the host plus guests 1..3, each with a base and a colour of their own (one army, shared energy and research)
+const GUEST_PAL = [0, 2, 3, 4], palOf = k => GUEST_PAL[k] || 2;
 async function api(a, params, body) {
-  const q = new URLSearchParams(Object.assign({ a, room: NET.room, me: NET.host ? 'h' : 'c' }, params || {}));
+  const q = new URLSearchParams(Object.assign({ a, room: NET.room, me: NET.host ? 'h' : 'c' + (NET.me || 1) }, params || {}));
   const ctl = window.AbortController ? new AbortController() : null; const to = ctl ? setTimeout(() => ctl.abort(), 8000) : 0;
   try { const r = await fetch(NET_URL + '?' + q.toString(), Object.assign(body ? { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'text/plain' } } : { cache: 'no-store' }, ctl ? { signal: ctl.signal } : {}));
-    if (!r.ok) throw new Error('http ' + r.status); return await r.json(); } finally { clearTimeout(to); }
+    if (!r.ok) { let j = null; try { j = await r.json(); } catch (x) {} throw new Error(j && j.err ? 'srv:' + j.err : 'http ' + r.status); } return await r.json(); } finally { clearTimeout(to); }
 }
-const dcOpen = () => !!(NET.dc && NET.dc.readyState === 'open');
+// direct links: the guest has one (key 'h', to the host); the host has one per guest (keys 1..3)
+const peer = k => NET.peers[k] || (NET.peers[k] = { pc: null, dc: null, dcRx: 0, dcSnap: 0, rtcT: 0 });
+const dcOpen = k => { const p = NET.peers[k === undefined ? 'h' : k]; return !!(p && p.dc && p.dc.readyState === 'open'); };
 // the guest trusts the direct link only while game state actually arrives on it
-const dcLive = () => dcOpen() && (NET.host || performance.now() - (NET.dcSnap || 0) < 1500);
-function netSend(m) {
-  if (dcLive() || (dcOpen() && m.t === 'p')) { try { NET.dc.send(JSON.stringify(m)); return; } catch (e) { rtcDrop(); } }
+const dcLive = k => dcOpen(k) && (NET.host || performance.now() - (NET.peers.h.dcSnap || 0) < 1500);
+function queueOut(m) {
   NET.out.push(m); if (NET.out.length > 400) NET.out.splice(0, NET.out.length - 400);
   if (NET.out.length === 1 && NET.on) { clearTimeout(NET.loopT); NET.loopT = setTimeout(netPollLoop, 60); }
+}
+function netSend(m, to) {
+  if (!NET.host) { if (dcLive('h') || (dcOpen('h') && m.t === 'p')) { try { NET.peers.h.dc.send(JSON.stringify(m)); return; } catch (e) { rtcDrop('h'); } } queueOut(m); return; }
+  const list = to !== undefined ? [to] : NET.guests, srv = [];
+  for (const k of list) { if (dcOpen(k)) { try { NET.peers[k].dc.send(JSON.stringify(m)); continue; } catch (e) { rtcDrop(k); } } srv.push(k); }
+  if (srv.length) queueOut(to === undefined && srv.length === NET.guests.length ? m : Object.assign({}, m, { _to: srv }));
 }
 // one request does everything: deliver my queued messages, (host) store the latest state, (guest) fetch it
 function netPollLoop() {
   clearTimeout(NET.loopT);
   const go = async () => {
-    const out = NET.out.splice(0, 60); const body = { to: out }; if (NET.host && NET.slot && !dcLive()) { body.snap = NET.slot; NET.slot = null; }
+    const out = NET.out.splice(0, 60); const body = { to: out }; if (NET.host && NET.slot) { body.snap = NET.slot; NET.slot = null; }
     try {
-      const r = await api('sync', { after: NET.after, have: NET.snapSeq }, body); NET.fails = 0;
+      const r = await api('sync', { after: NET.after, have: NET.snapSeq, st: NET.host && NET.started ? 1 : 0 }, body); NET.fails = 0;
+      if (r && NET.host) { const g = Array.isArray(r.guests) ? r.guests.map(Number) : r.joined ? [1] : []; if (g.join() !== NET.guests.join()) { NET.guests = g; onGuests(); } }
       if (r && r.msgs) for (const [seq, m] of r.msgs) { if (seq <= NET.after) continue; NET.after = seq; netRecv(m); }
-      if (r && r.snap && r.snapSeq > NET.snapSeq) { NET.snapSeq = r.snapSeq; if (!dcLive()) netRecv(r.snap); }
-      if (r && r.joined && NET.host && !NET.peerOk) onPeerJoined();
+      if (r && r.snap && r.snapSeq > NET.snapSeq) { NET.snapSeq = r.snapSeq; if (!dcLive('h')) netRecv(r.snap); }
     } catch (e) { NET.out.unshift(...out); NET.fails++; if (NET.fails > 2) netStatus('Conexiune slabă cu serverul… se reîncearcă'); }
-    const busy = NET.out.length > 0; const wait = dcLive() ? 1500 : busy ? 150 : 330;
+    const busy = NET.out.length > 0; const allDirect = NET.host ? NET.guests.length && NET.guests.every(k => dcOpen(k)) : dcLive('h'); const wait = allDirect ? 1500 : busy ? 150 : 330;
     NET.loopT = setTimeout(go, NET.fails ? Math.min(3000, 400 * NET.fails) : wait);
   };
   go();
 }
-function netRecv(m) {
+function netRecv(m, via) {
   if (!m || typeof m !== 'object') return;
   NET.lastRx = performance.now();
-  if (m.t === 'p') return;
-  if (m.t === 'sdp' || m.t === 'ice') return rtcSignal(m);
   if (NET.host) {
-    if (m.t === 'hi') netSend({ t: 'cfg', seed: SEED, map: MAPI, diff: S.diff, tl: S.tl, mdef: MC.custom ? MC : null });
-    else if (m.t === 'ready') hostStart();
-    else if (m.t === 'c' && Array.isArray(m.c)) execCmd(m.c, true);
-    else if (m.t === 'cam') { NET.ccx = +m.x || 0; NET.ccz = +m.z || 0; }
+    const k = via !== undefined ? via : (m._from | 0) || 1; NET.rx[k] = NET.lastRx;
+    if (m.t === 'p') return;
+    if (m.t === 'sdp' || m.t === 'ice') return rtcSignal(m, k);
+    if (m.t === 'hi') netSend({ t: 'cfg', seed: SEED, map: MAPI, diff: S.diff, tl: S.tl, mdef: MC.custom ? MC : null, slot: k }, k);
+    else if (m.t === 'ready') { NET.ready.add(k); if (NET.started) { NET.known.clear(); NET.lastBld.clear(); rtcOffer(k); teamToast(`👥 ${TEAMC[palOf(k)].name} a intrat în luptă`); } else mpHostRefresh(); }
+    else if (m.t === 'c' && Array.isArray(m.c)) execCmd(m.c, palOf(k));
+    else if (m.t === 'cam') NET.cams[k] = { x: +m.x || 0, z: +m.z || 0 };
   } else {
-    if (m.t === 'cfg') { if (NETCFG) return; try { sessionStorage.setItem('ironfall.net', JSON.stringify({ room: NET.room, seed: m.seed, map: m.map, diff: m.diff, tl: m.tl | 0, mdef: m.mdef || null, after: NET.after })); } catch (e) {} location.reload(); }
+    if (m.t === 'p') return;
+    if (m.t === 'sdp' || m.t === 'ice') return rtcSignal(m, 'h');
+    if (m.t === 'cfg') { if (NETCFG) return; if (m.slot) NET.me = m.slot | 0; try { sessionStorage.setItem('ironfall.net', JSON.stringify({ room: NET.room, me: NET.me, seed: m.seed, map: m.map, diff: m.diff, tl: m.tl | 0, mdef: m.mdef || null, after: NET.after })); } catch (e) {} location.reload(); }
     else if (m.t === 's') clientApply(m);
   }
 }
-function onPeerJoined() { NET.peerOk = true; netStatus('Prietenul a intrat! Se încarcă harta la el…'); }
-// --- WebRTC direct link; watched by a heartbeat, falls back to the server if it goes quiet
-function rtcMake() {
+function onGuests() { if (!NET.started) mpHostRefresh(); }
+// --- WebRTC direct links; each is watched by a heartbeat and falls back to the server if it goes quiet
+function rtcMake(k) {
   if (!window.RTCPeerConnection) return null;
   const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] });
-  pc.onicecandidate = e => { if (e.candidate) netSend({ t: 'ice', c: e.candidate.toJSON ? e.candidate.toJSON() : e.candidate }); };
-  pc.ondatachannel = e => rtcChannel(e.channel);
-  pc.onconnectionstatechange = () => { if (['failed', 'closed'].includes(pc.connectionState) && NET.pc === pc) rtcDrop(); };
-  NET.pc = pc; return pc;
+  pc.onicecandidate = e => { if (e.candidate) netSend({ t: 'ice', c: e.candidate.toJSON ? e.candidate.toJSON() : e.candidate }, NET.host ? k : undefined); };
+  pc.ondatachannel = e => rtcChannel(e.channel, k);
+  pc.onconnectionstatechange = () => { if (['failed', 'closed'].includes(pc.connectionState) && peer(k).pc === pc) rtcDrop(k); };
+  peer(k).pc = pc; return pc;
 }
-function rtcChannel(dc) { NET.dc = dc; dc.onmessage = e => { NET.dcRx = performance.now(); try { const m = JSON.parse(e.data); if (m && m.t === 's') NET.dcSnap = NET.dcRx; netRecv(m); } catch (x) {} }; dc.onopen = () => { NET.dcRx = performance.now(); toast('🔗 Legătură directă între telefoane'); }; dc.onclose = () => { if (NET.dc === dc) rtcDrop(); }; }
-function rtcDrop() {   // direct link died: go back to the server and resend the whole world
-  const had = dcOpen() || NET.dc; try { NET.dc && NET.dc.close(); } catch (e) {} try { NET.pc && NET.pc.close(); } catch (e) {}
-  NET.dc = null; NET.pc = null; if (NET.host) { NET.known.clear(); NET.lastBld.clear(); NET.rtcT = 20; }
+function rtcChannel(dc, k) { const p = peer(k); p.dc = dc; dc.onmessage = e => { p.dcRx = performance.now(); try { const m = JSON.parse(e.data); if (m && m.t === 's') p.dcSnap = p.dcRx; netRecv(m, NET.host ? k : undefined); } catch (x) {} }; dc.onopen = () => { p.dcRx = performance.now(); toast(NET.host ? `🔗 Legătură directă cu ${TEAMC[palOf(k)].name}` : '🔗 Legătură directă cu gazda'); }; dc.onclose = () => { if (p.dc === dc) rtcDrop(k); }; }
+function rtcDrop(k) {   // a direct link died: go back to the server and resend the whole world
+  const p = peer(k); const had = dcOpen(k) || p.dc; try { p.dc && p.dc.close(); } catch (e) {} try { p.pc && p.pc.close(); } catch (e) {}
+  p.dc = null; p.pc = null; if (NET.host) { NET.known.clear(); NET.lastBld.clear(); p.rtcT = 20; }
   if (had && NET.started) toast('↺ Legătura directă s-a pierdut — continuăm prin server');
   clearTimeout(NET.loopT); NET.loopT = setTimeout(netPollLoop, 50);
 }
-async function rtcOffer() { try { const pc = rtcMake(); if (!pc) return; rtcChannel(pc.createDataChannel('g', { ordered: true })); const o = await pc.createOffer(); await pc.setLocalDescription(o); netSend({ t: 'sdp', d: { type: pc.localDescription.type, sdp: pc.localDescription.sdp } }); } catch (e) {} }
-async function rtcSignal(m) {
+async function rtcOffer(k) { try { const pc = rtcMake(k); if (!pc) return; rtcChannel(pc.createDataChannel('g', { ordered: true }), k); const o = await pc.createOffer(); await pc.setLocalDescription(o); netSend({ t: 'sdp', d: { type: pc.localDescription.type, sdp: pc.localDescription.sdp } }, k); } catch (e) {} }
+async function rtcSignal(m, k) {
+  const p = peer(k), to = NET.host ? k : undefined;
   try {
     if (m.t === 'sdp') {
-      if (m.d.type === 'offer') { if (NET.pc) { try { NET.pc.close(); } catch (e) {} } NET.dc = null; const pc = rtcMake(); if (!pc) return; await pc.setRemoteDescription(m.d); const a = await pc.createAnswer(); await pc.setLocalDescription(a); netSend({ t: 'sdp', d: { type: pc.localDescription.type, sdp: pc.localDescription.sdp } }); }
-      else if (NET.pc) await NET.pc.setRemoteDescription(m.d);
-    } else if (m.t === 'ice' && NET.pc) await NET.pc.addIceCandidate(m.c);
+      if (m.d.type === 'offer') { if (p.pc) { try { p.pc.close(); } catch (e) {} } p.dc = null; const pc = rtcMake(k); if (!pc) return; await pc.setRemoteDescription(m.d); const a = await pc.createAnswer(); await pc.setLocalDescription(a); netSend({ t: 'sdp', d: { type: pc.localDescription.type, sdp: pc.localDescription.sdp } }, to); }
+      else if (p.pc) await p.pc.setRemoteDescription(m.d);
+    } else if (m.t === 'ice' && p.pc) await p.pc.addIceCandidate(m.c);
   } catch (e) {}
 }
 // --- host: build and send the world state
 function hostStart() {
-  if (NET.started) return; NET.started = true;
+  if (NET.started || !NET.ready.size) return; NET.started = true;
   $('mp').classList.add('hidden'); $('intro').classList.add('hidden'); startGame();
-  toast('👥 Tu: verde-albastru · Prietenul: albastru-galben (baza de la est)'); rtcOffer();
+  toast('👥 ' + [0, ...[...NET.ready].sort()].map(k => k ? TEAMC[palOf(k)].name : 'Tu (verde-albastru)').join(' · ')); for (const k of NET.ready) rtcOffer(k);
 }
 function hostTick(dt) {
-  if (!NET.dc && NET.rtcT > 0) { NET.rtcT -= dt; if (NET.rtcT <= 0) rtcOffer(); }
+  for (const k of NET.ready) { const p = peer(k); if (!p.dc && p.rtcT > 0) { p.rtcT -= dt; if (p.rtcT <= 0) rtcOffer(k); } }
   const now = performance.now(); if (now < NET.nextSend) return; // real time, so slow phones still send on time
-  const direct = dcOpen(); NET.sendT = direct ? 0.1 : 0.33; NET.nextSend = now + NET.sendT * 1000;
+  const direct = NET.guests.length > 0 && NET.guests.every(k => dcOpen(k)), anyDirect = NET.guests.some(k => dcOpen(k)); NET.sendT = anyDirect ? 0.1 : 0.33; NET.nextSend = now + NET.sendT * 1000;
   const T = TEAMS[0];
   // "rel" must arrive (creations, deaths, messages); "m" is the latest state and may be replaced by a newer one
   const rel = { t: 's', time: r1(S.time), nu: [], nb: [], ev: [] };
@@ -2769,12 +2786,13 @@ function hostTick(dt) {
   for (const id of NET.lastBld.keys()) { const e = byId(id); if (!e || !e.alive) { NET.lastBld.delete(id); NET.bTime.delete(id); } }
   const hasRel = rel.nu.length || rel.nb.length || rel.ev.length;
   if (!rel.nu.length) delete rel.nu; if (!rel.nb.length) delete rel.nb; if (!rel.ev.length) delete rel.ev; if (!m.b.length) delete m.b; if (!m.ev.length) delete m.ev;
-  if (direct) { if (hasRel) netSend(rel); netSend(m); }
-  else { if (hasRel) NET.out.push(rel); NET.slot = m; }
+  if (hasRel) netSend(rel); // every guest: direct link or the server queue
+  for (const k of NET.guests) if (dcOpen(k)) { try { NET.peers[k].dc.send(JSON.stringify(m)); } catch (e) { rtcDrop(k); } }
+  if (!direct && (now >= NET.snapT || m.alive)) { NET.snapT = now + 320; NET.slot = m; } // guests without a direct link read the latest state from the server
 }
 // --- guest: mirror the host's world
 function clientApply(m) {
-  if (!NET.started) { NET.started = true; $('mp').classList.add('hidden'); netStatus(''); toast('👥 Tu: albastru-galben · Gazda: verde-albastru'); }
+  if (!NET.started) { NET.started = true; $('mp').classList.add('hidden'); netStatus(''); toast(`👥 Tu: ${TEAMC[palOf(NET.me)].name.replace('Aliat ', '')} · Gazda: verde-albastru`); }
   NET.snapAt = performance.now();
   const T = TEAMS[0]; if (m.T) { T.energy = m.T[0]; T.inc = m.T[1]; T.units = m.T[2]; }
   if (m.tech) { T.tech = new Set(m.tech); T.researching = new Set(m.rsg || []); const k = m.mul; if (k) { T.hpMul = k[0]; T.spdMul = k[1]; T.prodMul = k[2]; T.shpMul = k[3]; T.powMul = k[4]; T.rsMul = k[5]; T.dmg = k[6] || {}; T.rof = k[7] || {}; } }
@@ -2822,24 +2840,37 @@ function netWatch() {   // connection banner for both sides
   if (!NET.on || !NET.started || S.over) return;
   const idle = (performance.now() - (NET.cl ? (NET.snapAt || 0) : NET.lastRx)) / 1000;
   NET.pingT = (NET.pingT || 0) + 1;
-  if (dcOpen()) { netSend({ t: 'p' }); if (performance.now() - NET.dcRx > 5000) rtcDrop(); }
-  else if (NET.cl && NET.pingT % 2 === 0) netSend({ t: 'p' });
-  netStatus(idle > 6 ? (NET.cl ? '⏳ Se așteaptă gazda… (verifică internetul)' : '⏳ Prietenul nu răspunde…') : '');
+  const now = performance.now();
+  if (NET.host) {
+    for (const k of NET.guests) if (dcOpen(k)) { netSend({ t: 'p' }, k); if (now - NET.peers[k].dcRx > 5000) rtcDrop(k); }
+    const quiet = [...NET.ready].filter(k => now - (NET.rx[k] || 0) > 6000);
+    netStatus(quiet.length ? '⏳ ' + quiet.map(k => TEAMC[palOf(k)].name).join(', ') + ' nu răspunde…' : '');
+  } else {
+    if (dcOpen('h')) { netSend({ t: 'p' }); if (now - NET.peers.h.dcRx > 5000) rtcDrop('h'); }
+    else if (NET.pingT % 2 === 0) netSend({ t: 'p' });
+    netStatus(idle > 6 ? '⏳ Se așteaptă gazda… (verifică internetul)' : '');
+  }
 }
 setInterval(netWatch, 1000);
 function netStatus(t) { const el = $('netSt'); if (!el) return; el.textContent = t; el.classList.toggle('hidden', !t); }
 // --- lobby
+function mpHostRefresh() { // host lobby: who has joined and who is ready
+  const pl = $('mpPl'); if (!pl) return; const n = NET.guests.length;
+  pl.innerHTML = `👥 Jucători: <b>${1 + n}/4</b><br>` + [`<span style="color:${TEAMC[0].mini}">■</span> Tu (gazda)`, ...NET.guests.map(k => `<span style="color:${TEAMC[palOf(k)].mini}">■</span> ${TEAMC[palOf(k)].name} — ${NET.ready.has(k) ? '✔ gata' : 'se încarcă harta…'}`)].join('<br>');
+  const msg = $('mpMsg'); if (msg) msg.textContent = !n ? 'Se așteaptă jucătorii…' : NET.ready.size ? (NET.ready.size < n ? 'Unii prieteni încă încarcă harta — poți începe și ei intră când sunt gata.' : 'Toți sunt gata!') : 'Prietenii încarcă harta…';
+  const b = $('mpStart'); if (b) b.disabled = !NET.ready.size;
+}
 function mpOpen() { $('mp').classList.remove('hidden'); mpView('menu'); }
 const mpSet = () => `🗺️ <b>${MC.name}</b> (${MC.size} m) · ${['Ușor', 'Normal', 'Greu'][S.diff]} · tehnologie <b>${TL_NAME[S.tl]}</b>`;
 function mpView(v, txt) {
   const box = $('mpBody');
-  if (v === 'menu') box.innerHTML = `<p class="mph">Joacă împreună cu un prieten, de oriunde. Amândoi comandați aceeași armată (energie și cercetare comune), fiecare cu baza lui, împotriva citadelei. Harta, dificultatea și nivelul de tehnologie le alege cel care creează partida.</p>
+  if (v === 'menu') box.innerHTML = `<p class="mph">Joacă împreună cu până la 3 prieteni (4 jucători), de oriunde. Comandați aceeași armată (energie și cercetare comune), fiecare cu baza și culoarea lui, împotriva citadelei. Harta, dificultatea și nivelul de tehnologie le alege cel care creează partida.</p>
     <div class="mpset">${mpSet()}</div>
     <div class="mpb" id="mpTl">${TL_NAME.map((n, i) => `<button data-tl="${i}" class="${i === S.tl ? 'on' : ''}">${n}</button>`).join('')}</div>
     <div class="mpb"><button class="ok big" data-mp="create">➕ Creează partidă</button></div>
     <div class="mpb"><input id="mpCode" maxlength="5" placeholder="COD" autocomplete="off" autocapitalize="characters"><button class="ok big" data-mp="join">➜ Intră cu cod</button></div>
     <div class="mpb"><button data-mp="close">Înapoi</button></div>`;
-  else if (v === 'wait') box.innerHTML = `<p class="mph">Spune-i prietenului codul camerei:</p><div class="mpcode">${NET.room}</div><p class="mph" id="mpMsg">${txt || 'Se așteaptă al doilea jucător…'}</p><div class="mpb"><button data-mp="cancel">Anulează</button></div>`;
+  else if (v === 'wait') { box.innerHTML = `<p class="mph">Spune-le prietenilor codul camerei (până la 3 prieteni):</p><div class="mpcode">${NET.room}</div><div class="mpset" id="mpPl"></div><p class="mph" id="mpMsg">${txt || ''}</p><div class="mpb"><button class="ok big" data-mp="start" id="mpStart" disabled>▶ Începe lupta</button><button data-mp="cancel">Anulează</button></div>`; mpHostRefresh(); }
   else if (v === 'msg') box.innerHTML = `<p class="mph">${txt}</p><div class="mpb"><button data-mp="cancel">Înapoi</button></div>`;
   else if (v === 'guest') box.innerHTML = `<p class="mph">Conectat la camera <b>${NET.room}</b>.</p><div class="mpset">${mpSet()}</div><div class="mpb"><button class="ok big" data-mp="go">▶ Intră în luptă</button></div><p class="mph" id="mpMsg"></p>`;
 }
@@ -2853,14 +2884,15 @@ async function mpClick(ev) {
     catch (e) { mpView('msg', '❌ Nu mă pot conecta la server. Verifică internetul.'); } return; }
   if (a === 'join') { const code = ($('mpCode').value || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); if (code.length !== 5) { toast('Codul are 5 caractere'); return; }
     mpView('msg', 'Se intră în camera ' + code + '…');
-    try { NET.room = code; const r = await api('join'); if (r.err) { mpView('msg', '❌ ' + (r.err === 'nu există camera' ? 'Nu există camera ' + code : r.err)); NET.room = ''; return; }
+    try { NET.room = code; NET.me = 1; const r = await api('join'); if (r.slot) NET.me = r.slot | 0; if (r.err) { mpView('msg', '❌ ' + (r.err === 'nu există camera' ? 'Nu există camera ' + code : r.err)); NET.room = ''; return; }
       NET.on = NET.cl = true; netPollLoop(); netSend({ t: 'hi' }); mpView('msg', 'Se primește harta…'); }
-    catch (e) { mpView('msg', '❌ Nu mă pot conecta la server. Verifică internetul.'); } return; }
-  if (a === 'go') { audioInit(); $('mpBody').innerHTML = '<p class="mph">Se așteaptă gazda…</p>'; $('intro').classList.add('hidden'); clientStart(); netSend({ t: 'ready' }); }
+    catch (e) { mpView('msg', String(e && e.message).startsWith('srv:') ? '❌ ' + e.message.slice(4) : '❌ Nu mă pot conecta la server. Verifică internetul.'); } return; }
+  if (a === 'start') { if (NET.host && NET.ready.size) { audioInit(); hostStart(); } return; }
+  if (a === 'go') { audioInit(); $('mpBody').innerHTML = '<p class="mph">Gata! Se așteaptă ca gazda să înceapă lupta…</p>'; $('intro').classList.add('hidden'); clientStart(); netSend({ t: 'ready' }); }
 }
 function clientStart() {
   $('hud').classList.remove('hidden'); scene.add(sky); buildTerrain(); buildDecor(); buildMiniBg();
-  uid = 1e9; cam.x = PLAYER2.x; cam.z = PLAYER2.z - 8; S.running = true; $('mp').classList.remove('hidden');
+  uid = 1e9 + NET.me * 1e8; const GB = GUEST_BASE[NET.me] || PLAYER2; cam.x = GB.x; cam.z = GB.z - 8; S.running = true; $('mp').classList.remove('hidden');
 }
 
 // ================= GAME FLOW =================
@@ -2873,11 +2905,11 @@ function setupGame() {
   createBuilding(0, 'generator', B.x - 14, B.z + 12, true);
   for (let i = 0; i < 3; i++) createUnit(0, { ch: 'light', pr: 'wheels', wp: 'truck' }, B.x - 4 + i * 3, B.z - 10);
   for (let i = 0; i < 4; i++) createUnit(0, { ch: 'light', pr: 'wheels', wp: 'mg' }, B.x + 6 + i * 3, B.z - 13);
-  if (NET.host) { const P = PLAYER2;
-    createBuilding(0, 'hq', P.x + 5, P.z + 5, true, Math.PI, undefined, 2); createBuilding(0, 'factory', P.x - 6, P.z - 2, true, Math.PI, undefined, 2);
-    for (let i = 0; i < 2; i++) createUnit(0, { ch: 'light', pr: 'wheels', wp: 'truck' }, P.x - 3 + i * 3, P.z - 10, undefined, 2);
-    for (let i = 0; i < 3; i++) createUnit(0, { ch: 'light', pr: 'wheels', wp: 'mg' }, P.x + 4 + i * 3, P.z - 12, undefined, 2);
-    NET.ccx = P.x; NET.ccz = P.z; }
+  if (NET.host) for (const k of [...NET.ready].sort()) { const P = GUEST_BASE[k], pal = palOf(k), sd = P.x < 0 ? -1 : 1;
+    createBuilding(0, 'hq', P.x + 5 * sd, P.z + 5, true, Math.PI, undefined, pal); createBuilding(0, 'factory', P.x - 6 * sd, P.z - 2, true, Math.PI, undefined, pal);
+    for (let i = 0; i < 2; i++) createUnit(0, { ch: 'light', pr: 'wheels', wp: 'truck' }, P.x - 3 + i * 3, P.z - 10, undefined, pal);
+    for (let i = 0; i < 3; i++) createUnit(0, { ch: 'light', pr: 'wheels', wp: 'mg' }, P.x - 3 + i * 3, P.z - 13, undefined, pal);
+    NET.cams[k] = { x: P.x, z: P.z }; }
   for (const u of ents) if (u.kind === 'unit') u.heading = Math.PI;
   setupEnemy();
   if (!NET.cl) applyTechLevel(S.tl);
@@ -2938,7 +2970,7 @@ function startGame() { audioInit(); $('intro').classList.add('hidden'); $('hud')
 $('bPlay').addEventListener('click', startGame);
 $('bMp').addEventListener('click', () => { audioInit(); mpOpen(); });
 $('mp').addEventListener('click', mpClick);
-if (NETCFG) { NET.on = NET.cl = true; NET.room = NETCFG.room; NET.after = NETCFG.after | 0; S.diff = NETCFG.diff | 0; S.tl = NETCFG.tl | 0; $('mp').classList.remove('hidden'); mpView('guest'); netPollLoop(); }
+if (NETCFG) { NET.on = NET.cl = true; NET.me = clamp(NETCFG.me | 0 || 1, 1, 3); NET.room = NETCFG.room; NET.after = NETCFG.after | 0; S.diff = NETCFG.diff | 0; S.tl = NETCFG.tl | 0; $('mp').classList.remove('hidden'); mpView('guest'); netPollLoop(); }
 $('bHelp').addEventListener('click', () => $('help').classList.remove('hidden'));
 $('pHelp').addEventListener('click', () => $('help').classList.remove('hidden'));
 $('hClose').addEventListener('click', () => $('help').classList.add('hidden'));

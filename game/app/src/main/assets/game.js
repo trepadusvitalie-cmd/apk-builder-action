@@ -1010,11 +1010,10 @@ function unitGeo(d, team) {
       tb.box(0.36 * s, 0.1 * s, 0.14 * s, sx * 0.4 * s, 0.48 * s, 0, T.acc);                       // arm
       tb.box(0.42 * s, 0.08 * s, 1.5 * s, ax, 0.5 * s + 0.1 * s * sa, 0.15 * s, T.body, -a, 0, 0); tb.camo(0.42 * s, 0.1 * s, 1.5 * s, ax, 0.5 * s + 0.1 * s * sa, 0.15 * s, -a, 4);   // rail
       tb.hazard(0.42 * s, 0.06 * s, ax, 0.45 * s - 0.6 * s * sa, 0.15 * s - 0.6 * s * ca, 'z', -1);
-      for (const ox of [-0.11, 0.11]) { const x = ax + ox * s, y = 0.62 * s, z = 0.12 * s, L = 1.7 * s;
-        tb.add(G.cyl16, 0.085 * s, L, 0.085 * s, x, y + sa * 0.05 * s, z, 0xe8e8e8, Math.PI / 2 - a, 0, 0);
-        tb.add(G.cone, 0.085 * s, 0.3 * s, 0.085 * s, x, y + sa * (L / 2 + 0.15 * s), z + ca * (L / 2 + 0.15 * s), 0xc8321e, Math.PI / 2 - a, 0, 0);
-        tb.add(G.cyl16, 0.09 * s, 0.12 * s, 0.09 * s, x, y + sa * L * 0.25, z + ca * L * 0.25, 0xc8321e, Math.PI / 2 - a, 0, 0);
-        for (const fx of [-1, 1]) tb.box(0.012 * s, 0.2 * s, 0.22 * s, x + fx * 0.06 * s, y - sa * L * 0.42 + 0.06 * s, z - ca * L * 0.42, 0x3a3a36, -a, 0, 0); } }
+      { const y = 0.64 * s, z = 0.12 * s, L = 1.75 * s;   // both missiles sealed in one camouflaged canister per arm, closed front cap
+        tb.box(0.42 * s, 0.26 * s, L, ax, y, z, 0x5f6a48, -a, 0, 0); tb.camo(0.44 * s, 0.28 * s, L + 0.02 * s, ax, y, z, -a, 6);
+        tb.box(0.44 * s, 0.28 * s, 0.05 * s, ax, y + sa * L / 2, z + ca * L / 2, 0x3a3d30, -a, 0, 0);
+        for (const k of [-0.3, 0.3]) tb.box(0.45 * s, 0.29 * s, 0.04 * s, ax, y + sa * L * k, z + ca * L * k, 0x3a3a30, -a, 0, 0); } }
   } else if (d.wp === 'rockets') {
     tb.add(G.dome, 0.42 * s, 0.35 * s, 0.42 * s, 0, 0.02, 0, T.dark);
     for (const sx of [-1, 1]) {
@@ -1039,13 +1038,12 @@ function unitGeo(d, team) {
         const BW = 2.0 * s, BH = 1.05 * s, BL = 2.3 * s;
         tb.box(1.4 * s, 0.4 * s, 1.3 * s, 0, 0.25 * s, -0.45 * s, T.dark);                                            // swivel base
         for (const sx of [-1, 1]) { tb.box(0.14 * s, 0.75 * s, 0.7 * s, sx * 0.62 * s, 0.6 * s, -0.4 * s, 0x4a4a46); tb.add(G.cyl10, 0.07 * s, 1.0 * s, 0.07 * s, sx * 0.3 * s, 0.6 * s, 0.25 * s, 0xb8b8b0, 0.75, 0, 0); }
-        { const [x, y, z] = P(0, 0, 0); tb.box(BW, BH, BL, x, y, z, 0x5e6a3e, -a, 0, 0); }                             // launcher box
+        { const [x, y, z] = P(0, 0, 0); tb.box(BW, BH, BL, x, y, z, 0x5e6a3e, -a, 0, 0); tb.camo(BW + 0.02 * s, BH + 0.02 * s, BL + 0.02 * s, x, y, z, -a, 14); }   // launcher box, camouflaged
         for (const zz of [-0.95, -0.2, 0.55]) { const [x, y, z] = P(0, 0, zz * s); tb.box(BW + 0.06 * s, BH + 0.06 * s, 0.08 * s, x, y, z, 0x4b5530, -a, 0, 0); } // frame ribs
         { const [x, y, z] = P(0, BH / 2 + 0.04 * s, -0.2 * s); tb.box(BW * 0.9, 0.05 * s, BL * 0.8, x, y, z, 0x4b5530, -a, 0, 0); }
         { const [x, y, z] = P(0, 0, BL / 2); tb.box(BW - 0.04 * s, BH - 0.04 * s, 0.04 * s, x, y, z, 0x4b5530, -a, 0, 0); } // front face
-        for (let r = 0; r < 4; r++) for (let i = 0; i < 8; i++) { const ox = (i - 3.5) * 0.235 * s, oy = (r - 1.5) * 0.235 * s;
-          { const [x, y, z] = P(ox, oy, BL / 2 + 0.02 * s); tb.add(G.cyl16, 0.105 * s, 0.05 * s, 0.105 * s, x, y, z, 0x6e7a4c, Math.PI / 2 - a, 0, 0); }   // tube rim
-          { const [x, y, z] = P(ox, oy, BL / 2 + 0.035 * s); tb.add(G.cyl16, 0.08 * s, 0.05 * s, 0.08 * s, x, y, z, 0x0e0e0c, Math.PI / 2 - a, 0, 0); } } // open mouth
+        { const [x, y, z] = P(0, 0, BL / 2 + 0.03 * s); tb.box(BW - 0.02 * s, BH - 0.02 * s, 0.05 * s, x, y, z, 0x5f6a48, -a, 0, 0); tb.camo(BW, BH, 0.07 * s, x, y, z, -a, 6); }   // closed camouflage front cover
+        for (const yy of [-0.3, 0.3]) { const [x, y, z] = P(0, yy * s, BL / 2 + 0.06 * s); tb.box(BW * 0.96, 0.04 * s, 0.03 * s, x, y, z, 0x3a3a30, -a, 0, 0); }   // cover straps
         { const [x, y, z] = P(BW / 2 + 0.06 * s, 0.1 * s, 0.3 * s); tb.box(0.08 * s, 0.4 * s, 0.6 * s, x, y, z, T.acc, -a, 0, 0); }                 // team marking plate
       } else if (d.wp === 'smissile') { // camouflaged launch box: 2x2 canisters, seeker tips peeking out of the openings
         const a = 0.45, ca = Math.cos(a), sa = Math.sin(a), P = (x, y, z) => [x, 0.78 * s + y * ca + z * sa, 0.05 * s - y * sa + z * ca];
@@ -1055,8 +1053,7 @@ function unitGeo(d, team) {
         { const [x, y, z] = P(0, 0.45 * s, -0.2 * s); tb.box(0.7 * s, 0.06 * s, 0.9 * s, x, y, z, 0x4f5f3c, -a, 0, 0); }                 // top hatch
         for (const zz of [-0.6, 0.6]) { const [x, y, z] = P(0, 0, zz * s); tb.box(1.04 * s, 0.9 * s, 0.1 * s, x, y, z, T.acc, -a, 0, 0); } // reinforcing ribs in team colour
         { const [x, y, z] = P(0, 0, 1.0 * s); tb.box(1.0 * s, 0.86 * s, 0.04 * s, x, y, z, 0x2e3328, -a, 0, 0); }                         // front face
-        for (const ox of [-0.24, 0.24]) for (const oy of [-0.2, 0.2]) { const [x, y, z] = P(ox * s, oy * s, 1.02 * s); tb.add(G.cyl16, 0.15 * s, 0.05 * s, 0.15 * s, x, y, z, 0x111111, Math.PI / 2 - a, 0, 0);
-          const [x2, y2, z2] = P(ox * s, oy * s, 1.0 * s); tb.add(G.cone, 0.09 * s, 0.22 * s, 0.09 * s, x2, y2, z2, 0x3f9fe0, Math.PI / 2 - a, 0, 0); }
+        { const [x, y, z] = P(0, 0, 1.03 * s); tb.box(0.98 * s, 0.84 * s, 0.05 * s, x, y, z, 0x5f6a48, -a, 0, 0); tb.camo(1.0 * s, 0.86 * s, 0.07 * s, x, y, z, -a, 4); }   // closed camouflage front cover
       } else if (d.wp === 'omissile') { // transporter-erector: one long canister lying along the whole (lengthened) hull, raised a little at the back pivot
         const a = 0.2, L = 3.9 * s, ca = Math.cos(a), sa = Math.sin(a), pz = -1.85 * s, py = 0.55 * s;
         const at = k => [0, py + sa * L * k, pz + ca * L * k];
@@ -1075,7 +1072,7 @@ function unitGeo(d, team) {
         for (const sx of [-1, 1]) { tb.add(G.cyl10, 0.08 * s, 1.5 * s, 0.08 * s, sx * 0.45 * s, 0.75 * s, -0.2 * s, 0xb8b8b0, 0.6, 0, 0); tb.add(G.cyl10, 0.12 * s, 0.7 * s, 0.12 * s, sx * 0.45 * s, 0.5 * s, -0.45 * s, 0x3a3a36, 0.6, 0, 0); } // rams
         { const [y, z] = P(0, PL / 2); tb.box(1.25 * s, 0.95 * s, PL, 0, y, z, 0x5f6a48, -a, 0, 0); tb.camo(1.27 * s, 0.97 * s, PL + 0.02 * s, 0, y, z, -a, 12); }
         for (const k of [0.15, 0.5, 0.85]) { const [y, z] = P(0, PL * k); tb.box(1.3 * s, 1.0 * s, 0.08 * s, 0, y, z, 0x3a3a30, -a, 0, 0); }   // frame ribs
-        { const [y, z] = P(0, PL + 0.02 * s); tb.box(1.15 * s, 0.85 * s, 0.04 * s, 0, y, z, 0x2a2c26, -a, 0, 0); }                               // top hatch (open end)
+        { const [y, z] = P(0, PL + 0.02 * s); tb.box(1.2 * s, 0.9 * s, 0.06 * s, 0, y, z, 0x5f6a48, -a, 0, 0); tb.camo(1.22 * s, 0.92 * s, 0.08 * s, 0, y, z, -a, 4); }   // closed camouflage top hatch
         { const [y, z] = P(0, PL * 0.62); msl = { kind: 'ballistic', x: 0, y, z, a, len: 2.3 * s }; } }
       else { // multiple rocket launcher on open rails: a big tilted frame, two tiers of eight rails, a long rocket on each
         const a = 0.42, ca = Math.cos(a), sa = Math.sin(a), P = (x, y, z) => [x, 0.78 * s + y * ca + z * sa, -0.15 * s - y * sa + z * ca];
@@ -1176,8 +1173,7 @@ function unitGeo(d, team) {
       for (const ox of [-0.16, 0.16]) { const [x, y, z] = up(2.1 * s, ox * s, 0.6 * s, 0.15 * s); tb.add(G.cyl16, 0.06 * s, 2.1 * s, 0.06 * s, x, y, z, 0x2e3128, Math.PI / 2 - e, 0, 0);
         const [x2, y2, z2] = up(4.0 * s, ox * s, 0.6 * s, 0.15 * s); tb.add(G.cyl16, 0.085 * s, 0.22 * s, 0.085 * s, x2, y2 - se * 0.95 * s, z2 - ce * 0.95 * s, 0x1a1a1a, Math.PI / 2 - e, 0, 0); } }
     else if (d.wp === 'sam') { const [x, y, z] = up(1.5 * s, 0, 0.65 * s, -0.3 * s); tb.box(0.9 * s, 0.7 * s, 1.5 * s, x, y, z, T.body, -e, 0, 0); tb.camo(0.92 * s, 0.72 * s, 1.5 * s, x, y, z, -e, 6);
-      for (const ox of [-0.22, 0.22]) for (const oy of [-0.17, 0.17]) { const [a, b2, c] = up(3.0 * s, ox * s, 0.65 * s + oy * s, -0.3 * s); tb.add(G.cyl16, 0.12 * s, 0.04 * s, 0.12 * s, a, b2, c, 0x111111, Math.PI / 2 - e, 0, 0);
-        const [a2, b3, c2] = up(3.06 * s, ox * s, 0.65 * s + oy * s, -0.3 * s); tb.add(G.cone, 0.08 * s, 0.12 * s, 0.08 * s, a2, b3, c2, 0xe8e8e8, Math.PI / 2 - e, 0, 0); } }
+      { const [a, b2, c] = up(3.02 * s, 0, 0.65 * s, -0.3 * s); tb.box(0.9 * s, 0.7 * s, 0.05 * s, a, b2, c, 0x5f6a48, -e, 0, 0); tb.camo(0.92 * s, 0.72 * s, 0.07 * s, a, b2, c, -e, 3); } }   // closed camouflage front cover
     else { const [x, y, z] = up(1.8 * s, 0, 0.6 * s, 0.05 * s); tb.add(G.cyl16, 0.09 * s, 1.8 * s, 0.09 * s, x, y, z, 0x34343a, Math.PI / 2 - e, 0, 0);
       tb.add(G.dome, 0.4 * s, 0.4 * s, 0.4 * s, 0, 0.45 * s, 0, T.body);
       const [a3, b4, c3] = up(3.6 * s, 0, 0.6 * s, 0.05 * s); tb.add(G.sph, 0.12 * s, 0.12 * s, 0.12 * s, a3, b4, c3, 0xc8ffc0); }

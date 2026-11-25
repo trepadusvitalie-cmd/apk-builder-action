@@ -838,6 +838,12 @@ function unitGeo(d, team) {
   B.add(G.hull, W * 0.7, H * 0.12, L * 0.5, 0, by + H * 0.5, -L * 0.18, T.dark); // engine deck
   for (let k = 0; k < 4; k++) B.box(W * 0.6, 0.03, 0.06 * s, 0, by + H * 0.57, -L * 0.36 + k * L * 0.07, 0x22241c); // grille slats
   B.box(W * 0.9, 0.05 * s, L * 0.02, 0, by + H * 0.1, L * 0.47, T.acc); // glacis team line
+  if (d.pr !== 'vtol') { // ribbed armour: raised bands across the hull, pale trim along the upper edges
+    const hi = new THREE.Color(T.body).multiplyScalar(1.22).getHex(), lo = new THREE.Color(T.body).multiplyScalar(0.72).getHex();
+    for (let k = 0; k < 7; k++) { const z = -L * 0.4 + k * L * 0.125;
+      for (const sx of [-1, 1]) { B.box(0.07 * s, H * 0.62, 0.11 * s, sx * W * 0.495, by + H * 0.02, z, hi); B.box(0.072 * s, H * 0.62, 0.03 * s, sx * W * 0.497, by + H * 0.02, z - 0.07 * s, lo); } }
+    for (let k = 0; k < 3; k++) { const z = L * 0.09 + k * L * 0.1; B.box(W * 0.9, 0.06 * s, 0.11 * s, 0, by + H * 0.52, z, hi); B.box(W * 0.9, 0.065 * s, 0.03 * s, 0, by + H * 0.52, z - 0.07 * s, lo); }
+    for (const sx of [-1, 1]) B.box(0.06 * s, 0.05 * s, L * 0.92, sx * W * 0.47, by + H * 0.5, 0, 0xd6d4c8); }
   if (d.pr === 'tracks') for (const sx of [-1, 1]) { // armoured side skirts
     const x = sx * (W / 2 + 0.36 * s);
     B.box(0.07 * s, H * 0.62, L * 0.92, x, by - H * 0.18, 0.02 * s, T.body, 0, 0, sx * 0.06);
@@ -1402,44 +1408,28 @@ function scorch(x, z, r) { const s = scorches[scIdx = (scIdx + 1) % scorches.len
 function throwDebris(x, y, z, n, pw) { for (let i = 0; i < n; i++) { const d = debris[dbIdx = (dbIdx + 1) % debris.length]; const sz = rand(0.15, 0.4) * Math.min(2, pw); d.m.scale.set(sz, sz * rand(0.4, 1), sz * rand(0.6, 1.4)); d.m.position.set(x, y, z); const a = rand(0, TAU), v = rand(3, 7) * pw; d.vx = Math.sin(a) * v; d.vz = Math.cos(a) * v; d.vy = rand(5, 10) * pw; d.rx = rand(-12, 12); d.rz = rand(-12, 12); d.t = 3.5; d.smk = 0; d.burn = Math.random() < 0.5; d.m.visible = true; } }
 const EXPL = 3; // impact explosions are 3x their original size
 // solid 3D fireballs: opaque yellow-white core inside an orange shell, grows fast, darkens to red and fades
-const FB_GEOS = (() => { const out = []; const v = new THREE.Vector3(), d = new THREE.Vector3();
-  for (let n = 0; n < 6; n++) { const g = new THREE.SphereGeometry(1, 36, 26); const p = g.attributes.position; const c = new Float32Array(p.count * 3);
-    const bumps = []; for (let k = 0; k < 14; k++) { d.set(rand(-1, 1), rand(-0.6, 1), rand(-1, 1)).normalize(); bumps.push([d.x, d.y, d.z, rand(0.12, 0.38), rand(0.35, 0.75)]); }
-    const ph = [rand(0, 9), rand(0, 9), rand(0, 9)];
-    for (let i = 0; i < p.count; i++) { v.fromBufferAttribute(p, i); let disp = 0;
-      for (const bb of bumps) { const dot = v.x * bb[0] + v.y * bb[1] + v.z * bb[2]; const t = Math.max(0, (dot - (1 - bb[4])) / bb[4]); disp += bb[3] * t * t * (3 - 2 * t); }
-      disp += 0.06 * Math.sin(v.x * 7 + ph[0]) * Math.sin(v.y * 6 + ph[1]) * Math.sin(v.z * 8 + ph[2]);
-      let rr = 0.82 + disp; let y = v.y; if (y < -0.25) y = -0.25 + (y + 0.25) * 0.45;
-      p.setXYZ(i, v.x * rr * 1.08, y * rr, v.z * rr * 1.08);
-      const hot = Math.max(0, Math.min(1, 0.35 + disp * 1.6 + v.y * 0.3)); c[i * 3] = 1; c[i * 3 + 1] = 0.42 + 0.5 * hot; c[i * 3 + 2] = 0.06 + 0.4 * hot * hot; }
-    g.setAttribute('color', new THREE.BufferAttribute(c, 3)); g.computeVertexNormals(); out.push(g); }
-  return out; })();
-const FB_GEO = FB_GEOS[0];
-// fireball: a lumpy cloud lit from inside — white-hot centre, then yellow, orange, deep red, and dark smoke at the soft,
-// blurry edge (like a real gas explosion); a glow halo around it softens the outline even more
-const FB_VS = `varying float vF; varying vec3 vP;
-void main() { vec4 mv = modelViewMatrix * vec4(position, 1.0); vec3 n = normalize(normalMatrix * normal); vF = abs(dot(n, normalize(-mv.xyz))); vP = position; gl_Position = projectionMatrix * mv; }`;
-const FB_FS = `uniform float uK, uOp, uSeed; uniform vec3 uTint; varying float vF; varying vec3 vP;
-float h(vec3 p) { return sin(p.x * 5.1 + uSeed) * sin(p.y * 6.3 + uSeed * 1.7) * sin(p.z * 5.7 + uSeed * 2.3); }
-void main() {
-  float n = h(vP * 1.3 + vec3(0.0, -uK * 2.0, 0.0)) * 0.5 + h(vP * 3.1 + 2.0) * 0.25;
-  float c = pow(vF, 1.3);
-  float heat = c * (1.2 - uK * 1.05) + n * 0.22 + 0.22 * (1.0 - uK) - 0.12;
-  heat = clamp(heat + (1.0 - smoothstep(0.0, 0.2, uK)) * 0.55, 0.0, 1.0);
-  vec3 col = mix(vec3(0.09, 0.07, 0.06), vec3(0.6, 0.11, 0.03), smoothstep(0.04, 0.24, heat));
-  col = mix(col, vec3(1.0, 0.42, 0.07), smoothstep(0.24, 0.44, heat));
-  col = mix(col, vec3(1.0, 0.8, 0.3), smoothstep(0.44, 0.64, heat));
-  col = mix(col, vec3(1.0, 0.97, 0.86), smoothstep(0.66, 0.9, heat));
-  col = mix(col, col * uTint, smoothstep(0.1, 0.5, heat));
-  float a = smoothstep(0.0, 0.5, vF + n * 0.18) * uOp * mix(0.75, 1.0, smoothstep(0.1, 0.4, heat));
-  gl_FragColor = vec4(col, a); }`;
+// fireball like a photo of a real gas explosion: soft round clouds, white-hot centre, then yellow, orange, deep red,
+// dark smoke at the blurry edge. Painted once into textures; each explosion layers a few of them and lets them cool down.
+const FB_TEX = (() => {
+  const ramp = (h, cs) => { for (let i = 1; i < cs.length; i++) if (h <= cs[i][0]) { const a = cs[i - 1], b = cs[i], t = (h - a[0]) / (b[0] - a[0]); return [0, 1, 2].map(j => a[1][j] + (b[1][j] - a[1][j]) * t); } return cs[cs.length - 1][1]; };
+  const HOT = [[0, [120, 30, 8]], [0.18, [205, 60, 12]], [0.38, [255, 135, 30]], [0.58, [255, 205, 80]], [0.78, [255, 244, 190]], [1, [255, 255, 245]]];
+  const COOL = [[0, [34, 22, 18]], [0.16, [90, 28, 12]], [0.36, [180, 50, 12]], [0.6, [240, 110, 26]], [0.82, [255, 170, 60]], [1, [255, 215, 110]]];
+  const mk = (seed, cs, soft, heatK) => { const S = 128, c = document.createElement('canvas'); c.width = c.height = S; const g = c.getContext('2d'), img = g.createImageData(S, S), d = img.data;
+    const ph = [0, 1, 2, 3, 4, 5].map(k => seed * 1.7 + k * 2.3);
+    for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) { const u = (x + 0.5) / S * 2 - 1, v = (y + 0.5) / S * 2 - 1, a = Math.atan2(v, u), r = Math.hypot(u, v);
+      const edge = 0.8 + 0.08 * Math.sin(3 * a + ph[0]) + 0.06 * Math.sin(5 * a + ph[1]) + 0.04 * Math.sin(9 * a + ph[2]) + 0.025 * Math.sin(15 * a + ph[3]);
+      const turb = Math.sin(u * 9 + ph[4]) * Math.sin(v * 8 + ph[5]) * 0.5 + Math.sin(u * 19 + v * 7 + ph[2]) * Math.sin(v * 17 - u * 5 + ph[3]) * 0.3;
+      const rr = r / edge; const heat = Math.max(0, Math.min(1, (1 - Math.pow(rr, 1.3)) * heatK + turb * 0.13));
+      const al = Math.max(0, Math.min(1, (1 - rr) / soft)) * (0.85 + turb * 0.15); const col = ramp(heat, cs), o = (y * S + x) * 4;
+      d[o] = col[0]; d[o + 1] = col[1]; d[o + 2] = col[2]; d[o + 3] = Math.max(0, Math.min(255, al * al * (3 - 2 * al) * 255)); }
+    g.putImageData(img, 0, 0); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; };
+  return { hot: [0, 1, 2, 3].map(k => mk(k + 1, HOT, 0.5, 1.15)), cool: [0, 1, 2, 3].map(k => mk(k + 7, COOL, 0.32, 0.92)) }; })();
 const FBALLS = []; for (let i = 0; i < 40; i++) {
-  const mat = new THREE.ShaderMaterial({ vertexShader: FB_VS, fragmentShader: FB_FS, transparent: true, depthWrite: false, fog: false,
-    uniforms: { uK: { value: 0 }, uOp: { value: 1 }, uSeed: { value: i * 1.37 }, uTint: { value: new THREE.Color(1, 1, 1) } } });
-  const outer = new THREE.Mesh(FB_GEOS[i % 6], mat);
-  const puffs = []; for (let j = 0; j < 4; j++) { const pm = new THREE.Mesh(FB_GEOS[(i + j + 1) % 6], mat); outer.add(pm); puffs.push({ m: pm, dir: new THREE.Vector3(), s: 0.5 }); }
-  const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false, toneMapped: false })); glow.scale.setScalar(3.6); glow.renderOrder = 3; outer.add(glow);
-  outer.visible = false; outer.renderOrder = 2; scene.add(outer); FBALLS.push({ m: outer, mat, glow, puffs, t: 0, life: 0, r: 1, spin: 0 }); }
+  const g = new THREE.Group(); const sp = (tex, blend, order) => { const m = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, fog: false, toneMapped: false, blending: blend || THREE.NormalBlending })); m.renderOrder = order; g.add(m); return m; };
+  const body = [0, 1, 2, 3, 4].map(j => ({ m: sp(FB_TEX.cool[(i + j) % 4], 0, 2), dx: 0, dy: 0, dz: 0, s: 1 }));
+  const core = [0, 1, 2].map(j => ({ m: sp(FB_TEX.hot[(i + j) % 4], 0, 3), dx: 0, dy: 0, dz: 0, s: 1 }));
+  const glow = sp(glowTex, THREE.AdditiveBlending, 4);
+  g.visible = false; scene.add(g); FBALLS.push({ m: g, body, core, glow, t: 0, life: 0, r: 1 }); }
 let fbIdx = 0;
 // light rays bursting out of an explosion: thin bright spikes, mostly upwards and sideways
 const RAY_GEO = [0, 1, 2].map(v => { const B = new Builder(), up = new THREE.Vector3(0, 1, 0), q = new THREE.Quaternion(), e = new THREE.Euler(), d = new THREE.Vector3();
@@ -1465,23 +1455,30 @@ const XLIGHTS = []; for (let i = 0; i < 4; i++) { const L = new THREE.PointLight
 function xlight(x, y, z, r, tint, life) { if (Math.abs(x - cam.x) > 120 || Math.abs(z - cam.z) > 120) return; let o = XLIGHTS[0]; for (const q of XLIGHTS) if (q.t / q.life > o.t / o.life) o = q; const tt = tint || [1, 1, 1];
   o.t = 0; o.life = life; o.peak = 30 * r * r + 40; o.L.position.set(x, y + r * 0.6, z); o.L.distance = r * 9 + 8; o.L.color.setRGB(Math.min(1, tt[0]), Math.min(1, 0.72 * tt[1] + 0.05), Math.min(1, 0.4 * tt[2] + 0.05)); }
 function updXLights(dt) { for (const o of XLIGHTS) { if (o.t >= o.life) { o.L.intensity = 0; continue; } o.t += dt; const k = Math.min(1, o.t / o.life); o.L.intensity = o.peak * (k < 0.1 ? k / 0.1 : Math.pow(1 - (k - 0.1) / 0.9, 2)); } }
-function fireball3D(x, y, z, r, tint, str, lm) { xlight(x, y, z, r, tint, (0.5 + r * 0.04) * (lm || 1)); const f = FBALLS[fbIdx = (fbIdx + 1) % FBALLS.length]; f.t = 0; f.tint = tint || [1, 1, 1]; f.life = (0.6 + r * 0.05) * (lm || 1); f.r = r; f.m.position.set(x, y + r * 0.35, z); f.m.rotation.set(rand(-0.25, 0.25), rand(0, TAU), rand(-0.25, 0.25)); f.spin = rand(-0.8, 0.8);
-  for (const q of f.puffs) { q.dir.set(rand(-1, 1), rand(-0.3, 0.9), rand(-1, 1)).normalize(); q.s = rand(0.4, 0.65); q.m.rotation.set(rand(0, TAU), rand(0, TAU), 0); q.m.scale.setScalar(q.s); q.m.position.copy(q.dir).multiplyScalar(0.5); }
-  f.m.visible = true; f.m.scale.setScalar(r * 0.25); f.mat.uniforms.uK.value = 0; f.mat.uniforms.uOp.value = 1; f.mat.uniforms.uSeed.value = rand(0, 20); f.mat.uniforms.uTint.value.setRGB(f.tint[0], f.tint[1], f.tint[2]);
-  f.glow.material.color.setRGB(Math.min(1, f.tint[0]), Math.min(1, 0.62 * f.tint[1]), Math.min(1, 0.3 * f.tint[2])); f.glow.material.opacity = 1;
-  rays3D(x, y + r * 0.35, z, r * 1.5, f.life * 0.55, f.tint); if (str !== 0 && Math.abs(x - cam.x) < 110 && Math.abs(z - cam.z) < 110) streamers(x, y + r * 0.35, z, r * (str || 1)); }
-function updFireballs(dt) { for (const f of FBALLS) { if (!f.m.visible) continue; f.t += dt; const k = f.t / f.life; if (k >= 1) { f.m.visible = false; continue; }
-  const grow = k < 0.3 ? 1 - Math.pow(1 - k / 0.3, 3) : 1; f.m.scale.setScalar(f.r * (0.25 + 0.75 * grow + 0.22 * k)); f.m.position.y += dt * f.r * 0.7; f.m.rotation.y += dt * f.spin;
-  for (const q of f.puffs) { q.m.position.copy(q.dir).multiplyScalar(0.5 + 0.4 * k); q.m.scale.setScalar(q.s * (1 + 0.5 * k)); }
-  f.mat.uniforms.uK.value = k; f.mat.uniforms.uOp.value = k < 0.55 ? 1 : 1 - (k - 0.55) / 0.45;
-  f.glow.material.opacity = k < 0.1 ? 1 : Math.max(0, 1 - (k - 0.1) / 0.5); f.glow.scale.setScalar(3.6 - k * 1.2); } }
+function fireball3D(x, y, z, r, tint, str, lm) { xlight(x, y, z, r, tint, (0.5 + r * 0.04) * (lm || 1)); const f = FBALLS[fbIdx = (fbIdx + 1) % FBALLS.length];
+  f.t = 0; f.tint = tint || [1, 1, 1]; f.life = (0.75 + r * 0.05) * (lm || 1); f.r = r; f.m.position.set(x, y + r * 0.45, z); f.m.visible = true;
+  for (const q of f.body) { q.dx = rand(-0.4, 0.4); q.dy = rand(-0.15, 0.4); q.dz = rand(-0.4, 0.4); q.s = rand(0.75, 1.05); q.m.material.rotation = rand(0, TAU); q.m.material.color.setRGB(Math.min(1, f.tint[0]), Math.min(1, 0.4 + 0.6 * f.tint[1]), Math.min(1, 0.4 + 0.6 * f.tint[2])); }
+  for (const q of f.core) { q.dx = rand(-0.18, 0.18); q.dy = rand(-0.1, 0.2); q.dz = rand(-0.18, 0.18); q.s = rand(0.7, 0.95); q.m.material.rotation = rand(0, TAU); q.m.material.color.setRGB(Math.min(1, f.tint[0]), Math.min(1, 0.55 + 0.45 * f.tint[1]), Math.min(1, 0.55 + 0.45 * f.tint[2])); }
+  f.glow.material.color.setRGB(Math.min(1, f.tint[0]), Math.min(1, 0.55 * f.tint[1]), Math.min(1, 0.25 * f.tint[2]));
+  updFireballs(0, f);
+  if (str !== 0 && Math.abs(x - cam.x) < 110 && Math.abs(z - cam.z) < 110) streamers(x, y + r * 0.35, z, r * (str || 1)); }
+function updFireballs(dt, only) { for (const f of only ? [only] : FBALLS) { if (!f.m.visible) continue; f.t += dt; const k = f.t / f.life; if (k >= 1) { f.m.visible = false; continue; }
+  const grow = 1 - Math.pow(1 - Math.min(1, k / 0.28), 3), R = f.r * (0.3 + 0.75 * grow + 0.3 * k); f.m.position.y += dt * f.r * 0.5;
+  // the cloud: grows fast, rises a little, cools from orange to red and smoke, then fades
+  const bo = k < 0.6 ? 1 : 1 - (k - 0.6) / 0.4, dk = Math.max(0, (k - 0.35) / 0.65);
+  for (const q of f.body) { const sc = R * 1.5 * q.s * (1 + 0.25 * k); q.m.scale.set(sc, sc, 1); q.m.position.set(q.dx * R, q.dy * R + k * R * 0.25, q.dz * R); q.m.material.opacity = bo * 0.95;
+    const c = 1 - dk * 0.62; q.m.material.color.setRGB(Math.min(1, f.tint[0]) * c, Math.min(1, 0.4 + 0.6 * f.tint[1]) * c * (1 - dk * 0.25), Math.min(1, 0.4 + 0.6 * f.tint[2]) * c * (1 - dk * 0.4)); }
+  // the white-hot heart: biggest at the start, shrinks and fades as it burns out
+  const co = k < 0.2 ? 1 : Math.max(0, 1 - (k - 0.2) / 0.35);
+  for (const q of f.core) { const sc = R * 1.25 * q.s * (1 - 0.35 * k); q.m.scale.set(sc, sc, 1); q.m.position.set(q.dx * R, q.dy * R, q.dz * R); q.m.material.opacity = co; q.m.visible = co > 0; }
+  const go = k < 0.1 ? 0.45 : Math.max(0, 0.45 * (1 - (k - 0.1) / 0.4)); f.glow.scale.setScalar(R * 2.4); f.glow.material.opacity = go; f.glow.visible = go > 0; } }
 const XST = { shell: { t: [1, 0.85, 0.55], str: 0.6 }, rocket: { t: [1, 0.6, 0.35], str: 1 }, mortar: { t: [1, 0.78, 0.42], str: 0.9, dirt: 1 }, how: { t: [1, 0.7, 0.35], str: 1.3, dirt: 1.5 },
   salvo: { t: [1, 0.62, 0.3], str: 0.8 }, fire: { t: [1, 0.32, 0.12], str: 1.4, flames: 1 }, emp: { t: [0.3, 0.65, 1], str: 0, sparks: 1 }, plasma: { t: [0.5, 0.78, 1], str: 0.6, sparks: 1 },
-  heavy: { t: [1, 0.42, 0.18], str: 1.7, dirt: 2 }, icbm: { t: [1, 0.95, 0.85], str: 2, dirt: 3 }, def: { t: [1, 1, 1], str: 1 } };
-const xstyle = p => { const W = p.w; if (!W) return p.kind === 'shell' ? XST.shell : XST.rocket; return W.emp ? XST.emp : W.plasma ? XST.plasma : W.fire ? XST.fire : W.id === 'icbm' ? XST.icbm : W.big ? XST.heavy : W.art === 'how' ? XST.how : W.kind === 'salvo' ? XST.salvo : W.kind === 'rocket' ? XST.rocket : XST.mortar; };
+  heavy: { t: [1, 0.42, 0.18], str: 1.7, dirt: 2 }, bomb: { t: [1, 0.66, 0.3], str: 1.2, dirt: 2 }, icbm: { t: [1, 0.95, 0.85], str: 2, dirt: 3 }, def: { t: [1, 1, 1], str: 1 } };
+const xstyle = p => { const W = p.w; if (!W) return p.kind === 'shell' ? XST.shell : XST.rocket; return W.emp ? XST.emp : W.plasma ? XST.plasma : W.fire ? XST.fire : W.id === 'icbm' ? XST.icbm : W.kind === 'bomb' ? XST.bomb : W.big ? XST.heavy : W.art === 'how' ? XST.how : W.kind === 'salvo' ? XST.salvo : W.kind === 'rocket' ? XST.rocket : XST.mortar; };
 function impactFx(x, y, z, sz, big, st) { st = st || XST.def;
   const near = Math.abs(x - cam.x) < 110 && Math.abs(z - cam.z) < 110;
-  fx('flash', x, y, z, sz * 1.2); fireball3D(x, y, z, sz * 1.1, st.t, st.str); if (st !== XST.emp && st !== XST.plasma) fx('blastball', x, y + 0.35 * sz, z, sz * 0.8); fx('fire', x, y, z, sz * 0.5);
+  fx('flash', x, y, z, sz * 0.5); fireball3D(x, y, z, sz * 1.1, st.t, st.str);  fx('fire', x, y, z, sz * 0.5);
   if (st.dirt) for (let k = 0; k < 3 + st.dirt * 2; k++) fx('dust', x + rand(-1, 1) * sz * 0.3, y + rand(0.3, 1.6) * sz * 0.5, z + rand(-1, 1) * sz * 0.3, sz * (0.5 + st.dirt * 0.25));
   if (st.flames) for (let k = 0; k < 6; k++) fx('flame', x + rand(-1, 1) * sz * 0.5, y + 0.3, z + rand(-1, 1) * sz * 0.5, sz * 0.5);
   if (st.sparks) for (let k = 0; k < 14; k++) fx('spark', x, y + 0.5, z, 1.6);
@@ -1489,10 +1486,19 @@ function impactFx(x, y, z, sz, big, st) { st = st || XST.def;
   for (let i = 0; i < 2; i++) fx('fireball', x + rand(-0.4, 0.4) * sz, y + rand(0.1, 0.5) * sz, z + rand(-0.4, 0.4) * sz, sz * 0.7);
   fx('smoke', x, y + 0.5 * sz, z, sz * 0.9); fx('smoke', x + rand(-1, 1) * sz * 0.4, y + 0.9 * sz, z + rand(-1, 1) * sz * 0.4, sz * 0.7); fx('blacksmoke', x, y + 0.4 * sz, z, sz * 0.55);
   fx('dust', x, y, z, sz * 0.9); for (let k = 0; k < 6; k++) fx('spark', x, y + 0.3, z, 1.2); for (let k = 0; k < 4; k++) fx('ember', x, y + 0.3, z, 1);
-  shockwave(x, z, sz * 0.9); scorch(x, z, sz * 0.6); if (sz > 4) throwDebris(x, y + 0.3, z, big ? 6 : 3, 0.9);
+  scorch(x, z, sz * 0.6); if (sz > 4) throwDebris(x, y + 0.3, z, big ? 6 : 3, 0.9);
   if (big) for (let k = 0; k < 4; k++) fx('fire', x + rand(-1, 1) * sz * 0.4, y, z + rand(-1, 1) * sz * 0.4, sz * 0.45);
   shake = Math.max(shake, Math.min(0.6, sz * 0.05 * Math.max(0, 1 - Math.hypot(x - cam.x, z - cam.z) / 80)));
 }
+// an air bomb: a carpet of fireballs that go up one after another over the whole blast area, with dark rubble thrown high
+function bombFx(x, y, z, w) { if (Math.abs(x - cam.x) > 130 || Math.abs(z - cam.z) > 130) return;
+  const n = w.big ? 8 : 5, R = w.splash * 0.85, fire = !!w.fire, tint = fire ? [1, 0.4, 0.16] : [1, 0.68, 0.32];
+  throwDebris(x, y + 0.5, z, w.big ? 16 : 10, w.big ? 1.5 : 1.15);
+  for (let i = 0; i < n; i++) { const a = rand(0, TAU), d = R * Math.sqrt(rand(0.05, 1)), bx = x + Math.cos(a) * d, bz = z + Math.sin(a) * d;
+    later(i * rand(0.04, 0.08), () => { const gy = heightAt(bx, bz), r = (w.big ? 3.6 : 2.4) * rand(0.8, 1.15);
+      fireball3D(bx, gy + 0.2, bz, r, tint, 0.4, 0.9); fx('fire', bx, gy + 0.4, bz, r * 0.5); fx('dust', bx, gy + 0.2, bz, r * 0.7);
+      for (let k = 0; k < 3; k++) fx('ember', bx, gy + 0.5, bz, 1.2); if (fire) for (let k = 0; k < 3; k++) fx('flame', bx + rand(-1, 1), gy + 0.3, bz + rand(-1, 1), r * 0.45);
+      if (i % 2 === 0) fx('blacksmoke', bx, gy + r * 0.6, bz, r * 0.6); scorch(bx, bz, r * 0.5); }); } }
 // missiles on launchers: hidden after launch, back after reload
 const reloadVis = [];
 function updReload() { const t = S.time; for (let i = reloadVis.length - 1; i >= 0; i--) if (t >= reloadVis[i].t) { reloadVis[i].m.visible = true; reloadVis.splice(i, 1); } }
@@ -1507,7 +1513,7 @@ function updBoomFx(dt) {
 }
 function explosion(x, y, z, size) {
   const near = Math.abs(x - cam.x) < 90 && Math.abs(z - cam.z) < 90; // keep effects cheap off-screen
-  fx('flash', x, y, z, size * 1.3); fireball3D(x, y, z, size * 1.6); fx('blastball', x, y + 0.4 * size, z, size * 1.1);
+  fx('flash', x, y, z, size * 1.3); fireball3D(x, y, z, size * 1.6);
   if (near) {
     for (let i = 0; i < 2 + size * 2; i++) fx('fireball', x + rand(-0.6, 0.6) * size, y + rand(0, 0.6) * size, z + rand(-0.6, 0.6) * size, size * 0.75);
     for (let i = 0; i < 3 + size * 3; i++) fx('fire', x + rand(-0.5, 0.5) * size, y + rand(0, 0.5) * size, z + rand(-0.5, 0.5) * size, size * 0.8);
@@ -1573,12 +1579,12 @@ function updProjs(dt) {
     const px = p.m.position.x, py = p.m.position.y, pz = p.m.position.z;
     p.m.position.set(x, y, z); if (p.w && p.w.plasma && Math.random() < 0.5) fx('spark', x, y, z, 0.6); if (p.kind === 'rocket' || (p.w && p.w.kind === 'salvo')) { p.m.lookAt(x + (x - px), y + (y - py), z + (z - pz)); p.smokeT -= dt; if (p.smokeT <= 0) { const hv = p.w && (p.w.heavy || p.w.big); p.smokeT = 0.035; fx('trail', x, y, z, p.big ? 1.8 : hv ? 0.75 : 0.55); fx('fire', x, y, z, p.big ? 1.0 : hv ? 0.45 : 0.32); if (p.big && Math.random() < 0.3) fx('blacksmoke', x, y, z, 0.8); } }
     else if (p.kind === 'shell') { p.m.lookAt(x + (x - px), y + (y - py), z + (z - pz)); p.smokeT -= dt; if (p.smokeT <= 0) { p.smokeT = 0.03; fx('trail', x, y, z, 0.5); fx('fire', x, y, z, 0.28); } }
-    else if (p.kind === 'mortar' && !(p.w && p.w.plasma)) { p.m.lookAt(x + (x - px), y + (y - py), z + (z - pz)); p.sd = (p.sd || 0) + Math.hypot(x - px, y - py, z - pz); const gap = p.w && p.w.big ? 2.2 : 1.7; if (p.sd >= gap) { p.sd = 0; fx('mtrail', x, y, z, p.w && p.w.big ? 1.25 : 1); } }
+    else if (p.kind === 'mortar' && !(p.w && p.w.plasma)) { p.m.lookAt(x + (x - px), y + (y - py), z + (z - pz)); p.sd = (p.sd || 0) + Math.hypot(x - px, y - py, z - pz); const gap = p.w && p.w.big ? 2.2 : 1.7; if (p.sd >= gap && p.w.kind !== 'bomb') { p.sd = 0; fx('mtrail', x, y, z, p.w && p.w.big ? 1.25 : 1); } }
     if (p.kind === 'mortar' && !p.wh && p.dur > 1.2 && (1 - p.t) * p.dur < 0.95 && !(p.w && (p.w.plasma || p.w.kind === 'salvo' || p.w.id === 'ballistic'))) { p.wh = 1; sfx('whistle', p.tx, p.tz); }
     if (k >= 1) {
       scene.remove(p.m); projs.splice(i, 1);
       { const big = p.w && p.w.big; const base = p.kind === 'shell' ? 1 : p.kind === 'rocket' ? (p.w && p.w.heavy ? 1.3 : 1) : p.w && p.w.kind === 'salvo' ? (big ? 2.6 : 1.2) : big ? 2.6 : 1.5;
-        impactFx(x, y, z, p.w && p.w.id === 'icbm' ? 11 : Math.min(6.5, base * EXPL), big, xstyle(p)); if (p.w && p.w.id === 'icbm') { for (let k = 0; k < 8; k++) fx('blacksmoke', x + rand(-4, 4), y + 4 + k * 2.2, z + rand(-4, 4), 4 + k * 0.4); fireball3D(x, y + 8, z, 7); } }
+        impactFx(x, y, z, p.w && p.w.id === 'icbm' ? 11 : Math.min(6.5, base * EXPL), big, xstyle(p)); if (p.w && p.w.kind === 'bomb') bombFx(x, y, z, p.w); if (p.w && p.w.id === 'icbm') { for (let k = 0; k < 8; k++) fx('blacksmoke', x + rand(-4, 4), y + 4 + k * 2.2, z + rand(-4, 4), 4 + k * 0.4); fireball3D(x, y + 8, z, 7); } }
       sfx(p.kind === 'shell' ? 'imp_shell' : p.kind === 'rocket' ? 'imp_rocket' : (p.w && IMP_SND[p.w.id]) || 'imp_mortar', x, z); if (p.kind !== 'mortar' && p.tgt.alive) sfx('hit', x, z);
       if (p.w && p.w.fire) fireZones.push({ x, z, r: p.splash, t: 5, dps: p.w.fire, team: p.team, src: p.src, fxT: 0 });
       if (p.w && p.w.emp) { sfx('art_emp', x, z); for (const e of ents) if (e.alive && e.kind === 'unit' && e.team !== p.team && Math.hypot(e.x - x, e.z - z) < p.splash) e.stun = p.w.emp; for (let s = 0; s < 6; s++) fx('spark', x + rand(-2, 2), y + rand(0, 2), z + rand(-2, 2), 1.2); }
@@ -2863,7 +2869,7 @@ function lsSnap() {
     u: ents.filter(e => e.alive && e.kind === 'unit').map(e => [e.id, e.team, e.d.ch, e.d.pr, e.d.wp, e.tier === undefined ? -1 : e.tier, e.pal, e.x, e.z, e.heading, e.turYaw, e.hp, e.maxHp, e.state, e.tx, e.tz, e.target ? e.target.id : 0, e.alt || 0, e.ammo === undefined ? -1 : e.ammo, e.cd]),
     b: ents.filter(e => e.alive && e.kind === 'bld').map(e => [e.id, e.team, e.type, e.x, e.z, e.rot, e.tier === undefined ? -1 : e.tier, e.pal, e.hp, e.maxHp, e.built, e.complete ? 1 : 0, e.target ? e.target.id : 0]) };
 }
-function lsApplyFix(s) {
+function lsApplyFix(s) { console.log("fix applied");
   const adopt = (e, id) => { EID.delete(e.id); e.id = id; EID.set(id, e); };
   const keep = new Set([...s.u.map(a => a[0]), ...s.b.map(a => a[0])]);
   for (const e of ents) if (e.alive && !keep.has(e.id)) { e.alive = false; e.hp = 0; scene.remove(e.mesh); if (e.kind === 'unit') TEAMS[e.team].units--; if (e.selected) { e.selected = false; sel = sel.filter(x => x !== e); } }
@@ -3095,7 +3101,7 @@ window.onBack = () => {
   if (S.paused || !$('pause').classList.contains('hidden')) return false;
   S.paused = !NET.on; $('pause').classList.remove('hidden'); return true;
 };
-window.__game = { LS, worldHash, kill, wrecks, FBALLS, updFireballs, SPOT, nearestSpotted, WP, impactFx, XST, heightAt,  killNear: () => { for (const e of ents) if (e.alive && e.team === 1 && Math.hypot(e.x - PLAYER2.x, e.z - PLAYER2.z) < 25) kill(e); }, NET, execCmd, doCmd, byId, PLAYER, PLAYER2, S, TEAMS, ents, cam, setSel, sel: () => sel, createUnit, createBuilding, sfx, AU, SB, buildSfx, projs: () => projs, BD, WP };
+window.__game = { LS, worldHash, bombFx, fireball3D, kill, wrecks, FBALLS, updFireballs, SPOT, nearestSpotted, WP, impactFx, XST, heightAt,  killNear: () => { for (const e of ents) if (e.alive && e.team === 1 && Math.hypot(e.x - PLAYER2.x, e.z - PLAYER2.z) < 25) kill(e); }, NET, execCmd, doCmd, byId, PLAYER, PLAYER2, S, TEAMS, ents, cam, setSel, sel: () => sel, createUnit, createBuilding, sfx, AU, SB, buildSfx, projs: () => projs, BD, WP };
 
 resize(); updateCamera(0); requestAnimationFrame(loop);
 // background scene behind the intro

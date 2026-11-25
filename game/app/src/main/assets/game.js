@@ -47,15 +47,15 @@ const mapFromCode = c => { try { c = String(c).trim().replace(/^IF1-/i, ''); ret
 // ---- campaign: 5 story missions, each on its own map, research unlocked step by step ----
 const CAMPAIGN_INTRO = 'Anul 2200. Acum o sută de ani, rețeaua de sateliți de luptă a scăpat de sub control și a aruncat asupra Pământului ploaia de fier — Căderea. Din ruine s-a ridicat Legiunea Roșie, care a pus mâna pe vechea Cetate de comandă din centrul continentului. Tu conduci ultimii soldați ai Coaliției Sudului.';
 const MISSIONS = [
-  { name: 'Primul foc', map: 'Valea Verde', size: 240, seed: 1101, rings: [[84, 3, 0, 1.4]], gar: 0.8, obj: 'outposts', depth: 1,
-    brief: 'Ne-am ascuns în Valea Verde, dar Legiunea ne-a găsit. Trei avanposturi blochează drumul spre sondele de petrol. Construiește generatoare, fă primele tancuri și curăță valea.' },
-  { name: 'Dunele de fier', map: 'Deșertul de Est', size: 300, seed: 2207, rings: [[112, 4, 0, 1.3], [72, 3, 1, 1.5]], gar: 0.9, obj: 'outposts', depth: 2,
-    brief: 'Avem nevoie de petrol pentru iarnă. În Dunele de Fier, Legiunea păzește cele mai bogate sonde cu două linii de forturi. Șenilele, rachetele și mortierele noi te vor ajuta să treci prin ele.' },
-  { name: 'Trecătoarea înghețată', map: 'Munții de Nord', size: 340, seed: 3313, rings: [[126, 5, 0, 1.2], [88, 4, 1, 1.3], [52, 3, 2, 1.2]], gar: 0.85, obj: 'outposts', depth: 3,
-    brief: 'Singurul drum spre nord trece prin munții înghețați, unde Legiunea a ridicat trei inele de forturi. Inginerii noștri au terminat laserul de luptă, primele avioane VTOL și fortificațiile.' },
-  { name: 'Canionul de foc', map: 'Canionul de Foc', size: 420, seed: 4421, rings: [[165, 6, 0, 1.2], [128, 6, 1, 1.3], [90, 5, 2, 1.3], [52, 4, 2, 1.2]], gar: 0.8, obj: 'outposts', depth: 4,
+  { name: 'Primul foc', map: 'Valea Verde', size: 240, seed: 1101, rings: [[100, 4, 0, 1.6], [60, 3, 0, 1.2]], gar: 0.8, obj: 'outposts', depth: 1,
+    brief: 'Ne-am ascuns în Valea Verde, dar Legiunea ne-a găsit. Șapte avanposturi blochează drumul spre sondele de petrol. Construiește generatoare, fă primele tancuri și curăță valea.' },
+  { name: 'Dunele de fier', map: 'Deșertul de Est', size: 300, seed: 2207, rings: [[135, 6, 0, 1.5], [100, 5, 0, 1.3], [62, 4, 1, 1.4]], gar: 0.9, obj: 'outposts', depth: 2,
+    brief: 'Avem nevoie de petrol pentru iarnă. În Dunele de Fier, Legiunea păzește cele mai bogate sonde cu trei linii de forturi. Șenilele, rachetele și mortierele noi te vor ajuta să treci prin ele.' },
+  { name: 'Trecătoarea înghețată', map: 'Munții de Nord', size: 340, seed: 3313, rings: [[150, 7, 0, 1.4], [118, 6, 1, 1.3], [85, 5, 1, 1.3], [50, 3, 2, 1.2]], gar: 0.85, obj: 'outposts', depth: 3,
+    brief: 'Singurul drum spre nord trece prin munții înghețați, unde Legiunea a ridicat patru inele de forturi. Inginerii noștri au terminat laserul de luptă, primele avioane VTOL și fortificațiile.' },
+  { name: 'Canionul de foc', map: 'Canionul de Foc', size: 420, seed: 4421, rings: [[190, 8, 0, 1.3], [160, 7, 1, 1.3], [128, 6, 1, 1.3], [90, 5, 2, 1.3], [52, 4, 2, 1.2]], gar: 0.8, obj: 'outposts', depth: 4,
     brief: 'Am găsit fabricile de artilerie ale Legiunii în Canionul de Foc. Distruge-le înainte să termine noile obuziere și lansatoarele de plasmă. Sunt cele mai bine apărate baze de până acum.' },
-  { name: 'Căderea Cetății', map: 'Inima continentului', size: 480, seed: 5531, rings: [[190, 7, 0, 1.1], [148, 6, 1, 1.3], [106, 5, 2, 1.3], [62, 4, 2, 1.2]], gar: 0.75, obj: 'citadel', depth: 99,
+  { name: 'Căderea Cetății', map: 'Inima continentului', size: 480, seed: 5531, rings: [[220, 8, 0, 1.2], [185, 7, 1, 1.2], [148, 6, 1, 1.3], [106, 5, 2, 1.3], [62, 4, 2, 1.2]], gar: 0.75, obj: 'citadel', depth: 99,
     brief: 'A sosit ziua. Cetatea Legiunii controlează ultimul satelit care încă poate arunca fier asupra noastră. Rupe inelele de apărare, sparge zidurile și distruge Cetatea. Pentru Coaliție!' },
 ];
 const MSCALE = 3; for (const m of MISSIONS) m.size *= MSCALE;   // mission maps are three times larger than the base layouts

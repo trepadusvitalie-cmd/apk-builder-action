@@ -370,3 +370,8 @@ i.eu { font-style: normal; color: var(--amber); font-size: .9em; margin-left: 1p
 #mpSay { flex: 1; min-width: 0; background: #111; color: #eee; border: 1px solid #555; border-radius: 8px; padding: 6px 8px; font-size: 14px; }
 #mpName { width: 180px; background: #111; color: #eee; border: 1px solid #555; border-radius: 8px; padding: 6px 8px; font-size: 15px; text-align: center; }
 @media (max-width: 520px) { .mplob { flex-direction: column; } .mplob #mpPl { flex: none; } }
+/* unit standing orders */
+#panel .ord { display: grid; grid-template-columns: auto 1fr 1fr 1fr; gap: 3px; align-items: center; margin-top: 5px; }
+#panel .ord .ol { font-size: 10.5px; color: var(--dim); padding-right: 3px; white-space: nowrap; }
+#panel .ord button, #panel .ord2 button { padding: 4px 2px; font-size: 10.5px; min-height: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#panel .ord2 { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; margin-top: 4px; }

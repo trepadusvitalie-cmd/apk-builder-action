@@ -1320,7 +1320,7 @@ function createUnit(team, d, x, z, tier, pal) {
   const tur = new THREE.Mesh(g.tur, matUnit); tur.position.y = g.turY; tur.castShadow = true; grp.add(tur); const mslMesh = attachMissile(tur, g);
   if (d.pr === 'hover') { const gl = new THREE.Mesh(glowDisc, glowMat[pal]); gl.scale.set(CH[d.ch].size * 1.3, 1, CH[d.ch].size * 1.7); gl.position.y = 0.05; grp.add(gl); }
   scene.add(grp);
-  const u = { kind: 'unit', team, d, st, x, z, y: heightAt(x, z), hp: st.hp, maxHp: st.hp, r: 1.0 * CH[d.ch].size, h: g.turY + 0.6, heading: team === 0 ? Math.PI * 0.75 : -Math.PI * 0.25, vx: 0, vz: 0, mesh: grp, tur, mslMesh, turYaw: 0, state: 'idle', tx: x, tz: z, target: null, cd: srand(0, 0.5), acq: srand(0, 0.3), isTruck: d.wp === 'truck', bob: Math.random() * 6, smokeT: 0, alive: true, id: uid++, lastHit: -99, amove: false, lx: x, lz: z, tier, post: null, pal };
+  const u = { kind: 'unit', team, d, st, x, z, y: heightAt(x, z), hp: st.hp, maxHp: st.hp, r: 1.0 * CH[d.ch].size, h: g.turY + 0.6, heading: team === 0 ? Math.PI * 0.75 : -Math.PI * 0.25, vx: 0, vz: 0, mesh: grp, tur, mslMesh, turYaw: 0, state: 'idle', tx: x, tz: z, target: null, cd: srand(0, 0.5), acq: srand(0, 0.3), isTruck: d.wp === 'truck', bob: Math.random() * 6, smokeT: 0, alive: true, id: uid++, lastHit: -99, amove: false, lx: x, lz: z, tier, post: null, pal, fire: 0, mvo: 1, ret: 0, pat: null };
   u.air = PR[d.pr].air || null; u.alt = u.air === 'rotor' ? DRONE_ALT : 0; u.maxAmmo = u.air === 'vtol' ? (VAMMO[d.wp] || 4) : 0; u.ammo = u.maxAmmo;
   if (g.legGeo) { u.legs = g.hips.map(h => { const l = new THREE.Mesh(g.legGeo, matUnit); l.position.set(h[0], h[1], h[2]); l.castShadow = true; grp.add(l); return l; }); u.walk = 0; }
   if (g.rotors) u.rotors = g.rotors.map(r => { const b = new THREE.Mesh(g.bladeGeo, matUnit); b.position.set(r[0], r[1], r[2]); grp.add(b); return b; });
@@ -1646,7 +1646,7 @@ function damage(e, amt, src) {
   e.hp -= amt; e.lastHit = S.time;
   heat = Math.min(1.5, heat + amt * (e.team === 0 ? 0.01 : 0.005));
   if (e.team === 0 && S.time - lastAlert > 25) { lastAlert = S.time; teamToast('⚠ Ești atacat!', 'alert', e.x, e.z); }
-  if (e.kind === 'unit' && src && src.alive && e.st.range > 0 && e.state === 'idle') { e.target = src; e.state = 'engage'; e.lx = e.x; e.lz = e.z; }
+  if (e.kind === 'unit' && src && src.alive && e.st.range > 0 && (e.state === 'idle' || e.state === 'patrol') && e.fire !== 2) { e.target = src; e.state = 'engage'; e.lx = e.x; e.lz = e.z; }
   if (e.hp <= 0) { if (src && src.kind === 'unit' && src.alive) { src.kills = (src.kills || 0) + 1; const rk = src.kills >= 15 ? 3 : src.kills >= 8 ? 2 : src.kills >= 3 ? 1 : 0; if (rk > (src.rank || 0)) { src.rank = rk; if (src.team === 0) fx('spark', src.x, src.y + 2, src.z, 1.4); } } kill(e); }
 }
 function kill(e) {
@@ -1814,6 +1814,29 @@ function vtolTick(u, dt) {
       u.cd = w.rof * (w.kind === 'mg' ? 1 : 1.6) * (TEAMS[u.team].rof[wfam(w)] || 1); } }
   else u.cd = Math.max(0, u.cd - dt);
 }
+// ---- standing orders (fire / movement / retreat), patrol, return, recycle
+const resume = u => u.pat ? 'patrol' : u.amove ? 'amove' : 'idle';
+function homeFor(u, types) {   // nearest own building of one of the types, the unit's own player first
+  let best = null, bd = 1e9;
+  for (const e of ents) if (e.alive && e.kind === 'bld' && e.team === u.team && e.complete && types.includes(e.type)) {
+    const d = Math.hypot(e.x - u.x, e.z - u.z) + (e.pal === u.pal ? 0 : 400); if (d < bd) { bd = d; best = e; } }
+  return best;
+}
+function sendTo(u, b, state) {
+  const a = Math.atan2(u.x - b.x, u.z - b.z), r = b.r + (state === 'recycle' ? 1.5 : 3.5);
+  u.state = state; u.rto = b; u.target = null; u.amove = false; u.pat = null; u.buildTarget = null;
+  u.tx = r1(b.x + Math.sin(a) * r); u.tz = r1(b.z + Math.cos(a) * r);
+}
+function goRetreat(u, forced) {
+  const b = homeFor(u, ['repairbay']) || (forced ? null : homeFor(u, ['hq', 'factory', 'cybfactory']));
+  if (!b) { u.retHold = true; return false; } sendTo(u, b, 'retreat'); return true;
+}
+function recycleUnit(u) {
+  const T = TEAMS[u.team]; T.energy += Math.round(unitStats(u.d, u.team).cost * 0.5 * Math.max(0.2, u.hp / u.maxHp));
+  u.alive = false; u.hp = 0; scene.remove(u.mesh); T.units--;
+  for (let k = 0; k < 6; k++) fx('spark', u.x + rand(-1, 1), u.y + rand(0.3, 1.6), u.z + rand(-1, 1), 1);
+  if (u.selected) { u.selected = false; sel = sel.filter(s => s !== u); panelSig = ''; }
+}
 function updUnit(u, dt) {
   const w = u.st.w;
   if (u.air === 'vtol' && !(u.stun > 0)) { vtolTick(u, dt); unitVisual(u, dt); return; }
@@ -1821,14 +1844,18 @@ function updUnit(u, dt) {
   if (u.stun > 0) { u.stun -= dt; u.vx *= 0.8; u.vz *= 0.8; if (Math.random() < dt * 6) fx('spark', u.x + rand(-0.6, 0.6), u.y + u.h * 0.7, u.z + rand(-0.6, 0.6), 0.8); return; }
   if (u.rbT > 0) { u.rbT -= dt; if (u.rbT <= 0) u.rb = 1; }
   if (w.kind === 'radar' || w.kind === 'repair') supportTick(u, dt);
-  if (u.target && !u.target.alive) { u.target = null; if (u.state === 'engage' || u.state === 'attack') u.state = u.amove ? 'amove' : 'idle'; }
+  if (u.ret && !u.isTruck) { const thr = u.maxHp * (u.ret === 1 ? 0.5 : 0.25);
+    if (u.hp >= thr) u.retHold = false;
+    else if (!u.retHold && u.state !== 'retreat' && u.state !== 'recycle') goRetreat(u, false); }
+  if (u.state === 'retreat' && u.hp >= u.maxHp * 0.98) { u.state = 'idle'; u.rto = null; }
+  if (u.target && !u.target.alive) { u.target = null; if (u.state === 'engage' || u.state === 'attack') u.state = resume(u); }
   u.acq -= dt;
-  if (w.dmg > 0 && u.acq <= 0 && u.state !== 'attack') {
+  if (w.dmg > 0 && u.acq <= 0 && u.state !== 'attack' && u.state !== 'retreat' && u.state !== 'recycle' && u.fire === 0) {
     u.acq = 0.35 + SR() * 0.15;
-    const passive = u.state === 'move'; const vis = (w.art ? w.sight : u.st.range) + (passive ? 0 : 9);
+    const passive = u.state === 'move'; const vis = (w.art ? w.sight : u.st.range) + (passive || u.mvo === 2 ? 0 : 9);
     if (!u.target || !inRange(u, u.target)) {
       const t = nearestEnemy(u.team, u.x, u.z, vis, w) || (w.art && !passive ? nearestSpotted(u.team, u.x, u.z, u.st.range) : null);
-      if (t) { u.target = t; if (u.state === 'idle' || u.state === 'amove') { if (u.state === 'idle') { u.lx = u.x; u.lz = u.z; } u.state = 'engage'; } }
+      if (t) { u.target = t; if (u.state === 'idle' || u.state === 'amove' || u.state === 'patrol') { if (u.state === 'idle') { u.lx = u.x; u.lz = u.z; } u.state = 'engage'; } }
       else if (passive && u.target && !inRange(u, u.target, 4)) u.target = null;
     }
   }
@@ -1837,11 +1864,24 @@ function updUnit(u, dt) {
   switch (u.state) {
     case 'heal': if (u.heal && u.heal.alive) { u.tx = u.heal.x; u.tz = u.heal.z; } // fallthrough
     case 'move': case 'amove': mx = u.tx; mz = u.tz; arrive = 0.8; if (Math.hypot(u.tx - u.x, u.tz - u.z) < 1.3) { u.state = 'idle'; u.amove = false; } break;
+    case 'patrol': mx = u.tx; mz = u.tz; arrive = 0.8; if (!u.pat) { u.state = 'idle'; break; }
+      if (Math.hypot(u.tx - u.x, u.tz - u.z) < 1.5) { const ox = u.tx, oz = u.tz; u.tx = u.pat.x; u.tz = u.pat.z; u.pat = { x: ox, z: oz }; } break;
+    case 'retreat': case 'recycle': { const b = u.rto;
+      if (!b || !b.alive) { u.state = 'idle'; u.rto = null; break; }
+      mx = u.tx; mz = u.tz; arrive = 0.8;
+      if (Math.hypot(u.tx - u.x, u.tz - u.z) < 2.2) { mx = null;
+        if (u.state === 'recycle') { recycleUnit(u); return; }
+        if (b.type !== 'repairbay') { u.state = 'idle'; u.rto = null; u.retHold = true; } }
+      break; }
     case 'engage': case 'attack': {
-      const t = u.target; if (!t || !t.alive) { u.state = u.amove ? 'amove' : 'idle'; u.target = null; break; }
+      const t = u.target; if (!t || !t.alive) { u.state = resume(u); u.target = null; break; }
       const d = Math.hypot(t.x - u.x, t.z - u.z) - t.r;
-      if (u.state === 'engage' && (d > u.st.range + 14 || (!u.amove && Math.hypot(u.x - u.lx, u.z - u.lz) > 24))) { u.target = null; if (u.amove) u.state = 'amove'; else { u.state = 'move'; u.tx = u.lx; u.tz = u.lz; } break; }
-      if (d > u.st.range * 0.9) { mx = t.x; mz = t.z; arrive = 0; }
+      if (u.state === 'engage') {
+        if (u.mvo === 2 && d > u.st.range) { u.target = null; u.state = resume(u); break; }
+        const over = u.mvo === 0 ? 45 : 14, leash = u.mvo === 0 ? 80 : 24;
+        if (d > u.st.range + over || (!u.amove && !u.pat && Math.hypot(u.x - u.lx, u.z - u.lz) > leash)) { u.target = null; if (u.amove || u.pat) u.state = resume(u); else { u.state = 'move'; u.tx = u.lx; u.tz = u.lz; } break; }
+      }
+      if (d > u.st.range * 0.9 && !(u.mvo === 2 && u.state === 'engage')) { mx = t.x; mz = t.z; arrive = 0; }
       break;
     }
     case 'build': {
@@ -1864,7 +1904,7 @@ function updUnit(u, dt) {
 
   // aim & fire
   const t = u.target;
-  if (t && flying(t) && !canHitAir(w)) { u.target = null; if (u.state === 'engage' || u.state === 'attack') u.state = u.amove ? 'amove' : 'idle'; }
+  if (t && flying(t) && !canHitAir(w)) { u.target = null; if (u.state === 'engage' || u.state === 'attack') u.state = resume(u); }
   else if (t && t.alive && w.dmg > 0) {
     const a = Math.atan2(t.x - u.x, t.z - u.z); const local = angDiff(u.heading, a);
     u.turYaw += clamp(angDiff(u.turYaw, local), -5 * dt, 5 * dt);
@@ -1997,7 +2037,7 @@ function orderMove(units, x, z, amove, silent) {
 }
 function applyMove(list, amove) {
   for (const [id, tx, tz] of list) { const u = byId(id); if (!u || !u.alive || u.kind !== 'unit') continue;
-    u.tx = tx; u.tz = tz; u.state = amove ? 'amove' : 'move'; u.amove = !!amove; if (!amove) u.target = null; u.buildTarget = null; }
+    u.tx = tx; u.tz = tz; u.state = amove ? 'amove' : 'move'; u.amove = !!amove; u.pat = null; u.rto = null; if (!amove) u.target = null; u.buildTarget = null; }
 }
 function formation(units, x, z) {
   const n = units.length; const cols = Math.ceil(Math.sqrt(n)); const rows = Math.ceil(n / cols); const sp = 2.8;
@@ -2018,9 +2058,18 @@ function execCmd(c, pal) {
   const say = m => { if (pal === myPal()) toast(m); };   // only the player who gave the order hears why it failed
   switch (c[0]) {
     case 'mv': applyMove(c[1].filter(x => { const u = byId(x[0]); return u && u.team === 0; }), c[2]); break;
-    case 'at': { const t = byId(c[2]); if (!t || !t.alive) break; for (const u of U(c[1])) if (u.kind === 'unit' && u.st.w.dmg > 0 && !(flying(t) && !canHitAir(u.st.w))) { u.state = 'attack'; u.target = t; u.amove = false; } break; }
-    case 'bd': { const b = byId(c[2]); if (!b || !b.alive || b.kind !== 'bld') break; for (const u of U(c[1])) if (u.isTruck) { u.state = 'build'; u.buildTarget = b; u.target = null; } break; }
-    case 'st': for (const u of U(c[1])) if (u.kind === 'unit') { u.state = 'idle'; u.target = null; u.amove = false; u.vx = u.vz = 0; } break;
+    case 'at': { const t = byId(c[2]); if (!t || !t.alive) break; for (const u of U(c[1])) if (u.kind === 'unit' && u.st.w.dmg > 0 && !(flying(t) && !canHitAir(u.st.w))) { u.state = 'attack'; u.target = t; u.amove = false; u.pat = null; u.rto = null; } break; }
+    case 'bd': { const b = byId(c[2]); if (!b || !b.alive || b.kind !== 'bld') break; for (const u of U(c[1])) if (u.isTruck) { u.state = 'build'; u.buildTarget = b; u.target = null; u.pat = null; } break; }
+    case 'st': for (const u of U(c[1])) if (u.kind === 'unit') { u.state = 'idle'; u.target = null; u.amove = false; u.pat = null; u.rto = null; u.vx = u.vz = 0; } break;
+    case 'or': { const k = c[2], v = c[3] | 0; if (!['fire', 'mvo', 'ret'].includes(k) || v < 0 || v > 2) break;
+      for (const u of U(c[1])) if (u.kind === 'unit') { u[k] = v; if (k === 'fire' && v && u.state === 'engage') { u.target = null; u.state = resume(u); } if (k === 'ret') u.retHold = false; } break; }
+    case 'pt': for (const [id, tx, tz] of c[1] || []) { const u = byId(id); if (!u || !u.alive || u.team !== 0 || u.kind !== 'unit' || u.isTruck) continue;
+      u.pat = { x: r1(u.x), z: r1(u.z) }; u.tx = tx; u.tz = tz; u.state = 'patrol'; u.amove = false; u.target = null; u.rto = null; u.buildTarget = null; } break;
+    case 'rb': { let n = 0; for (const u of U(c[1])) if (u.kind === 'unit') { const b = homeFor(u, ['hq']) || homeFor(u, ['factory', 'cybfactory', 'airfactory']); if (!b) continue;
+      const a = n * 2.4, rr = b.r + 4 + Math.floor(n / 8) * 3; n++; u.pat = null; u.rto = null; u.buildTarget = null; u.target = null;
+      u.tx = r1(b.x + Math.sin(a) * rr); u.tz = r1(b.z + Math.cos(a) * rr); u.state = 'move'; u.amove = false; } if (!n) say('Nu ai Cartier General'); break; }
+    case 'rr': { let n = 0; for (const u of U(c[1])) if (u.kind === 'unit' && !u.air) { if (goRetreat(u, true)) n++; } if (!n) say('Construiește un Atelier de reparații'); break; }
+    case 'rc': { let n = 0; for (const u of U(c[1])) if (u.kind === 'unit') { const b = homeFor(u, ['factory', 'cybfactory', 'airfactory', 'hq']); if (b) { sendTo(u, b, 'recycle'); n++; } } if (!n) say('Nu ai fabrică pentru reciclare'); break; }
     case 'pl': { const [, type, x, z, ids] = c; const def = BD[type]; if (!def) break;
       if (!canPlace(type, x, z, 0)) { say('Nu se poate construi aici'); break; }
       if (type === 'lab' && labCount() >= MAX_LABS) { say(`Maxim ${MAX_LABS} laboratoare`); break; }
@@ -2207,8 +2256,8 @@ function pickEntity(sx, sy) {
   return best;
 }
 
-let sel = [], panelSig = '', placing = null, boxMode = false, amoveNext = false;
-function setSel(arr) { for (const e of sel) e.selected = false; sel = arr.filter(e => e && e.alive); for (const e of sel) e.selected = true; amoveNext = false; panelSig = ''; }
+let sel = [], panelSig = '', placing = null, boxMode = false, amoveNext = false, patrolNext = false, ordOpen = false;
+function setSel(arr) { for (const e of sel) e.selected = false; sel = arr.filter(e => e && e.alive); for (const e of sel) e.selected = true; amoveNext = false; patrolNext = false; panelSig = ''; }
 
 const ptrs = new Map(); let gesture = null, lpTimer = null, lastTap = { t: 0, e: null };
 canvas.addEventListener('pointerdown', e => {
@@ -2273,6 +2322,7 @@ function handleTap(sx, sy) {
   }
   if (!g) return;
   if (trucks.length) { const w = WELLS.find(w => !w.pump && Math.hypot(w.x - g.x, w.z - g.z) < 4); if (w && TEAMS[0].energy >= BD.generator.cost) { doCmd(['pl', 'generator', w.x, w.z, trucks.map(u => u.id)]); sfx('ack'); marker(w.x, w.z, 0xffd040); return; } }
+  if (units.length && patrolNext) { const army = units.filter(u => !u.isTruck); if (army.length) { doCmd(['pt', formation(army, g.x, g.z)]); marker(g.x, g.z, 0x60b0ff); sfx('ack'); } patrolNext = false; panelSig = ''; return; }
   if (units.length) { orderMove(units, g.x, g.z, amoveNext); amoveNext = false; panelSig = ''; return; }
   const f = sel.length === 1 && sel[0].kind === 'bld' && sel[0].team === 0 && FACT_TYPES.has(sel[0].type) ? sel[0] : null;
   if (f) { doCmd(['ra', f.id, r1(g.x), r1(g.z)]); marker(g.x, g.z, 0x60c0ff); toast('📍 Punct de adunare setat'); return; }
@@ -2309,7 +2359,7 @@ let toastT = 0;
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); toastT = 2.6; }
 function fmtTime(s) { s = Math.floor(s); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
 function computeSig() {
-  const T = TEAMS[0]; let s = (placing ? 'P' + placing.type + placing.valid : '') + '|' + sel.map(e => e.id).join(',') + '|' + T.tech.size + '|' + amoveNext + '|' + labCount();
+  const T = TEAMS[0]; let s = (placing ? 'P' + placing.type + placing.valid : '') + '|' + sel.map(e => e.id).join(',') + '|' + T.tech.size + '|' + amoveNext + patrolNext + ordOpen + '|' + labCount() + '|' + sel.map(e => e.kind === 'unit' ? '' + e.fire + e.mvo + e.ret : '').join('');
   for (const e of sel) if (e.kind === 'bld') s += `|${e.complete}|${e.queue.length}|${e.res ? e.res.id : ''}|${[...T.researching].join()}`;
   if (sel[0] && sel[0].type === 'lab') s += '|L' + ents.filter(e => e.alive && e.team === 0 && e.type === 'lab').map(e => e.id + (e.complete ? 'c' : '') + (e.res ? e.res.id : '') + (e.lastRes || '')).join(',');
   const costs = [35, 50, 65, 75, 100, 120, 130, 140, 150, 160, 180, 200, 220, 250, 300]; s += '|' + costs.map(c => T.energy >= c ? 1 : 0).join('');
@@ -2348,7 +2398,8 @@ function renderPanel() {
     h = `<div class="ph"><span>${army.length ? UIC.tank + army.length + ' unități ' : ''}${trucks.length ? UIC.truck + trucks.length + ' constructori' : ''}</span></div>`;
     if (sel.length === 1) h += `<div class="hint">${designName(sel[0].d)}</div><div class="bar"><i id="pHp"></i></div>`;
     if (trucks.length) h += buildMenu(T);
-    if (army.length) h += `<div class="row"><button data-act="amove" class="${amoveNext ? 'on' : ''}">${UIC.amove}Atac-deplasare</button><button data-act="stop">${UIC.stop}Stop</button></div>`;
+    if (army.length) { h += `<div class="row"><button data-act="amove" class="${amoveNext ? 'on' : ''}">${UIC.amove}Atac-deplasare</button><button data-act="stop">${UIC.stop}Stop</button><button data-act="ordt" class="${ordOpen ? 'on' : ''}">📋 Ordine</button></div>`;
+      if (ordOpen) h += ordersBox(army); }
   } else {
     const b = sel[0];
     h = `<div class="ph"><span>${BIC(b.type)}${b.def.name}</span><span id="pHpT"></span></div><div class="bar"><i id="pHp"></i></div>`;
@@ -2404,6 +2455,14 @@ function updDyn() {
     if (bb && l.res) bb.style.width = (l.resProg / l.res.time * 100) + '%';
     if (tt) tt.textContent = l.res ? fmtTime(Math.ceil((l.res.time - l.resProg) / (TEAMS[0].rsMul || 1))) : ''; }
 }
+const ORD = [['fire', 'Foc', ['🔥 Liber', '↩ Ripostă', '✋ Nu trage']], ['mvo', 'Poziție', ['Urmărește', '🛡 Păzește', '📌 Pe loc']], ['ret', 'Retragere', ['💀 Niciodată', '❤ La 50%', '❤ La 25%']]];
+function ordersBox(army) {
+  let h = '<div class="ord">';
+  for (const [k, name, opts] of ORD) { const same = army.every(u => u[k] === army[0][k]) ? army[0][k] : -1;
+    h += `<span class="ol">${name}</span>` + opts.map((t, i) => `<button data-act="ord" data-k="${k}" data-v="${i}" class="${same === i ? 'on' : ''}">${t}</button>`).join(''); }
+  h += `</div><div class="ord2"><button data-act="patrol" class="${patrolNext ? 'on' : ''}">🔁 Patrulare</button><button data-act="rtb">🏠 La bază</button><button data-act="rtr">🔧 La reparații</button><button data-act="recyc">♻ Reciclează</button></div>`;
+  return h;
+}
 function updatePanel() { const s = computeSig(); if (s !== panelSig) { panelSig = s; renderPanel(); } updDyn(); }
 panel.addEventListener('click', ev => {
   const b = ev.target.closest('[data-act]'); if (!b || b.disabled) return; const act = b.dataset.act, v = b.dataset.v; sfx('click');
@@ -2416,8 +2475,14 @@ panel.addEventListener('click', ev => {
   if (act === 'build') startPlacing(v);
   else if (act === 'place-ok') confirmPlacing();
   else if (act === 'place-cancel') cancelPlacing();
-  else if (act === 'amove') { amoveNext = !amoveNext; panelSig = ''; if (amoveNext) toast('Atinge harta: unitățile atacă pe drum'); }
-  else if (act === 'stop') doCmd(['st', sel.filter(u => u.kind === 'unit').map(u => u.id)]);
+  else if (act === 'amove') { amoveNext = !amoveNext; patrolNext = false; panelSig = ''; if (amoveNext) toast('Atinge harta: unitățile atacă pe drum'); }
+  else if (act === 'stop') { patrolNext = false; doCmd(['st', sel.filter(u => u.kind === 'unit').map(u => u.id)]); }
+  else if (act === 'ordt') { ordOpen = !ordOpen; panelSig = ''; }
+  else if (act === 'ord') doCmd(['or', sel.filter(u => u.kind === 'unit' && !u.isTruck).map(u => u.id), b.dataset.k, +v]);
+  else if (act === 'patrol') { patrolNext = !patrolNext; amoveNext = false; panelSig = ''; if (patrolNext) toast('Atinge harta: unitățile patrulează între locul lor și punctul ales'); }
+  else if (act === 'rtb') { doCmd(['rb', sel.filter(u => u.kind === 'unit').map(u => u.id)]); sfx('ack'); }
+  else if (act === 'rtr') { doCmd(['rr', sel.filter(u => u.kind === 'unit').map(u => u.id)]); sfx('ack'); }
+  else if (act === 'recyc') { doCmd(['rc', sel.filter(u => u.kind === 'unit').map(u => u.id)]); sfx('ack'); }
   else if (act === 'produce') queueUnit(e, JSON.parse(v), 1);
   else if (act === 'unq') doCmd(['uq', e.id, +v]);
   else if (act === 'designer') openDesigner(e);
@@ -2884,7 +2949,7 @@ function lsCheck(k, n, h) {
 // the host's full state, sent to a phone that drifted apart
 function lsSnap() {
   return { r: SRS, uid, time: S.time, T: TEAMS.map(T => [T.energy, [...T.tech]]),
-    u: ents.filter(e => e.alive && e.kind === 'unit').map(e => [e.id, e.team, e.d.ch, e.d.pr, e.d.wp, e.tier === undefined ? -1 : e.tier, e.pal, e.x, e.z, e.heading, e.turYaw, e.hp, e.maxHp, e.state, e.tx, e.tz, e.target ? e.target.id : 0, e.alt || 0, e.ammo === undefined ? -1 : e.ammo, e.cd]),
+    u: ents.filter(e => e.alive && e.kind === 'unit').map(e => [e.id, e.team, e.d.ch, e.d.pr, e.d.wp, e.tier === undefined ? -1 : e.tier, e.pal, e.x, e.z, e.heading, e.turYaw, e.hp, e.maxHp, e.state, e.tx, e.tz, e.target ? e.target.id : 0, e.alt || 0, e.ammo === undefined ? -1 : e.ammo, e.cd, e.fire, e.mvo, e.ret, e.pat ? [e.pat.x, e.pat.z] : 0]),
     b: ents.filter(e => e.alive && e.kind === 'bld').map(e => [e.id, e.team, e.type, e.x, e.z, e.rot, e.tier === undefined ? -1 : e.tier, e.pal, e.hp, e.maxHp, e.built, e.complete ? 1 : 0, e.target ? e.target.id : 0]) };
 }
 function lsApplyFix(s) { console.log("fix applied");
@@ -2898,7 +2963,7 @@ function lsApplyFix(s) { console.log("fix applied");
   for (const [id, team, ch, pr, wp, tier, pal, x, z, hd, ty, hp, mhp, st, tx, tz] of s.u) { let u = byId(id);
     if (!u) { u = createUnit(team, { ch, pr, wp }, x, z, tier < 0 ? undefined : tier, pal); adopt(u, id); }
     Object.assign(u, { x, z, heading: hd, turYaw: ty, hp, maxHp: mhp, state: st, tx, tz }); }
-  for (const a of s.u) { const u = byId(a[0]); u.target = a[16] ? byId(a[16]) || null : null; u.alt = a[17]; if (a[18] >= 0) u.ammo = a[18]; u.cd = a[19]; }
+  for (const a of s.u) { const u = byId(a[0]); u.target = a[16] ? byId(a[16]) || null : null; u.alt = a[17]; if (a[18] >= 0) u.ammo = a[18]; u.cd = a[19]; u.fire = a[20] | 0; u.mvo = a[21] === undefined ? 1 : a[21]; u.ret = a[22] | 0; u.pat = a[23] ? { x: a[23][0], z: a[23][1] } : null; if (u.state === 'retreat' || u.state === 'recycle') u.state = 'idle'; }
   for (const a of s.b) { const b = byId(a[0]); b.target = a[12] ? byId(a[12]) || null : null; }
   s.T.forEach(([en, tech], t) => { TEAMS[t].energy = en; for (const id of tech) if (!TEAMS[t].tech.has(id)) finishResearch(t, id); });
   SRS = s.r; uid = s.uid; S.time = s.time; panelSig = '';
@@ -3136,7 +3201,7 @@ window.onBack = () => {
   if (S.paused || !$('pause').classList.contains('hidden')) return false;
   S.paused = !NET.on; $('pause').classList.remove('hidden'); return true;
 };
-window.__game = { LS, worldHash, bombFx, fireball3D, kill, wrecks, FBALLS, updFireballs, SPOT, nearestSpotted, WP, impactFx, XST, heightAt,  killNear: () => { for (const e of ents) if (e.alive && e.team === 1 && Math.hypot(e.x - PLAYER2.x, e.z - PLAYER2.z) < 25) kill(e); }, NET, execCmd, doCmd, byId, PLAYER, PLAYER2, S, TEAMS, ents, cam, setSel, sel: () => sel, createUnit, createBuilding, sfx, AU, SB, buildSfx, projs: () => projs, BD, WP };
+window.__game = { RICON, RS, LS, worldHash, bombFx, fireball3D, kill, wrecks, FBALLS, updFireballs, SPOT, nearestSpotted, WP, impactFx, XST, heightAt,  killNear: () => { for (const e of ents) if (e.alive && e.team === 1 && Math.hypot(e.x - PLAYER2.x, e.z - PLAYER2.z) < 25) kill(e); }, NET, execCmd, doCmd, byId, PLAYER, PLAYER2, S, TEAMS, ents, cam, setSel, sel: () => sel, createUnit, createBuilding, sfx, AU, SB, buildSfx, projs: () => projs, BD, WP };
 
 resize(); updateCamera(0); requestAnimationFrame(loop);
 // background scene behind the intro

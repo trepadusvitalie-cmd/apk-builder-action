@@ -2158,7 +2158,8 @@ function execCmd(c, pal) {
       if (!canPlace(type, x, z, 0)) { say('Nu se poate construi aici'); break; }
       if (type === 'lab' && labCount() >= MAX_LABS) { say(`Maxim ${MAX_LABS} laboratoare`); break; }
       if (T.energy < def.cost) { say('Energie insuficientă'); break; }
-      T.energy -= def.cost; const b = createBuilding(0, type, x, z, false, undefined, undefined, pal | 0); for (const u of U(ids)) if (u.isTruck) { u.state = 'build'; u.buildTarget = b; u.target = null; } break; }
+      T.energy -= def.cost; const wl = wallFor(type, x, z, 0); if (wl) { wl.alive = false; wl.hp = 0; scene.remove(wl.mesh); }
+      const b = createBuilding(0, type, wl ? wl.x : x, wl ? wl.z : z, false, wl ? wl.rot : undefined, undefined, pal | 0); for (const u of U(ids)) if (u.isTruck) { u.state = 'build'; u.buildTarget = b; u.target = null; } break; }
     case 'ra': { const f = byId(c[1]); if (f && f.team === 0) f.rally = { x: c[2], z: c[3] }; break; }
     case 'q': { const f = byId(c[1]); if (!f || !f.alive || f.team !== 0 || !FACT_TYPES.has(f.type)) break; const d = c[2]; if (!validDesign(d) || facFor(d) !== f.type) break;
       let k = 0; for (let i = 0; i < Math.min(5, c[3] | 0); i++) { const cost = unitStats(d, 0).cost; if (T.energy < cost || f.queue.length >= 8) break; T.energy -= cost; f.queue.push({ ch: d.ch, pr: d.pr, wp: d.wp }); k++; }
@@ -2182,11 +2183,16 @@ function techNext() {
 }
 function teamToast(msg, snd, x, z) { toast(msg); if (snd) sfx(snd); if (x !== undefined) pings.push({ x, z, t: 2 }); }
 
+// a hardpoint can be built straight into one of your concrete walls: it replaces that wall segment
+function wallFor(type, x, z, team, snap) { if (!BD[type] || BD[type].cls !== 'hard') return null;
+  let best = null, bd = snap || 0.5; for (const e of ents) if (e.alive && e.kind === 'bld' && e.team === team && e.type === 'pwall' && e.complete) { const d = Math.hypot(e.x - x, e.z - z); if (d < bd) { bd = d; best = e; } } return best; }
 function canPlace(type, x, z, team) {
   const def = BD[type]; const r = def.size * 0.55;
   if (Math.abs(x) > EDGE - 4 || Math.abs(z) > EDGE - 4) return false;
   if (type === 'pump' || type === 'generator') { const w = wellAt(x, z); if (!w || w.pump) return false; }
   else for (const w of WELLS) if (Math.hypot(w.x - x, w.z - z) < r + 3) return false;
+  const wl = wallFor(type, x, z, team);
+  if (wl) { for (const e of ents) if (e.alive && e.kind === 'bld' && e !== wl && e.type !== 'pwall' && Math.hypot(e.x - x, e.z - z) < r + e.r) return false; return true; }
   for (const e of ents) if (e.alive && e.kind === 'bld' && Math.hypot(e.x - x, e.z - z) < r + e.r + 1) return false;
   for (const o of obstNear(x, z)) if (Math.hypot(o.x - x, o.z - z) < r + o.r) return false;
   if (type !== 'pump' && type !== 'generator') { let mn = 1e9, mxh = -1e9; for (const p of [[0, 0], [r, r], [-r, r], [r, -r], [-r, -r]]) { const h = heightAt(x + p[0], z + p[1]); mn = Math.min(mn, h); mxh = Math.max(mxh, h); } if (mxh - mn > 3.2) return false; }
@@ -2293,9 +2299,9 @@ function setupEnemy() {
       // square perimeter wall with a gate in the middle of each side
       const WR = 25;
       for (const g of [0, Math.PI / 2, Math.PI, Math.PI * 1.5]) { const nx = Math.sin(g), nz = Math.cos(g), tx = Math.cos(g), tz = -Math.sin(g);
-        for (let t = -22.5; t <= 22.5; t += 5) { if (Math.abs(t) < 5) continue; createBuilding(1, 'wall', nx * WR + tx * t, nz * WR + tz * t, true, g, 3); }
+        for (let t = -22.5; t <= 22.5; t += 5) { if (Math.abs(t) < 5) continue; const x = nx * WR + tx * t, z = nz * WR + tz * t;
+          if (Math.abs(t) === 17.5) o.towers.push(createBuilding(1, t > 0 ? 'd_hard_laser' : 'd_hard_rockets', x, z, true, g, 3)); else createBuilding(1, 'wall', x, z, true, g, 3); }   // hardpoints built into the wall
         createBuilding(1, 'wall', nx * WR + tx * 25, nz * WR + tz * 25, true, g, 3); }   // corner blocks
-      for (let i = 0; i < T.towers; i++) { const a = i / T.towers * TAU + 0.2; o.towers.push(createBuilding(1, i % 2 ? 'd_hard_laser' : 'd_hard_rockets', Math.sin(a) * 20, Math.cos(a) * 20, true, a, 3)); }
       for (const a of [Math.PI / 4, -Math.PI / 4]) o.towers.push(createBuilding(1, 'd_fort_laser', Math.sin(a) * 42, Math.cos(a) * 42, true, a, 3));
       for (let i = 0; i < 4; i++) { const a = i / 4 * TAU; o.towers.push(createBuilding(1, 'd_bunker_laser', Math.sin(a) * 31, Math.cos(a) * 31, true, a, 3)); }
       for (const w of WELLS) if (Math.hypot(w.x, w.z) < 20) createBuilding(1, 'generator', w.x, w.z, true, null, 3);
@@ -2428,8 +2434,9 @@ function startPlacing(type) {
 }
 function movePlacing(x, z) {
   const p = placing; if (p.type === 'pump' || p.type === 'generator') { const w = WELLS.find(w => Math.hypot(w.x - x, w.z - z) < 6); if (w) { x = w.x; z = w.z; } }
+  const wl = wallFor(p.type, x, z, 0, 4); if (wl) { x = wl.x; z = wl.z; }
   p.x = x; p.z = z; p.valid = canPlace(p.type, x, z, 0);
-  p.ghost.position.set(x, (p.type === 'pump' || p.type === 'generator') ? heightAt(x, z) : bldY(x, z, BD[p.type].size), z); p.ghost.rotation.y = Math.round(Math.atan2(-x, -z) / (Math.PI / 2)) * (Math.PI / 2);
+  p.ghost.position.set(x, (p.type === 'pump' || p.type === 'generator') ? heightAt(x, z) : bldY(x, z, BD[p.type].size), z); p.ghost.rotation.y = wl ? wl.rot : Math.round(Math.atan2(-x, -z) / (Math.PI / 2)) * (Math.PI / 2);
   ghostMat.color.setHex(p.valid ? 0x60ff60 : 0xff4040); panelSig = '';
 }
 function confirmPlacing() {

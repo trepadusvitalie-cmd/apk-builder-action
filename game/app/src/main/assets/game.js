@@ -481,6 +481,10 @@ const WP = {
   flame: { name: 'Aruncător de flăcări', dmg: 10, rof: 0.16, range: 8, cost: 50, kind: 'flame' },
   laser: { name: 'Laser', dmg: 22, rof: 0.55, range: 17, cost: 80, kind: 'laser' },
   rockets: { name: 'Rachete', dmg: 30, rof: 2.4, range: 18, cost: 60, kind: 'rocket', splash: 2.8 },
+  aamg: { name: 'Mitralieră antiaeriană', dmg: 9, rof: 0.12, range: 30, cost: 40, kind: 'mg', aa: 1, fam: 'mg', needs: 'mg' },
+  aacannon: { name: 'Tun antiaerian', dmg: 34, rof: 0.9, range: 38, cost: 70, kind: 'shell', aa: 1, fam: 'cannon', needs: 'cannon' },
+  sam: { name: 'Rachete sol-aer', dmg: 70, rof: 2.6, range: 46, cost: 90, kind: 'rocket', splash: 1.5, aa: 1, fam: 'rockets', needs: 'rockets' },
+  aalaser: { name: 'Laser antiaerian', dmg: 30, rof: 0.55, range: 42, cost: 110, kind: 'laser', aa: 1, fam: 'laser', needs: 'laser' },
   viper: { name: 'Rachete Viperă', dmg: 62, rof: 3.4, range: 22, cost: 115, kind: 'rocket', splash: 2.4, heavy: true, fam: 'rockets' },
   bomb: { name: 'Bombe aeriene', dmg: 150, rof: 0.45, range: 5, cost: 45, kind: 'bomb', splash: 4.5 },
   fbomb: { name: 'Bombe incendiare', dmg: 70, rof: 0.45, range: 5, cost: 60, kind: 'bomb', splash: 5.5, fire: 30 },
@@ -512,7 +516,7 @@ const BD = {
   airfactory: { name: 'Fabrică de aeronave', short: 'Fabr. aeronave', icon: '', hp: 1000, cost: 280, size: 8, time: 40, h: 5, req: 'drone' },
   cybfactory: { name: 'Fabrică de cyborgi', short: 'Fabr. cyborgi', icon: '', hp: 900, cost: 180, size: 6, time: 30, h: 4.5, req: 'cyborg' },
   vpad: { name: 'Platformă de realimentare', short: 'Platformă VTOL', icon: '', hp: 450, cost: 70, size: 4, time: 12, h: 0.5, req: 'vtol', flat: 1 },
-  radartower: { name: 'Turn radar', icon: '', hp: 600, cost: 140, size: 3.5, time: 20, h: 7, req: null },
+  radartower: { name: 'Turn radar', icon: '', hp: 600, cost: 140, size: 3.5, time: 20, h: 6, req: null },
   citadel: { name: 'CETATEA', icon: '🏰', hp: 6000, cost: 0, size: 10, time: 1, h: 9 },
   wall: { name: 'Zid', icon: '🧱', hp: 1400, cost: 0, size: 5, time: 1, h: 3, r: 2.7 },
 };
@@ -522,12 +526,13 @@ const DCLASS = {
   bunker: { name: 'Buncăr', hp: 1300, cost: 110, size: 3.4, time: 22, h: 2, ty: 0.72, ts: 1.15, rb: -1, dm: 1.25, req: 'bunker', wps: ['mg', 'cannon', 'flame', 'laser'] },
   hard: { name: 'Fortificație', hp: 1700, cost: 170, size: 3.8, time: 28, h: 3.8, ty: 3.5, ts: 1.15, rb: 3, dm: 1.6, req: 'hardpoint', wps: ['mg', 'cannon', 'flame', 'rockets', 'laser'] },
   fort: { name: 'Fortăreață', hp: 5200, cost: 560, size: 8, time: 70, h: 6, ty: 5.6, ts: 1.9, rb: 6, dm: 3.6, req: 'fortress', wps: ['cannon', 'rockets', 'laser'] },
+  aa: { name: 'Antiaeriană (PVO)', hp: 900, cost: 100, size: 3.4, time: 20, h: 2.6, ty: 1.05, ts: 1.2, rb: 2, dm: 1.3, req: null, wps: ['aamg', 'aacannon', 'sam', 'aalaser'] },
   pit: { name: 'Amplasament', hp: 700, cost: 80, size: 3.6, time: 18, h: 1.5, ty: 0.75, ts: 1.1, rb: 0, dm: 1.4, req: null, wps: ['mortar', 'imortar', 'empmortar', 'salvo', 'howitzer', 'ihowitzer', 'rhowitzer', 'hhowitzer', 'plasma', 'ballistic', 'rbattery', 'smissile', 'omissile'] },
 };
 const IMP_SND = { mortar: 'imp_mortar', rmortar: 'imp_mortar', imortar: 'imp_inc', ihowitzer: 'imp_inc', empmortar: 'imp_salvo', salvo: 'imp_salvo', howitzer: 'imp_how', rhowitzer: 'imp_how', hhowitzer: 'imp_hhow', ballistic: 'imp_hhow', plasma: 'imp_plasma', rbattery: 'imp_salvo', smissile: 'imp_rocket', omissile: 'imp_hhow' };
 const ART_SND = { mortar: 'art_mortar', imortar: 'art_inc', empmortar: 'art_emp', rmortar: 'art_rmortar', salvo: 'art_salvo', howitzer: 'art_how', ihowitzer: 'art_inc', rhowitzer: 'art_rhow', hhowitzer: 'art_hhow', plasma: 'art_plasma', ballistic: 'art_ball', rbattery: 'art_salvo', smissile: 'art_salvo', omissile: 'art_ball' };
 const ART_W = ['mortar', 'imortar', 'empmortar', 'salvo', 'howitzer', 'ihowitzer', 'rhowitzer', 'hhowitzer', 'plasma', 'ballistic'];
-const WSHORT = { mg: 'mitralieră', cannon: 'tun', flame: 'flăcări', rockets: 'rachete', viper: 'rachete Viperă', rbattery: 'baterie Tunet', smissile: 'rachete Săgeată', omissile: 'rachetă Orizont', laser: 'laser', mortar: 'mortier', imortar: 'mortier incendiar', empmortar: 'mortier IEM', salvo: 'salve', howitzer: 'obuzier', ihowitzer: 'obuzier incendiar', rhowitzer: 'obuzier rapid', hhowitzer: 'obuzier greu', plasma: 'plasmă', ballistic: 'rachetă balistică' };
+const WSHORT = { aamg: 'mitralieră AA', aacannon: 'tun AA', sam: 'rachete sol-aer', aalaser: 'laser AA', mg: 'mitralieră', cannon: 'tun', flame: 'flăcări', rockets: 'rachete', viper: 'rachete Viperă', rbattery: 'baterie Tunet', smissile: 'rachete Săgeată', omissile: 'rachetă Orizont', laser: 'laser', mortar: 'mortier', imortar: 'mortier incendiar', empmortar: 'mortier IEM', salvo: 'salve', howitzer: 'obuzier', ihowitzer: 'obuzier incendiar', rhowitzer: 'obuzier rapid', hhowitzer: 'obuzier greu', plasma: 'plasmă', ballistic: 'rachetă balistică' };
 for (const [ck, c] of Object.entries(DCLASS)) for (const w of c.wps) BD['d_' + ck + '_' + w] = { short: WSHORT[w][0].toUpperCase() + WSHORT[w].slice(1), name: `${c.name} ${WSHORT[w]}`, icon: '', hp: c.hp, cost: c.cost + (WP[w].site ? Math.round(WP[w].cost * 0.8) : 0), size: c.size, time: c.time, h: c.h, tw: w, cls: ck, req: c.req, ty: c.ty, ts: c.ts, rb: c.rb, dm: c.dm };
 // enemy technology tiers: 0 = outer ring (weak) … 3 = citadel (latest technology)
 const TIERS = [
@@ -726,7 +731,7 @@ const facFor = d => d.pr === 'legs' ? 'cybfactory' : PR[d.pr] && PR[d.pr].air ? 
 function validDesign(d) { const c = CH[d.ch], p = PR[d.pr]; if (!c || !p || !WP[d.wp]) return false;
   if (c.only ? c.only !== d.pr : (d.pr === 'legs' || d.pr === 'rotor')) return false;
   if (d.pr === 'legs') return CYB_WP.includes(d.wp); if (d.pr === 'rotor') return DRONE_WP.includes(d.wp); if (d.pr === 'vtol') return VTOL_WP.includes(d.wp); return WP[d.wp].kind !== 'bomb'; }
-const canHitAir = w => !w.art && ['mg', 'rocket', 'laser'].includes(w.kind); // like classic RTS: cannons, flamers and artillery cannot hit aircraft in flight
+const canHitAir = w => !!w.aa || (!w.art && ['mg', 'rocket', 'laser'].includes(w.kind)); // like classic RTS: cannons, flamers and artillery cannot hit aircraft in flight
 const flying = e => !!(e.air && e.alt > 1.5);
 function mkTeam(i) { return { i, energy: 500, tech: new Set(['light', 'wheels', 'mg', 'truck']), researching: new Set(), hpMul: 1, spdMul: 1, prodMul: 1, shpMul: 1, powMul: 1, rsMul: 1, dmg: {}, rof: {}, units: 0, inc: 0 }; }
 const TEAMS = [mkTeam(0), mkTeam(1)];
@@ -918,12 +923,12 @@ function unitGeo(d, team) {
     TC.box(1.27 * s, 0.05 * s, 0.9 * s, 0, 0.3 * s, -0.1 * s, T.acc); // team band
     // gun: mantlet, barrel with thermal sleeve, fume extractor, muzzle reference
     TC.box(0.42 * s, 0.3 * s, 0.25 * s, 0, 0.22 * s, 0.86 * s, T.dark);
-    TC.add(G.cyl16, 0.085 * s, 2.6 * s, 0.085 * s, 0, 0.24 * s, 2.25 * s, 0x2e3128, Math.PI / 2, 0, 0);
-    TC.add(G.cyl16, 0.11 * s, 0.7 * s, 0.11 * s, 0, 0.24 * s, 1.35 * s, T.dark, Math.PI / 2, 0, 0);
-    TC.add(G.cyl16, 0.14 * s, 0.32 * s, 0.14 * s, 0, 0.24 * s, 2.0 * s, T.dark, Math.PI / 2, 0, 0);
-    TC.add(G.cyl16, 0.1 * s, 0.6 * s, 0.1 * s, 0, 0.24 * s, 2.6 * s, T.dark, Math.PI / 2, 0, 0);
-    TC.add(G.cyl16, 0.1 * s, 0.12 * s, 0.1 * s, 0, 0.24 * s, 3.5 * s, 0x1a1a1a, Math.PI / 2, 0, 0);
-    TC.box(0.08 * s, 0.07 * s, 0.1 * s, 0, 0.35 * s, 3.45 * s, 0x1a1a1a);
+    TC.add(G.cyl16, 0.085 * s, 1.0 * s, 0.085 * s, 0, 0.24 * s, 1.45 * s, 0x2e3128, Math.PI / 2, 0, 0);   // barrel, muzzle about level with the hull front
+    TC.add(G.cyl16, 0.11 * s, 0.4 * s, 0.11 * s, 0, 0.24 * s, 1.15 * s, T.dark, Math.PI / 2, 0, 0);
+    TC.add(G.cyl16, 0.14 * s, 0.22 * s, 0.14 * s, 0, 0.24 * s, 1.42 * s, T.dark, Math.PI / 2, 0, 0);
+    TC.add(G.cyl16, 0.1 * s, 0.28 * s, 0.1 * s, 0, 0.24 * s, 1.68 * s, T.dark, Math.PI / 2, 0, 0);
+    TC.add(G.cyl16, 0.1 * s, 0.1 * s, 0.1 * s, 0, 0.24 * s, 1.97 * s, 0x1a1a1a, Math.PI / 2, 0, 0);
+    TC.box(0.08 * s, 0.07 * s, 0.1 * s, 0, 0.35 * s, 1.9 * s, 0x1a1a1a);
     // sights, cupola, smoke dischargers, antenna
     TC.box(0.26 * s, 0.22 * s, 0.24 * s, 0.32 * s, 0.58 * s, -0.2 * s, T.dark); TC.box(0.2 * s, 0.12 * s, 0.03 * s, 0.32 * s, 0.6 * s, -0.07 * s, 0x3fb0ff);
     TC.box(0.24 * s, 0.18 * s, 0.22 * s, -0.36 * s, 0.53 * s, 0.25 * s, T.dark); TC.box(0.18 * s, 0.1 * s, 0.03 * s, -0.36 * s, 0.55 * s, 0.37 * s, 0x3fb0ff);
@@ -1061,6 +1066,23 @@ function unitGeo(d, team) {
     for (let k = 0; k < 3; k++) tb.add(G.cyl16, 0.16 * s, 0.08 * s, 0.16 * s, 0, 0.3 * s, 0.55 * s + k * 0.45 * s, 0xffd84a, Math.PI / 2, 0, 0);
     tb.add(G.sph, 0.13 * s, 0.13 * s, 0.13 * s, 0, 0.3 * s, 2.15 * s, 0xfff2a0);
     for (const sx of [-1, 1]) { tb.box(0.18 * s, 0.24 * s, 0.5 * s, sx * 0.5 * s, 0.22 * s, -0.25 * s, T.dark); tb.box(0.04 * s, 0.16 * s, 0.4 * s, sx * 0.6 * s, 0.22 * s, -0.25 * s, 0x66e0ff); }
+  } else if (WP[d.wp].aa) { // anti-aircraft mounts: everything points up at the sky
+    const e = 0.8, ce = Math.cos(e), se = Math.sin(e), up = (L, x, y, z) => [x, y + se * L / 2, z + ce * L / 2];
+    tb.add(G.cyl16, 0.62 * s, 0.18 * s, 0.62 * s, 0, 0.09 * s, 0, T.dark); tb.add(G.cyl16, 0.64 * s, 0.05 * s, 0.64 * s, 0, 0.2 * s, 0, T.acc);
+    for (const sx of [-1, 1]) tb.box(0.12 * s, 0.6 * s, 0.5 * s, sx * 0.42 * s, 0.45 * s, 0, T.body);                          // trunnion cheeks
+    if (d.wp === 'aamg') { tb.box(0.5 * s, 0.32 * s, 0.5 * s, 0, 0.5 * s, 0, T.dark, -e, 0, 0);
+      for (const ox of [-0.13, 0.13]) for (const oy of [-0.1, 0.1]) { const [x, y, z] = up(1.4 * s, ox * s, 0.5 * s + oy * s, 0.1 * s); tb.add(G.cyl10, 0.035 * s, 1.4 * s, 0.035 * s, x, y, z, 0x2a2a28, Math.PI / 2 - e, 0, 0); }
+      tb.box(0.08 * s, 0.4 * s, 0.4 * s, 0.32 * s, 0.4 * s, -0.25 * s, 0x6a5a3a); }                                               // ammo box
+    else if (d.wp === 'aacannon') { tb.box(0.62 * s, 0.4 * s, 0.7 * s, 0, 0.55 * s, -0.05 * s, T.body, -e, 0, 0);
+      for (const ox of [-0.16, 0.16]) { const [x, y, z] = up(2.1 * s, ox * s, 0.6 * s, 0.15 * s); tb.add(G.cyl16, 0.06 * s, 2.1 * s, 0.06 * s, x, y, z, 0x2e3128, Math.PI / 2 - e, 0, 0);
+        const [x2, y2, z2] = up(4.0 * s, ox * s, 0.6 * s, 0.15 * s); tb.add(G.cyl16, 0.085 * s, 0.22 * s, 0.085 * s, x2, y2 - se * 0.95 * s, z2 - ce * 0.95 * s, 0x1a1a1a, Math.PI / 2 - e, 0, 0); } }
+    else if (d.wp === 'sam') { const [x, y, z] = up(1.5 * s, 0, 0.65 * s, -0.3 * s); tb.box(0.9 * s, 0.7 * s, 1.5 * s, x, y, z, T.body, -e, 0, 0); tb.camo(0.92 * s, 0.72 * s, 1.5 * s, x, y, z, -e, 6);
+      for (const ox of [-0.22, 0.22]) for (const oy of [-0.17, 0.17]) { const [a, b2, c] = up(3.0 * s, ox * s, 0.65 * s + oy * s, -0.3 * s); tb.add(G.cyl16, 0.12 * s, 0.04 * s, 0.12 * s, a, b2, c, 0x111111, Math.PI / 2 - e, 0, 0);
+        const [a2, b3, c2] = up(3.06 * s, ox * s, 0.65 * s + oy * s, -0.3 * s); tb.add(G.cone, 0.08 * s, 0.12 * s, 0.08 * s, a2, b3, c2, 0xe8e8e8, Math.PI / 2 - e, 0, 0); } }
+    else { const [x, y, z] = up(1.8 * s, 0, 0.6 * s, 0.05 * s); tb.add(G.cyl16, 0.09 * s, 1.8 * s, 0.09 * s, x, y, z, 0x34343a, Math.PI / 2 - e, 0, 0);
+      tb.add(G.dome, 0.4 * s, 0.4 * s, 0.4 * s, 0, 0.45 * s, 0, T.body);
+      for (let k = 0; k < 3; k++) { const [a, b2, c] = up((0.6 + k * 0.5) * s, 0, 0.6 * s, 0.05 * s); tb.add(G.cyl16, 0.15 * s, 0.07 * s, 0.15 * s, a, b2, c, 0xffd84a, Math.PI / 2 - e, 0, 0); }
+      const [a3, b4, c3] = up(3.6 * s, 0, 0.6 * s, 0.05 * s); tb.add(G.sph, 0.12 * s, 0.12 * s, 0.12 * s, a3, b4, c3, 0xfff2a0); }
   } else if (d.wp === 'radar') {
     tb.add(G.cyl16, 0.42 * s, 0.22 * s, 0.42 * s, 0, 0.11 * s, 0, T.dark); tb.add(G.cyl16, 0.44 * s, 0.05 * s, 0.44 * s, 0, 0.22 * s, 0, T.acc);
     tb.add(G.cyl10, 0.07 * s, 0.9 * s, 0.07 * s, 0, 0.65 * s, 0, 0x3a3a36);
@@ -1235,13 +1257,15 @@ function bldGeo(type, team) {
       break; }
     case 'radartower':
       B.box(3.6, 1.2, 3.6, 0, -0.3, 0, conc); B.box(2.4, 1.6, 2.4, 0, 0.9, 0, T.body); B.box(2.5, 0.25, 2.5, 0, 1.75, 0, T.acc);
-      for (const sx of [-1, 1]) for (const sz of [-1, 1]) B.box(0.18, 5.2, 0.18, sx * 0.8, 4.3, sz * 0.8, 0x6a6a64, sz * 0.08, 0, -sx * 0.08);
-      for (let k = 0; k < 5; k++) { const y = 2.2 + k * 1.0, w = 1.6 - k * 0.12; B.box(w, 0.08, 0.08, 0, y, 0.8 - k * 0.04, 0x6a6a64); B.box(w, 0.08, 0.08, 0, y, -0.8 + k * 0.04, 0x6a6a64); B.box(0.08, 0.08, w, 0.8 - k * 0.04, y, 0, 0x6a6a64); B.box(0.08, 0.08, w, -0.8 + k * 0.04, y, 0, 0x6a6a64); }
-      B.box(1.4, 0.3, 1.4, 0, 6.9, 0, T.dark);
+      B.add(G.cyl16, 0.35, 0.5, 0.35, 0, 2.1, 0, 0x6a6a64); B.box(1.2, 0.2, 1.2, 0, 2.35, 0, T.dark);   // short pedestal for the rotating antenna
       { const d = new Builder(); d.box(2.6, 1.2, 0.15, 0, 0.6, 0, 0x2f4a2a, -0.25, 0, 0); d.box(2.4, 1.0, 0.06, 0, 0.6, 0.08, 0x5fd04a, -0.25, 0, 0); for (let k = -3; k <= 3; k++) d.box(0.04, 1.0, 0.08, k * 0.32, 0.6, 0.1, 0x1f3a1c, -0.25, 0, 0); d.box(0.3, 0.4, 0.3, 0, 0.1, -0.2, 0x333333); d.add(G.sph, 0.1, 0.1, 0.1, 1.3, 1.3, 0, 0xff3020); anim.dish = d.build(); }
       break;
     case 'ptrap': czech(B, -0.6, -0.4, 0, 0.3); czech(B, 0.7, -0.4, 0.4, 1.1); B.box(2.2, 0.2, 2.2, 0, -0.3, 0, 0x6a6458); break;
     case 'pwall': return bldGeo('wall', team);
+    case 'cls_aa':
+      B.add(G.cyl16, 2.3, 0.35, 2.3, 0, 0.0, 0, conc2); B.add(G.cyl16, 2.0, 0.6, 2.0, 0, 0.45, 0, conc); B.add(G.cyl16, 1.6, 0.62, 1.6, 0, 0.47, 0, 0x4a4a44);
+      B.add(G.cyl16, 2.03, 0.1, 2.03, 0, 0.5, 0, T.acc); for (let k = 0; k < 10; k++) { const a = k / 10 * TAU; B.add(G.sph, 0.45, 0.28, 0.3, Math.sin(a) * 2.25, 0.85, Math.cos(a) * 2.25, 0x9a8a62, 0, a, 0); }
+      B.box(0.6, 0.5, 0.35, 0, 0.3, -2.25, 0x2a2a28); break;
     case 'cls_bunker':
       // round concrete pillbox: thick wall, a dark firing slit all the way round, overhanging roof slab, rear door
       B.add(G.cyl16, 2.25, 0.3, 2.25, 0, 0.05, 0, conc2);                  // footing
@@ -1353,7 +1377,7 @@ function makeBldMesh(type, team) { // team = colour palette index
   if (type === 'pump') { const b = new THREE.Mesh(g.anim.beam, matVC); b.position.set(0, 3.55, 0); grp.add(b); parts.beam = b; }
   if (type === 'silo') { for (const sd of [-1, 1]) { const l = new THREE.Mesh(g.anim.lid, matVC); l.position.set(sd * 1.45, 0.5, 0); l.scale.x = sd; l.castShadow = true; grp.add(l); parts[sd < 0 ? 'lidL' : 'lidR'] = l; }
     const L = 9; const m = new THREE.Mesh(missileGeo('icbm'), matVC); m.rotation.x = -Math.PI / 2; m.scale.setScalar(L); m.position.y = -L * 0.62; grp.add(m); parts.msl = m; parts.mslL = L; }
-  if (type === 'radartower') { const d = new THREE.Mesh(g.anim.dish, matVC); d.position.set(0, 7.05, 0); grp.add(d); parts.dish = d; }
+  if (type === 'radartower') { const d = new THREE.Mesh(g.anim.dish, matVC); d.position.set(0, 2.4, 0); d.scale.setScalar(3); grp.add(d); parts.dish = d; }
   if (type === 'tower' || BD[type].tw) {
     const t = new THREE.Group(); t.position.y = BD[type].ty || 3.3; t.scale.setScalar(BD[type].ts || 1); grp.add(t);
     parts.wl = BD[type].tw ? [BD[type].tw] : ['mg', 'cannon', 'rockets', 'laser'];
@@ -1686,8 +1710,8 @@ function updSpot(dt) { spotT -= dt; if (spotT > 0) return; spotT = 0.5;
     SPOT[t] = out; } }
 function nearestSpotted(team, x, z, range) { let best = null, bd = 1e9; for (const e of SPOT[team] || []) { if (!e.alive || flying(e)) continue; const d = Math.hypot(e.x - x, e.z - z) - e.r; if (d < range && d < bd) { bd = d; best = e; } } return best; }
 function nearestEnemy(team, x, z, range, w) {
-  let best = null, bd = 1e9; const na = w && !canHitAir(w);
-  for (const e of ents) { if (!e.alive || e.team === team || (na && flying(e))) continue; const d = Math.hypot(e.x - x, e.z - z) - e.r; if (d > range) continue; const s = d + (e.kind === 'bld' ? 5 : 0); if (s < bd) { bd = s; best = e; } }
+  let best = null, bd = 1e9; const na = w && !canHitAir(w), ao = w && w.aa;
+  for (const e of ents) { if (!e.alive || e.team === team || (na && flying(e)) || (ao && !flying(e))) continue; const d = Math.hypot(e.x - x, e.z - z) - e.r; if (d > range) continue; const s = d + (e.kind === 'bld' ? 5 : 0); if (s < bd) { bd = s; best = e; } }
   return best;
 }
 function inRange(u, t, extra) { return Math.hypot(t.x - u.x, t.z - u.z) - t.r <= u.st.range * (u.rb || 1) + (extra || 0); }
@@ -1927,7 +1951,7 @@ function updUnit(u, dt) {
     u.cd -= dt;
     if (inRange(u, t, 0.5) && Math.abs(angDiff(u.turYaw, local)) < 0.25 && u.cd <= 0) {
       const wy = u.heading + u.turYaw; const s = CH[u.d.ch].size;
-      const ml = (w.kind === 'shell' ? 3.9 : w.kind === 'laser' ? 2.3 : w.kind === 'flame' ? 1.5 : w.kind === 'mortar' ? (w.art === 'how' ? 2.2 : 1.2) : 1.6) * s; fireWeapon(u, t, w, u.x + Math.sin(wy) * ml, u.y + u.h - 0.3, u.z + Math.cos(wy) * ml, u.rb > 1.3 ? 1.25 : u.rb > 1 ? 1.15 : 1);
+      const ml = (w.kind === 'shell' ? 2.2 : w.kind === 'laser' ? 2.3 : w.kind === 'flame' ? 1.5 : w.kind === 'mortar' ? (w.art === 'how' ? 2.2 : 1.2) : 1.6) * s; fireWeapon(u, t, w, u.x + Math.sin(wy) * ml, u.y + u.h - 0.3, u.z + Math.cos(wy) * ml, u.rb > 1.3 ? 1.25 : u.rb > 1 ? 1.15 : 1);
       u.cd = u.cdMax = w.rof * srand(0.9, 1.1) * (TEAMS[u.team].rof[wfam(w)] || 1);
     }
   } else if ((!u.isTruck || u.state !== 'build') && w.kind !== 'radar' && !(w.kind === 'repair' && u.heal)) { u.cd = Math.max(0, u.cd - dt); u.turYaw += clamp(angDiff(u.turYaw, 0), -2 * dt, 2 * dt); }
@@ -1985,7 +2009,7 @@ function updBld(b, dt) {
   if (!b.complete) { b.mesh.scale.y = 0.12 + 0.88 * b.built; return; }
   b.anim += dt; const T = TEAMS[b.team];
   if (b.parts.beam) { b.parts.beam.rotation.x = Math.sin(b.anim * 2.2) * 0.35; if (Math.random() < dt * 0.8) fx('smoke', b.x, b.y + 4, b.z, 0.4); }
-  if (b.parts.dish) b.parts.dish.rotation.y += dt * 0.8;
+  if (b.parts.dish) b.parts.dish.rotation.y += dt * (b.type === 'radartower' ? 1.4 : 0.8);
   if (b.type === 'generator') {
     b.parts.fan.rotation.y += dt * 9; b.parts.glow.visible = Math.sin(b.anim * 6) > -0.6;
     if (Math.random() < dt * 3) { for (const [lx, lz] of [[1.6, -1.4], [-1.7, -1.7]]) { const [wx, wz] = localToWorld(b, lx, lz); fx('steam', wx, b.y + 4.8, wz, 1); } }
@@ -2389,7 +2413,7 @@ function buildMenu(T) {
   } else {
     const cls = Object.keys(DCLASS).filter(c => !DCLASS[c].req || T.tech.has(DCLASS[c].req)); if (!cls.includes(defCls)) defCls = 'tower';
     h += `<div class="chips">${cls.map(c => `<button data-act="dcls" data-v="${c}" class="${defCls === c ? 'on' : ''}">${DCLASS[c].name}</button>`).join('')}</div>`;
-    const ws = DCLASS[defCls].wps.filter(w => w === 'mg' || T.tech.has(w));
+    const ws = DCLASS[defCls].wps.filter(w => { const n = WP[w].needs || w; return n === 'mg' || T.tech.has(n); });
     h += `<div class="grid">${defCls === 'tower' ? bdBtn('tower') : ''}${ws.filter(w => !(defCls === 'tower' && (w === 'mg' || w === 'cannon'))).map(w => bdBtn('d_' + defCls + '_' + w)).join('')}${T.tech.has('traps') ? bdBtn('ptrap') + bdBtn('pwall') : ''}</div>`;
     if (!ws.length) h += `<div class="hint">Cercetează mai întâi o armă potrivită (ex.: Mortier pentru amplasamente).</div>`;
   }
@@ -2605,7 +2629,7 @@ function unitModel(d, pal) {
 let icons3dDone = false;
 function make3DIcons() {
   if (icons3dDone) return; icons3dDone = true;
-  let r = null; const D = {};
+  let r = null, sc3, cam3, box3, c3, sz3, dir3; const D = {};
   try {
     const S = 112, cv = document.createElement('canvas'); cv.width = cv.height = S;
     r = new THREE.WebGLRenderer({ canvas: cv, antialias: true, alpha: true, preserveDrawingBuffer: true }); r.setPixelRatio(1); r.setSize(S, S, false);
@@ -2616,6 +2640,7 @@ function make3DIcons() {
     const rim = new THREE.DirectionalLight(0x9fdcff, 1.4); rim.position.set(6, 3, -5); sc.add(rim);
     const cam = new THREE.PerspectiveCamera(28, 1, 0.05, 400), box = new THREE.Box3(), c = new THREE.Vector3(), sz = new THREE.Vector3();
     const dir = new THREE.Vector3(1, 0.8, 1.25).normalize();
+    sc3 = sc; cam3 = cam; box3 = box; c3 = c; sz3 = sz; dir3 = dir;
     const BASE3 = { mg: 'mg', cannon: 'cannon', flame: 'flame', rockets: 'rockets', laser: 'laser', art: 'howitzer', armor: 'armor', hardpoint: 'hardpoint', prod: 'prod', engine: 'engine', power: '_gen', rspeed: '_lab' }, redBase = new Set(Object.values(BASE3));
     const jobs = []; for (const [id, spec] of Object.entries(ICON3D)) { const adv = (RS_DEPTH[id] || 0) >= 4; jobs.push([id, spec, adv]); if (!adv && redBase.has(id)) jobs.push([id + '#r', spec, true]); }
     for (const [id, spec, adv] of jobs) {
@@ -2631,6 +2656,12 @@ function make3DIcons() {
       } catch (e) { }
     }
   } catch (e) { }
+  // every building (base and defences) gets a 3D picture for the construction menus
+  try { if (r) for (const k in BD) { if (k === 'wall' || k === 'citadel') continue; const m = makeBldMesh(k, ICON_PAL); const grp = m.grp;
+      if (m.parts.wl) { const wk = BD[k].tw || 'cannon'; for (const w of m.parts.wl) m.parts[w].visible = w === wk; }
+      grp.rotation.y = -0.35; sc3.add(grp); grp.updateMatrixWorld(true); box3.setFromObject(grp); box3.getCenter(c3); box3.getSize(sz3);
+      cam3.position.copy(c3).addScaledVector(dir3, sz3.length() * 0.5 / Math.sin(cam3.fov * Math.PI / 360) * 0.92); cam3.lookAt(c3);
+      r.render(sc3, cam3); UIC[k] = `<img class="ui r3d" alt="" src="${r.domElement.toDataURL('image/png')}">`; sc3.remove(grp); } } catch (e) { }
   if (r) { r.dispose(); try { r.forceContextLoss(); } catch (e) { } }
   // upgrade lines (Mk I-IV) reuse the rendered picture of what they improve, with the same badge as before
   const BASE3 = { mg: 'mg', cannon: 'cannon', flame: 'flame', rockets: 'rockets', laser: 'laser', art: 'howitzer', armor: 'armor', hardpoint: 'hardpoint', prod: 'prod', engine: 'engine', power: '_gen', rspeed: '_lab' };

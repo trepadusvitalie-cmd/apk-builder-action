@@ -423,3 +423,6 @@ img.ric.r3d { object-fit: contain; filter: drop-shadow(0 1px 2px #000b); }
 #panel .rcard .rn { font-size: 8px; -webkit-line-clamp: 1; display: block; white-space: nowrap; text-overflow: ellipsis; max-width: 100%; }
 #panel .rcard .rm { font-size: 7px; }
 #panel .labs .labsh { font-size: 9.5px; margin: 0 0 3px; }
+img.ui { width: 18px; height: 18px; flex: none; vertical-align: -4px; object-fit: contain; filter: drop-shadow(0 1px 1px #000a); }
+.ph img.ui { width: 20px; height: 20px; }
+.grid button img.ui { width: 34px; height: 34px; margin: -3px 0 -2px; }

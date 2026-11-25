@@ -435,3 +435,11 @@ img.ui { width: 18px; height: 18px; flex: none; vertical-align: -4px; object-fit
 #langPick .lps { color: #cfc6ae; font-size: 16px; margin-bottom: 6px; }
 #langPick button { font-size: 20px; padding: 12px; border-radius: 10px; border: 1px solid #8a7a4a; background: linear-gradient(180deg, #4a4f3c, #2a2d22); color: #f1e6cc; }
 #langPick button:active { background: #6b5a26; }
+
+/* paid research packs */
+.rcard.paid { border-color: #c9a227; background: linear-gradient(180deg, rgba(90,74,24,.55), rgba(40,34,14,.7)); }
+.rcard.paid .rm { color: #ffd45a; font-weight: 700; }
+#buyBox .mbox { width: min(440px, 94vw); text-align: center; }
+#buyBox .buyl { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px; margin: 10px 0; }
+#buyBox .bi { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 12px; }
+#buyBox .bi .ric { width: 54px; height: 54px; }

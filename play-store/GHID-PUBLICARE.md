@@ -31,7 +31,7 @@ După asta, fiecare build produce `Ironfall2200.aab` semnat. Îl găsești în p
 
 - **Nume:** Ironfall 2200
 - **Limba implicită:** Română (adaugă și engleza).
-- **Tip:** Joc, Gratuit.
+- **Tip:** Joc, Gratuit (cu cumpărături în aplicație).
 - **Categorie:** Strategie.
 
 ### Descriere scurtă (max 80 de caractere)
@@ -50,7 +50,7 @@ Ironfall 2200 este un joc de strategie în timp real, într-un viitor pustiit.
 - Ataci inelele de forturi inamice până la cetatea din centrul hărții.
 - Ai 4 mărimi de hartă și generator de hărți noi.
 - Poți juca cooperativ cu până la 4 prieteni, prin codul camerei.
-- Fără reclame și fără cont.
+- Fără reclame și fără cont. Pachete opționale de tehnologii avansate.
 
 ### Full description (EN)
 
@@ -63,7 +63,7 @@ Ironfall 2200 is a real-time strategy game set in a ruined future.
 - Break through the rings of enemy forts to reach the central citadel.
 - Choose from four map sizes or generate new maps.
 - Play co-op with up to 4 friends using a room code.
-- No ads, no account.
+- No ads, no account. Optional advanced technology packs.
 
 ### Grafică (în dosarul `play-store/`)
 
@@ -112,3 +112,28 @@ Pași:
 - Numele „Ironfall 2200”, modelele 3D, pictogramele și sunetele sunt create în cod, pentru acest joc.
 - Nu se folosesc nume, logo-uri sau grafică din alte jocuri sau mărci.
 - Singura bibliotecă externă este three.js (licență MIT). Licența ei este inclusă în `three-LICENSE.txt`.
+
+## 7. Cumpărături în aplicație (pachetele de cercetare de 2 $)
+
+Jocul are 3 pachete plătite, fiecare cu o singură plată, pentru totdeauna:
+
+| ID produs (scrie-l exact așa) | Nume | Ce deblochează |
+|---|---|---|
+| `pack_air` | Aviație avansată | Aeronave VTOL, bombe aeriene, bombe incendiare, bombă grea |
+| `pack_artillery` | Artilerie cu bătaie lungă | Obuzier greu, lansator plasmă, rachetă balistică |
+| `pack_missiles` | Rachete cu bătaie lungă | Rachete Săgeată, Rachetă Orizont, siloz de rachete balistice |
+
+Pași în Play Console:
+
+1. Completează **Setup → Payments profile**: nume, adresă, IBAN, date fiscale. Fără el nu poți vinde.
+2. Urcă întâi un AAB, de exemplu pe un test intern. Butonul pentru produse apare abia după asta.
+3. Intră la **Monetize → Products → In-app products → Create product** și creează produsele:
+   - pentru fiecare dintre cele 3, ID-ul exact din tabel;
+   - numele și descrierea;
+   - prețul 2,00 USD (Google calculează singur prețul în alte monede);
+   - **Activate**.
+4. La **Setup → License testing** adaugă e-mailul tău. Așa poți cumpăra de test, fără să plătești.
+
+În joc, pachetele apar în laborator cu 🔒 și preț. Prețul afișat vine direct din Google Play.
+
+**Data safety:** plata e procesată de Google Play. Jocul nu primește și nu păstrează date de card. La „Financial info” poți răspunde că jocul nu colectează astfel de date.

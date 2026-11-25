@@ -627,9 +627,41 @@ for (let m = 1; m <= 3; m++) {
 // technology level at the start (T1 = from scratch … T4 = everything researched), for all sides
 const TL_DEPTH = [0, 2, 4, 99], TL_ENERGY = [500, 1000, 1600, 2500], TL_NAME = ['T1', 'T2', 'T3', 'T4'];
 const RS_DEPTH = {}; { const dep = id => { if (RS_DEPTH[id]) return RS_DEPTH[id]; const r = RS.find(x => x.id === id); return RS_DEPTH[id] = 1 + Math.max(0, ...(r ? r.req : []).map(dep)); }; RS.forEach(r => dep(r.id)); }
+// ---- paid research packs (Google Play one-time purchases, about 2 $ each) ----
+const PACKS = {
+  pack_air: { name: 'Aviație avansată', ids: ['vtol', 'bomb', 'fbomb', 'hbomb'] },
+  pack_artillery: { name: 'Artilerie cu bătaie lungă', ids: ['hhowitzer', 'plasma', 'ballistic'] },
+  pack_missiles: { name: 'Rachete cu bătaie lungă', ids: ['smissile', 'omissile', 'icbm'] },
+};
+const PAID = {}; for (const [k, p] of Object.entries(PACKS)) for (const id of p.ids) PAID[id] = k;
+const OWNED = new Set(), PRICES = {}; let billSig = 0;
+try { for (const k of JSON.parse(localStorage.getItem('ironfall.owned') || '[]')) if (PACKS[k]) OWNED.add(k); } catch (e) {}
+const paidLocked = id => PAID[id] && !OWNED.has(PAID[id]);
+window.IF_onBilling = (owned, prices, msg) => {
+  let fresh = false; for (const k of owned || []) if (PACKS[k] && !OWNED.has(k)) { OWNED.add(k); fresh = true; if (typeof toast === 'function') toast('🔓 ' + PACKS[k].name + ' — deblocat!'); }
+  Object.assign(PRICES, prices || {}); billSig++;
+  try { localStorage.setItem('ironfall.owned', JSON.stringify([...OWNED])); } catch (e) {}
+  if (msg === 'unavailable' && typeof toast === 'function') toast('Magazinul Google Play nu e disponibil acum. Încearcă mai târziu.');
+  if (msg === 'error' && typeof toast === 'function') toast('Plata nu a reușit. Încearcă din nou.');
+  if (typeof panelSig !== 'undefined') panelSig = '';
+};
+function openBuy(k) {   // what the pack contains, then Google Play's own payment sheet
+  const p = PACKS[k]; let m = document.getElementById('buyBox'); if (m) m.remove();
+  m = document.createElement('div'); m.id = 'buyBox'; m.className = 'modal';
+  m.innerHTML = `<div class="mbox"><h2>🔓 ${p.name}</h2><div class="buyl">${p.ids.map(id => { const r = RS.find(x => x.id === id); return `<div class="bi">${RICON[id]}<span>${r.name}</span></div>`; }).join('')}</div>
+    <div class="tiny">O singură plată, pentru totdeauna. Cercetarea rămâne apoi de făcut în laborator, ca de obicei.</div>
+    <div class="row"><button class="ok big" data-b="buy">Cumpără · ${PRICES[k] || '2 $'}</button><button data-b="no">Anulează</button></div></div>`;
+  m.addEventListener('click', ev => { const b = ev.target.closest('[data-b]'); if (!b && ev.target !== m) return; if (b && b.dataset.b === 'buy') buyPack(k); m.remove(); });
+  document.body.appendChild(m); sfx('click');
+}
+function buyPack(k) {
+  if (window.IFBilling && window.IFBilling.buy) window.IFBilling.buy(k);
+  else toast('Cumpărarea merge doar în aplicația instalată din Google Play');
+}
+setTimeout(() => { try { window.IFBilling && window.IFBilling.refresh(); } catch (e) {} }, 300);
 function applyTechLevel(tl) { tl = clamp(tl | 0, 0, 3); if (!tl) return;
   const ids = RS.filter(r => RS_DEPTH[r.id] <= TL_DEPTH[tl]).sort((a, b) => RS_DEPTH[a.id] - RS_DEPTH[b.id]).map(r => r.id);
-  for (let t = 0; t < TEAMS.length; t++) { TEAMS[t].energy = TL_ENERGY[tl]; for (const id of ids) finishResearch(t, id); } }
+  for (let t = 0; t < TEAMS.length; t++) { TEAMS[t].energy = TL_ENERGY[tl]; for (const id of ids) if (t === 1 || !PAID[id]) finishResearch(t, id); } }
 function scaleHp(team, k, kind) { for (const e of ents) if (e.alive && e.team === team && e.kind === kind) { const r = e.hp / e.maxHp; e.maxHp = Math.round(e.maxHp * k); e.hp = e.maxHp * r; } if (kind === 'unit') TEAMS[team].hpMul *= k; }
 const RICON = {
   cyborg: SV(`<circle cx="24" cy="9" r="5" fill="#71804e" stroke="#c9b48a" stroke-width="2"/><rect x="20" y="9" width="8" height="3" fill="#3f9fe0"/><path d="M16 16h16l-2 14H18z" fill="#71804e" stroke="#c9b48a" stroke-width="2"/><path d="M19 30l-3 14M29 30l3 14" stroke="#c9b48a" stroke-width="4"/><path d="M32 18l6 8h6" stroke="#3a3a36" stroke-width="3"/><path d="M16 18l-5 9" stroke="#c9b48a" stroke-width="3"/>`),
@@ -2453,7 +2485,7 @@ let toastT = 0;
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); toastT = 2.6; }
 function fmtTime(s) { s = Math.floor(s); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
 function computeSig() {
-  const T = TEAMS[0]; let s = (placing ? 'P' + placing.type + placing.valid : '') + '|' + sel.map(e => e.id).join(',') + '|' + T.tech.size + '|' + amoveNext + patrolNext + ordOpen + '|' + labCount() + '|' + sel.map(e => e.kind === 'unit' ? '' + e.fire + e.mvo + e.ret : '').join('');
+  const T = TEAMS[0]; let s = (placing ? 'P' + placing.type + placing.valid : '') + '|' + sel.map(e => e.id).join(',') + '|' + T.tech.size + '|' + amoveNext + patrolNext + ordOpen + '|' + labCount() + '|' + billSig + '|' + sel.map(e => e.kind === 'unit' ? '' + e.fire + e.mvo + e.ret : '').join('');
   for (const e of sel) if (e.kind === 'bld') s += `|${e.complete}|${e.queue.length}|${e.res ? e.res.id : ''}|${[...T.researching].join()}`;
   if (sel[0] && sel[0].type === 'lab') s += '|L' + ents.filter(e => e.alive && e.team === 0 && e.type === 'lab').map(e => e.id + (e.complete ? 'c' : '') + (e.res ? e.res.id : '') + (e.lastRes || '')).join(',');
   const costs = [35, 50, 65, 75, 100, 120, 130, 140, 150, 160, 180, 200, 220, 250, 300]; s += '|' + costs.map(c => T.energy >= c ? 1 : 0).join('');
@@ -2521,6 +2553,8 @@ function renderPanel() {
         h += `<div class="rgrid">`;
         for (const id of [...br.ids].sort((a, c) => st(a) - st(c))) { const r = RS.find(x => x.id === id);
           const done = T.tech.has(r.id), locked = !done && r.req.some(q => !T.tech.has(q)), busy = !done && T.researching.has(r.id);
+          if (!done && !busy && paidLocked(r.id)) { const k = PAID[r.id];
+            h += `<button class="rcard paid" data-act="buy" data-v="${k}">${RICON[r.id]}<span class="rn">${r.name}</span><span class="rm">🔒 ${PRICES[k] || '2 $'}</span></button>`; continue; }
           const meta = done ? '✔ Cercetat' : locked ? '🔒 ' + r.req.map(q => RS.find(x => x.id === q).name).join(', ') : busy ? '⏳ În curs' : `${r.cost}⚡ · ${r.time}s`;
           const cls = done ? 'done' : locked ? 'locked' : busy ? 'busy' : '';
           const dis = done || locked || busy || !free || T.energy < r.cost;
@@ -2601,6 +2635,7 @@ panel.addEventListener('click', ev => {
   else if (act === 'produce') queueUnit(e, JSON.parse(v), 1);
   else if (act === 'unq') doCmd(['uq', e.id, +v]);
   else if (act === 'designer') openDesigner(e);
+  else if (act === 'buy') { if (PACKS[v]) openBuy(v); }
   else if (act === 'research') { const r = RS.find(x => x.id === v); const l = !e.res && e.complete ? e : ents.find(x => x.alive && x.team === 0 && x.type === 'lab' && x.complete && !x.res);
     if (!l) toast('Toate laboratoarele sunt ocupate'); else if (T.energy >= r.cost) { doCmd(['rs', l.id, r.id]); panelSig = ''; } }
 });

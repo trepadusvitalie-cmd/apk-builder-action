@@ -120,6 +120,11 @@
     ['. Fiecare VTOL are muniție pentru câteva atacuri, apoi se întoarce singur pe platformă.', '. Each VTOL has ammo for a few attacks, then flies back to its pad.', '. У каждого СВВП боезапас на несколько атак, затем он сам возвращается на площадку.'],
     ['🔒 cercetează', '🔒 research', '🔒 изучите'], ['față de:', 'vs:', 'против:'], ['✔ gata', '✔ ready', '✔ готов'], ['⏳ încarcă…', '⏳ loading…', '⏳ загрузка…'],
     ['👥 MULTIPLAYER', '👥 MULTIPLAYER', '👥 МУЛЬТИПЛЕЕР'], ['MULTIPLAYER', 'MULTIPLAYER', 'МУЛЬТИПЛЕЕР'], ['CO-OP', 'CO-OP', 'КООП'],
+    ['Aviație avansată', 'Advanced aviation', 'Продвинутая авиация'], ['Artilerie cu bătaie lungă', 'Long-range artillery', 'Дальнобойная артиллерия'], ['Rachete cu bătaie lungă', 'Long-range missiles', 'Дальнобойные ракеты'],
+    ['— deblocat!', '— unlocked!', '— открыто!'], ['Magazinul Google Play nu e disponibil acum. Încearcă mai târziu.', 'Google Play store is not available right now. Try again later.', 'Магазин Google Play сейчас недоступен. Попробуйте позже.'],
+    ['Plata nu a reușit. Încearcă din nou.', 'The payment did not go through. Try again.', 'Оплата не прошла. Попробуйте ещё раз.'], ['Cumpărarea merge doar în aplicația instalată din Google Play', 'Purchases work only in the app installed from Google Play', 'Покупки работают только в приложении из Google Play'],
+    ['O singură plată, pentru totdeauna. Cercetarea rămâne apoi de făcut în laborator, ca de obicei.', 'One payment, forever. You still research it in the lab as usual.', 'Один платёж навсегда. Исследование затем проводится в лаборатории как обычно.'],
+    ['Cumpără', 'Buy', 'Купить'],
     ['Mare', 'Large', 'Большая'], ['Tu', 'You', 'Вы'], ['Fabrica', 'The factory', 'Завод'], ['Laboratorul', 'The lab', 'Лаборатория'], ['Victorie:', 'Victory:', 'Победа:'],
   ];
 

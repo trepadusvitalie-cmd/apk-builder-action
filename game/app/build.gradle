@@ -46,3 +46,7 @@ android {
         noCompress 'js'
     }
 }
+
+dependencies {
+    implementation 'com.android.billingclient:billing:7.1.1'
+}

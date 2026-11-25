@@ -1078,6 +1078,28 @@ function unitGeo(d, team) {
     tb.add(G.cyl16, 0.09 * s, 1.0 * s, 0.09 * s, 0, 0.28 * s, 0.75 * s, 0x2e2e2a, Math.PI / 2, 0, 0);
     tb.add(G.cyl16, 0.14 * s, 0.25 * s, 0.14 * s, 0, 0.28 * s, 1.3 * s, 0x3a3a36, Math.PI / 2, 0, 0);
     tb.add(G.sph, 0.06 * s, 0.06 * s, 0.06 * s, 0, 0.2 * s, 1.45 * s, 0xff9a20);
+  } else if (d.wp === 'laser' && window.__laserVar) { // preview variants of the laser turret
+    const V = window.__laserVar, G2 = 0x3cff52;
+    tb.add(G.cyl16, 0.8 * s, 0.14 * s, 0.8 * s, 0, 0.07 * s, -0.1 * s, T.dark);
+    if (V === 'A') { // sloped modern turret, round cluster of seven lenses
+      tb.add(G.wedge, 1.6 * s, 0.75 * s, 2.0 * s, 0, 0.12 * s, -0.1 * s, T.body); tb.camo(1.62 * s, 0.5 * s, 1.6 * s, 0, 0.35 * s, -0.3 * s, 0, 8);
+      tb.box(1.3 * s, 0.1 * s, 1.0 * s, 0, 0.9 * s, -0.45 * s, T.dark);
+      const cz = 0.95 * s, cy = 0.55 * s; tb.add(G.cyl16, 0.48 * s, 0.25 * s, 0.48 * s, 0, cy, cz - 0.1 * s, 0x2a2c26, Math.PI / 2, 0, 0);
+      for (let k = 0; k < 7; k++) { const a = k / 6 * Math.PI * 2, rr = k === 6 ? 0 : 0.27 * s; const x = Math.cos(a) * rr, y = cy + Math.sin(a) * rr;
+        tb.add(G.cyl16, 0.1 * s, 0.06 * s, 0.1 * s, x, y, cz + 0.04 * s, 0x8c8c84, Math.PI / 2, 0, 0); tb.add(G.cyl16, 0.07 * s, 0.07 * s, 0.07 * s, x, y, cz + 0.05 * s, G2, Math.PI / 2, 0, 0); }
+      for (const sx of [-1, 1]) tb.box(0.25 * s, 0.2 * s, 0.4 * s, sx * 0.6 * s, 0.85 * s, -0.7 * s, T.dark);
+    } else if (V === 'B') { // low turret, long square emitter barrel with green muzzle
+      tb.box(1.4 * s, 0.45 * s, 1.6 * s, 0, 0.32 * s, -0.2 * s, T.body); tb.camo(1.42 * s, 0.47 * s, 1.62 * s, 0, 0.32 * s, -0.2 * s, 0, 8);
+      tb.box(1.1 * s, 0.08 * s, 1.2 * s, 0, 0.58 * s, -0.3 * s, T.dark);
+      tb.box(0.4 * s, 0.34 * s, 2.6 * s, 0, 0.4 * s, 1.5 * s, 0x34362f); for (let k = 0; k < 4; k++) tb.box(0.46 * s, 0.4 * s, 0.06 * s, 0, 0.4 * s, 0.6 * s + k * 0.55 * s, T.dark);
+      tb.box(0.3 * s, 0.24 * s, 0.05 * s, 0, 0.4 * s, 2.81 * s, G2); for (const sx of [-1, 1]) tb.box(0.05 * s, 0.08 * s, 2.0 * s, sx * 0.22 * s, 0.42 * s, 1.5 * s, G2);
+    } else { // two big emitter drums on the turret sides
+      tb.box(1.0 * s, 0.6 * s, 1.5 * s, 0, 0.4 * s, -0.2 * s, T.body); tb.camo(1.02 * s, 0.62 * s, 1.52 * s, 0, 0.4 * s, -0.2 * s, 0, 6);
+      for (const sx of [-1, 1]) { const x = sx * 0.78 * s, y = 0.55 * s;
+        tb.add(G.cyl16, 0.3 * s, 1.7 * s, 0.3 * s, x, y, 0.1 * s, 0x3a3c40, Math.PI / 2, 0, 0); tb.add(G.cyl16, 0.315 * s, 0.25 * s, 0.315 * s, x, y, -0.1 * s, T.dark, Math.PI / 2, 0, 0);
+        tb.add(G.cyl16, 0.33 * s, 0.1 * s, 0.33 * s, x, y, 0.95 * s, 0x2a2a2c, Math.PI / 2, 0, 0); tb.add(G.cyl16, 0.22 * s, 0.05 * s, 0.22 * s, x, y, 1.0 * s, G2, Math.PI / 2, 0, 0); }
+      tb.box(0.3 * s, 0.25 * s, 0.3 * s, 0, 0.82 * s, -0.4 * s, T.dark);
+    }
   } else if (d.wp === 'laser') { // laser tank: big camouflaged box turret, a grid of round emitter lenses high on its front
     tb.add(G.cyl16, 0.8 * s, 0.14 * s, 0.8 * s, 0, 0.07 * s, -0.1 * s, T.dark);
     const bw = 1.7 * s, bh = 1.05 * s, bd = 2.0 * s, by = 0.14 * s + bh / 2, bz = -0.2 * s;

@@ -1359,6 +1359,7 @@ const FXT = {
   fire: { life: 0.6, s0: 1.2, s1: 2.6, a: 0.95, color: 0xff7a22, v: 1.2, vy: 2 },
   spark: { life: 0.45, s0: 0.35, s1: 0.1, a: 1, color: 0xffd060, v: 6, vy: 7, g: 14 },
   smoke: { life: 2.6, s0: 1, s1: 4.2, a: 0.55, color: 0x48433c, v: 0.4, vy: 1.6, wind: 0.6 },
+  mtrail: { life: 4.2, s0: 0.75, s1: 2.3, a: 0.62, color: 0xd6d2ca, v: 0.04, vy: 0.12, wind: 0.12 },
   trail: { life: 2.6, s0: 0.8, s1: 3.2, a: 0.85, color: 0xc4bfb5, v: 0.15, vy: 0.5, wind: 0.35 },
   dust: { life: 1.1, s0: 1, s1: 2.8, a: 0.4, color: 0xb59c78, v: 0.8, vy: 0.6 },
   blastball: { life: 0.42, s0: 2.4, s1: 5.2, a: 1, color: 0xffffff, v: 0, vy: 1.2, tex: 'ball' },
@@ -1372,9 +1373,9 @@ const FXT = {
   blacksmoke: { life: 5, s0: 1.4, s1: 6.5, a: 0.62, color: 0x24211e, v: 0.35, vy: 2.4, wind: 0.7 },
 };
 function fx(type, x, y, z, size = 1) {
-  const P = FXT[type]; const normal = type === 'smoke' || type === 'trail' || type === 'dust' || type === 'snow' || type === 'steam';
+  const P = FXT[type]; const normal = type === 'smoke' || type === 'trail' || type === 'mtrail' || type === 'dust' || type === 'snow' || type === 'steam';
   const p = (normal || type === 'blacksmoke' || P.tex === 'ball') ? normPool[normIdx = (normIdx + 1) % normPool.length] : addPool[addIdx = (addIdx + 1) % addPool.length];
-  p.life = p.max = P.life * rand(0.8, 1.2); p.s0 = P.s0 * size; p.s1 = P.s1 * size; p.a0 = P.a; p.smoke = normal || type === 'blacksmoke'; p.fast = type === 'trail'; p.ball = P.tex === 'ball';
+  p.life = p.max = P.life * rand(0.8, 1.2); p.s0 = P.s0 * size; p.s1 = P.s1 * size; p.a0 = P.a; p.smoke = normal || type === 'blacksmoke'; p.fast = type === 'trail' || type === 'mtrail'; p.ball = P.tex === 'ball';
   p.vx = rand(-P.v, P.v) + (P.wind || 0); p.vy = P.vy * rand(0.6, 1.2); p.vz = rand(-P.v, P.v); p.g = P.g || 0;
   p.s.material.color.setHex(P.color); { const mp = P.tex === 'ball' ? ballTex : glowTex; if (p.s.material.map !== mp) p.s.material.map = mp; p.s.material.depthTest = P.tex !== 'ball'; } p.s.position.set(x, y, z); p.s.visible = true; p.s.scale.setScalar(p.s0);
 }
@@ -1414,11 +1415,31 @@ const FB_GEOS = (() => { const out = []; const v = new THREE.Vector3(), d = new 
     g.setAttribute('color', new THREE.BufferAttribute(c, 3)); g.computeVertexNormals(); out.push(g); }
   return out; })();
 const FB_GEO = FB_GEOS[0];
-const FBALLS = []; for (let i = 0; i < 40; i++) { const outer = new THREE.Mesh(FB_GEOS[i % 6], new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, fog: false, toneMapped: false }));
-  const core = new THREE.Mesh(FB_GEOS[(i + 3) % 6], new THREE.MeshBasicMaterial({ color: 0xfff4b0, transparent: true, fog: false, toneMapped: false, depthWrite: false })); core.scale.setScalar(0.6); outer.add(core);
-  const flashM = new THREE.MeshBasicMaterial({ color: 0xfffbea, transparent: true, fog: false, toneMapped: false, depthWrite: false }); const flash = new THREE.Mesh(FB_GEOS[i % 6], flashM); flash.scale.setScalar(1.03); flash.renderOrder = 3; outer.add(flash);
-  const puffs = []; for (let j = 0; j < 4; j++) { const pm = new THREE.Mesh(FB_GEOS[(i + j + 1) % 6], outer.material); const pf = new THREE.Mesh(pm.geometry, flashM); pf.scale.setScalar(1.03); pf.renderOrder = 3; pm.add(pf); outer.add(pm); puffs.push({ m: pm, dir: new THREE.Vector3(), s: 0.5 }); }
-  outer.visible = false; outer.renderOrder = 2; scene.add(outer); FBALLS.push({ m: outer, core, puffs, flashM, t: 0, life: 0, r: 1, spin: 0 }); }
+// fireball: a lumpy cloud lit from inside — white-hot centre, then yellow, orange, deep red, and dark smoke at the soft,
+// blurry edge (like a real gas explosion); a glow halo around it softens the outline even more
+const FB_VS = `varying float vF; varying vec3 vP;
+void main() { vec4 mv = modelViewMatrix * vec4(position, 1.0); vec3 n = normalize(normalMatrix * normal); vF = abs(dot(n, normalize(-mv.xyz))); vP = position; gl_Position = projectionMatrix * mv; }`;
+const FB_FS = `uniform float uK, uOp, uSeed; uniform vec3 uTint; varying float vF; varying vec3 vP;
+float h(vec3 p) { return sin(p.x * 5.1 + uSeed) * sin(p.y * 6.3 + uSeed * 1.7) * sin(p.z * 5.7 + uSeed * 2.3); }
+void main() {
+  float n = h(vP * 1.3 + vec3(0.0, -uK * 2.0, 0.0)) * 0.5 + h(vP * 3.1 + 2.0) * 0.25;
+  float c = pow(vF, 1.3);
+  float heat = c * (1.2 - uK * 1.05) + n * 0.22 + 0.22 * (1.0 - uK) - 0.12;
+  heat = clamp(heat + (1.0 - smoothstep(0.0, 0.2, uK)) * 0.55, 0.0, 1.0);
+  vec3 col = mix(vec3(0.09, 0.07, 0.06), vec3(0.6, 0.11, 0.03), smoothstep(0.04, 0.24, heat));
+  col = mix(col, vec3(1.0, 0.42, 0.07), smoothstep(0.24, 0.44, heat));
+  col = mix(col, vec3(1.0, 0.8, 0.3), smoothstep(0.44, 0.64, heat));
+  col = mix(col, vec3(1.0, 0.97, 0.86), smoothstep(0.66, 0.9, heat));
+  col = mix(col, col * uTint, smoothstep(0.1, 0.5, heat));
+  float a = smoothstep(0.0, 0.5, vF + n * 0.18) * uOp * mix(0.75, 1.0, smoothstep(0.1, 0.4, heat));
+  gl_FragColor = vec4(col, a); }`;
+const FBALLS = []; for (let i = 0; i < 40; i++) {
+  const mat = new THREE.ShaderMaterial({ vertexShader: FB_VS, fragmentShader: FB_FS, transparent: true, depthWrite: false, fog: false,
+    uniforms: { uK: { value: 0 }, uOp: { value: 1 }, uSeed: { value: i * 1.37 }, uTint: { value: new THREE.Color(1, 1, 1) } } });
+  const outer = new THREE.Mesh(FB_GEOS[i % 6], mat);
+  const puffs = []; for (let j = 0; j < 4; j++) { const pm = new THREE.Mesh(FB_GEOS[(i + j + 1) % 6], mat); outer.add(pm); puffs.push({ m: pm, dir: new THREE.Vector3(), s: 0.5 }); }
+  const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false, toneMapped: false })); glow.scale.setScalar(3.6); glow.renderOrder = 3; outer.add(glow);
+  outer.visible = false; outer.renderOrder = 2; scene.add(outer); FBALLS.push({ m: outer, mat, glow, puffs, t: 0, life: 0, r: 1, spin: 0 }); }
 let fbIdx = 0;
 // light rays bursting out of an explosion: thin bright spikes, mostly upwards and sideways
 const RAY_GEO = [0, 1, 2].map(v => { const B = new Builder(), up = new THREE.Vector3(0, 1, 0), q = new THREE.Quaternion(), e = new THREE.Euler(), d = new THREE.Vector3();
@@ -1444,12 +1465,16 @@ const XLIGHTS = []; for (let i = 0; i < 4; i++) { const L = new THREE.PointLight
 function xlight(x, y, z, r, tint, life) { if (Math.abs(x - cam.x) > 120 || Math.abs(z - cam.z) > 120) return; let o = XLIGHTS[0]; for (const q of XLIGHTS) if (q.t / q.life > o.t / o.life) o = q; const tt = tint || [1, 1, 1];
   o.t = 0; o.life = life; o.peak = 30 * r * r + 40; o.L.position.set(x, y + r * 0.6, z); o.L.distance = r * 9 + 8; o.L.color.setRGB(Math.min(1, tt[0]), Math.min(1, 0.72 * tt[1] + 0.05), Math.min(1, 0.4 * tt[2] + 0.05)); }
 function updXLights(dt) { for (const o of XLIGHTS) { if (o.t >= o.life) { o.L.intensity = 0; continue; } o.t += dt; const k = Math.min(1, o.t / o.life); o.L.intensity = o.peak * (k < 0.1 ? k / 0.1 : Math.pow(1 - (k - 0.1) / 0.9, 2)); } }
-function fireball3D(x, y, z, r, tint, str, lm) { xlight(x, y, z, r, tint, (0.5 + r * 0.04) * (lm || 1)); const f = FBALLS[fbIdx = (fbIdx + 1) % FBALLS.length]; f.t = 0; f.tint = tint || [1, 1, 1]; f.life = (0.45 + r * 0.04) * (lm || 1); f.r = r; f.m.position.set(x, y + r * 0.35, z); f.m.rotation.set(rand(-0.25, 0.25), rand(0, TAU), rand(-0.25, 0.25)); f.spin = rand(-0.8, 0.8); for (const q of f.puffs) { q.dir.set(rand(-1, 1), rand(-0.3, 0.9), rand(-1, 1)).normalize(); q.s = rand(0.35, 0.6); q.m.rotation.set(rand(0, TAU), rand(0, TAU), 0); q.m.scale.setScalar(q.s); q.m.position.copy(q.dir).multiplyScalar(0.55); } f.m.visible = true; f.m.scale.setScalar(r * 0.25); rays3D(x, y + r * 0.35, z, r * 1.5, f.life * 0.75, f.tint); if (str !== 0 && Math.abs(x - cam.x) < 110 && Math.abs(z - cam.z) < 110) streamers(x, y + r * 0.35, z, r * (str || 1)); f.m.material.color.setRGB(f.tint[0], f.tint[1], f.tint[2]); f.core.material.color.setRGB(Math.min(1, f.tint[0] + 0.3), Math.min(1, f.tint[1] + 0.3), Math.min(1, f.tint[2] + 0.4)); f.m.material.opacity = 0.7; f.core.material.opacity = 0.85; f.flashM.opacity = 0.92; f.flashM.color.setRGB(1, 0.985, 0.93); f.m.material.depthWrite = false; f.core.visible = true; }
+function fireball3D(x, y, z, r, tint, str, lm) { xlight(x, y, z, r, tint, (0.5 + r * 0.04) * (lm || 1)); const f = FBALLS[fbIdx = (fbIdx + 1) % FBALLS.length]; f.t = 0; f.tint = tint || [1, 1, 1]; f.life = (0.6 + r * 0.05) * (lm || 1); f.r = r; f.m.position.set(x, y + r * 0.35, z); f.m.rotation.set(rand(-0.25, 0.25), rand(0, TAU), rand(-0.25, 0.25)); f.spin = rand(-0.8, 0.8);
+  for (const q of f.puffs) { q.dir.set(rand(-1, 1), rand(-0.3, 0.9), rand(-1, 1)).normalize(); q.s = rand(0.4, 0.65); q.m.rotation.set(rand(0, TAU), rand(0, TAU), 0); q.m.scale.setScalar(q.s); q.m.position.copy(q.dir).multiplyScalar(0.5); }
+  f.m.visible = true; f.m.scale.setScalar(r * 0.25); f.mat.uniforms.uK.value = 0; f.mat.uniforms.uOp.value = 1; f.mat.uniforms.uSeed.value = rand(0, 20); f.mat.uniforms.uTint.value.setRGB(f.tint[0], f.tint[1], f.tint[2]);
+  f.glow.material.color.setRGB(Math.min(1, f.tint[0]), Math.min(1, 0.62 * f.tint[1]), Math.min(1, 0.3 * f.tint[2])); f.glow.material.opacity = 1;
+  rays3D(x, y + r * 0.35, z, r * 1.5, f.life * 0.55, f.tint); if (str !== 0 && Math.abs(x - cam.x) < 110 && Math.abs(z - cam.z) < 110) streamers(x, y + r * 0.35, z, r * (str || 1)); }
 function updFireballs(dt) { for (const f of FBALLS) { if (!f.m.visible) continue; f.t += dt; const k = f.t / f.life; if (k >= 1) { f.m.visible = false; continue; }
-  const grow = k < 0.3 ? 1 - Math.pow(1 - k / 0.3, 3) : 1; f.m.scale.setScalar(f.r * (0.25 + 0.75 * grow + 0.15 * k)); f.m.position.y += dt * f.r * 0.6; f.m.rotation.y += dt * f.spin; for (const q of f.puffs) { q.m.position.copy(q.dir).multiplyScalar(0.55 + 0.35 * k); q.m.scale.setScalar(q.s * (1 + 0.4 * k)); }
-  const dark = k < 0.45 ? 0 : (k - 0.45) / 0.55; f.m.material.color.setRGB(f.tint[0] * (1 - dark * 0.1), f.tint[1] * (1 - dark * 0.55), f.tint[2] * (1 - dark * 0.85)); f.core.material.opacity = Math.max(0, 1 - k * 1.8); f.core.visible = k < 0.55;
-  { const a = k / 0.42; if (a < 1) { const w = Math.max(0, 1 - a / 0.45); const Y = [1, 0.92, 0.55], W = [1, 0.99, 0.93]; f.flashM.color.setRGB(...[0, 1, 2].map(j => W[j] * w + Math.min(1, Y[j] * f.tint[j] * 1.1 + 0.08) * (1 - w))); f.flashM.opacity = 0.92 * (a < 0.35 ? 1 : 1 - (a - 0.35) / 0.65); f.flashM.visible = true; } else f.flashM.visible = false; }
-  f.m.material.opacity = 0.7 * (k < 0.6 ? 1 : 1 - (k - 0.6) / 0.4); } }
+  const grow = k < 0.3 ? 1 - Math.pow(1 - k / 0.3, 3) : 1; f.m.scale.setScalar(f.r * (0.25 + 0.75 * grow + 0.22 * k)); f.m.position.y += dt * f.r * 0.7; f.m.rotation.y += dt * f.spin;
+  for (const q of f.puffs) { q.m.position.copy(q.dir).multiplyScalar(0.5 + 0.4 * k); q.m.scale.setScalar(q.s * (1 + 0.5 * k)); }
+  f.mat.uniforms.uK.value = k; f.mat.uniforms.uOp.value = k < 0.55 ? 1 : 1 - (k - 0.55) / 0.45;
+  f.glow.material.opacity = k < 0.1 ? 1 : Math.max(0, 1 - (k - 0.1) / 0.5); f.glow.scale.setScalar(3.6 - k * 1.2); } }
 const XST = { shell: { t: [1, 0.85, 0.55], str: 0.6 }, rocket: { t: [1, 0.6, 0.35], str: 1 }, mortar: { t: [1, 0.78, 0.42], str: 0.9, dirt: 1 }, how: { t: [1, 0.7, 0.35], str: 1.3, dirt: 1.5 },
   salvo: { t: [1, 0.62, 0.3], str: 0.8 }, fire: { t: [1, 0.32, 0.12], str: 1.4, flames: 1 }, emp: { t: [0.3, 0.65, 1], str: 0, sparks: 1 }, plasma: { t: [0.5, 0.78, 1], str: 0.6, sparks: 1 },
   heavy: { t: [1, 0.42, 0.18], str: 1.7, dirt: 2 }, icbm: { t: [1, 0.95, 0.85], str: 2, dirt: 3 }, def: { t: [1, 1, 1], str: 1 } };
@@ -1499,15 +1524,20 @@ function explosion(x, y, z, size) {
 }
 
 // tracers & projectiles
-const tracerGeo = new THREE.BoxGeometry(0.07, 0.07, 1); const tracerMat = new THREE.MeshBasicMaterial({ color: 0xffe9a0 });
-const tracers = []; for (let i = 0; i < 50; i++) { const m = new THREE.Mesh(tracerGeo, tracerMat); m.visible = false; scene.add(m); tracers.push({ m, life: 0 }); }
+// tracers: short glowing bolts that fly to the target (bright core + soft halo)
+const tracerGeo = new THREE.BoxGeometry(0.07, 0.07, 1); const tracerMat = new THREE.MeshBasicMaterial({ color: 0xf4ffc0, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, toneMapped: false });
+const tracerHaloGeo = new THREE.BoxGeometry(0.26, 0.26, 1.15); const tracerHaloMat = new THREE.MeshBasicMaterial({ color: 0xc8ff60, transparent: true, opacity: 0.32, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, toneMapped: false });
+const tracers = []; for (let i = 0; i < 90; i++) { const m = new THREE.Mesh(tracerGeo, tracerMat); m.add(new THREE.Mesh(tracerHaloGeo, tracerHaloMat)); m.visible = false; m.renderOrder = 3; scene.add(m); tracers.push({ m, x: 0, y: 0, z: 0, dx: 0, dy: 0, dz: 0, d: 0, p: 0, L: 1 }); }
 let trIdx = 0;
 const beamGeo = new THREE.BoxGeometry(0.26, 0.26, 1), beamMat = new THREE.MeshBasicMaterial({ color: 0xffe04a, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false });
 const beamCore = new THREE.MeshBasicMaterial({ color: 0xffffff }); const beamCoreGeo = new THREE.BoxGeometry(0.05, 0.05, 1);
 const beams = []; for (let i = 0; i < 24; i++) { const m = new THREE.Mesh(beamGeo, beamMat); m.add(new THREE.Mesh(beamCoreGeo, beamCore)); m.visible = false; scene.add(m); beams.push({ m, life: 0 }); }
 let bmIdx = 0;
 function beam(x1, y1, z1, x2, y2, z2) { const t = beams[bmIdx = (bmIdx + 1) % beams.length]; const d = Math.hypot(x2 - x1, y2 - y1, z2 - z1); t.m.position.set((x1 + x2) / 2, (y1 + y2) / 2, (z1 + z2) / 2); t.m.lookAt(x2, y2, z2); t.m.scale.set(1, 1, d); t.m.visible = true; t.life = 0.14; }
-function tracer(x1, y1, z1, x2, y2, z2) { const t = tracers[trIdx = (trIdx + 1) % tracers.length]; const d = Math.hypot(x2 - x1, y2 - y1, z2 - z1); t.m.position.set((x1 + x2) / 2, (y1 + y2) / 2, (z1 + z2) / 2); t.m.lookAt(x2, y2, z2); t.m.scale.set(1, 1, d); t.m.visible = true; t.life = 0.06; }
+function tracer(x1, y1, z1, x2, y2, z2) { const t = tracers[trIdx = (trIdx + 1) % tracers.length]; const d = Math.hypot(x2 - x1, y2 - y1, z2 - z1) || 0.01;
+  Object.assign(t, { x: x1, y: y1, z: z1, dx: (x2 - x1) / d, dy: (y2 - y1) / d, dz: (z2 - z1) / d, d, p: 0, L: Math.min(3, 0.6 + d * 0.3) }); t.m.lookAt(x2, y2, z2); t.m.position.set(x1, y1, z1); t.m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), new THREE.Vector3(t.dx, t.dy, t.dz)); t.m.scale.set(1, 1, 0.01); t.m.visible = true; }
+function updTracers(dt) { for (const t of tracers) { if (!t.m.visible) continue; t.p += 150 * dt; const head = Math.min(t.p, t.d), tail = Math.max(0, t.p - t.L); if (tail >= t.d) { t.m.visible = false; continue; }
+  const mid = (head + tail) / 2; t.m.position.set(t.x + t.dx * mid, t.y + t.dy * mid, t.z + t.dz * mid); t.m.scale.set(1, 1, Math.max(0.05, head - tail)); } }
 const plasmaMat = new THREE.MeshBasicMaterial({ color: 0x9affb8 });
 const shellGeo = new THREE.SphereGeometry(0.2, 6, 4), rocketGeo = new THREE.ConeGeometry(0.18, 1.0, 6).rotateX(Math.PI / 2);
 const artShellGeo = (() => { const B = new Builder(); B.add(G.cyl16, 0.16, 0.5, 0.16, 0, 0, 0, 0x1c1c1c); B.add(G.cone, 0.16, 0.32, 0.16, 0, 0.41, 0, 0x262626); B.add(G.cyl16, 0.17, 0.06, 0.17, 0, -0.12, 0, 0x6a5a3a); B.add(G.cyl16, 0.12, 0.1, 0.12, 0, -0.3, 0, 0x111111); const g = B.build(); g.rotateX(Math.PI / 2); return g; })();
@@ -1543,7 +1573,7 @@ function updProjs(dt) {
     const px = p.m.position.x, py = p.m.position.y, pz = p.m.position.z;
     p.m.position.set(x, y, z); if (p.w && p.w.plasma && Math.random() < 0.5) fx('spark', x, y, z, 0.6); if (p.kind === 'rocket' || (p.w && p.w.kind === 'salvo')) { p.m.lookAt(x + (x - px), y + (y - py), z + (z - pz)); p.smokeT -= dt; if (p.smokeT <= 0) { const hv = p.w && (p.w.heavy || p.w.big); p.smokeT = 0.035; fx('trail', x, y, z, p.big ? 1.8 : hv ? 0.75 : 0.55); fx('fire', x, y, z, p.big ? 1.0 : hv ? 0.45 : 0.32); if (p.big && Math.random() < 0.3) fx('blacksmoke', x, y, z, 0.8); } }
     else if (p.kind === 'shell') { p.m.lookAt(x + (x - px), y + (y - py), z + (z - pz)); p.smokeT -= dt; if (p.smokeT <= 0) { p.smokeT = 0.03; fx('trail', x, y, z, 0.5); fx('fire', x, y, z, 0.28); } }
-    else if (p.kind === 'mortar' && !(p.w && p.w.plasma)) { p.m.lookAt(x + (x - px), y + (y - py), z + (z - pz)); p.smokeT -= dt; if (p.smokeT <= 0) { p.smokeT = 0.045; fx('trail', x, y, z, p.w && p.w.big ? 0.6 : 0.45); if (Math.random() < 0.35) fx('fire', x, y, z, 0.25); } }
+    else if (p.kind === 'mortar' && !(p.w && p.w.plasma)) { p.m.lookAt(x + (x - px), y + (y - py), z + (z - pz)); p.sd = (p.sd || 0) + Math.hypot(x - px, y - py, z - pz); const gap = p.w && p.w.big ? 2.2 : 1.7; if (p.sd >= gap) { p.sd = 0; fx('mtrail', x, y, z, p.w && p.w.big ? 1.25 : 1); } }
     if (p.kind === 'mortar' && !p.wh && p.dur > 1.2 && (1 - p.t) * p.dur < 0.95 && !(p.w && (p.w.plasma || p.w.kind === 'salvo' || p.w.id === 'ballistic'))) { p.wh = 1; sfx('whistle', p.tx, p.tz); }
     if (k >= 1) {
       scene.remove(p.m); projs.splice(i, 1);
@@ -1557,7 +1587,7 @@ function updProjs(dt) {
       if (p.splash) for (const e of ents) if (e.alive && e.team !== p.team && e !== p.tgt && !flying(e) && Math.hypot(e.x - x, e.z - z) < p.splash + e.r * 0.5) damage(e, p.dmg * 0.5, p.src);
     }
   }
-  for (const t of tracers) if (t.m.visible) { t.life -= dt; if (t.life <= 0) t.m.visible = false; }
+  updTracers(dt);
   for (const t of beams) if (t.m.visible) { t.life -= dt; t.m.scale.x = t.m.scale.y = Math.max(0.2, t.life / 0.14); if (t.life <= 0) t.m.visible = false; }
 }
 

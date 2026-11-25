@@ -330,60 +330,64 @@ const OBST = []; const OB = new Map(); const OBC = 16;
 function obKey(i, j) { return i * 1000 + j; }
 function indexObst() { OB.clear(); for (const o of OBST) { const i0 = Math.floor((o.x - o.r) / OBC), i1 = Math.floor((o.x + o.r) / OBC), j0 = Math.floor((o.z - o.r) / OBC), j1 = Math.floor((o.z + o.r) / OBC); for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) { const k = obKey(i, j); if (!OB.has(k)) OB.set(k, []); OB.get(k).push(o); } } }
 const _ob = []; function obstNear(x, z) { _ob.length = 0; const ci = Math.floor(x / OBC), cj = Math.floor(z / OBC); for (let i = ci - 1; i <= ci + 1; i++) for (let j = cj - 1; j <= cj + 1; j++) { const a = OB.get(obKey(i, j)); if (a) for (const o of a) if (_ob.indexOf(o) < 0) _ob.push(o); } return _ob; }
-function buildDecor() {
+// map decoration (rocks, trees, grass) is placed from the map's seed: every phone gets the same obstacles, so units path the same way everywhere
+let DRS = 1; const DR = () => { DRS = (DRS + 0x6D2B79F5) | 0; let t = Math.imul(DRS ^ (DRS >>> 15), 1 | DRS); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+const drand = (x, y) => x + DR() * (y - x);
+const dpick = a => a[(DR() * a.length) | 0];
+function buildDecor() { DRS = SEED ^ 0x5eed1;
   const B = new Builder();
   const ok = (x, z, m) => { if (Math.abs(x) > EDGE - 2 || Math.abs(z) > EDGE - 2) return false; for (const b of FLAT) if (Math.hypot(x - b.x, z - b.z) < b.r + 6 + m) return false; for (const w of WELLS) if (Math.hypot(x - w.x, z - w.z) < 8 + m) return false; return true; };
   // impassable mountain peaks
   for (let z = -EDGE; z <= EDGE; z += 5) for (let x = -EDGE; x <= EDGE; x += 5) { if (heightAt(x, z) > 15 && ok(x, z, -6)) OBST.push({ x, z, r: 3.4, mtn: true }); }
   let tries = 0, clusters = 0;
   while (clusters < Math.round(34 * Math.min(SC * SC, 9)) && tries < 900 * Math.min(SC * SC, 9)) {
-    tries++; const cx = rand(-EDGE, EDGE), cz = rand(-EDGE, EDGE); if (!ok(cx, cz, 6)) continue;
-    clusters++; const n = 3 + (Math.random() * 5 | 0);
+    tries++; const cx = drand(-EDGE, EDGE), cz = drand(-EDGE, EDGE); if (!ok(cx, cz, 6)) continue;
+    clusters++; const n = 3 + (DR() * 5 | 0);
     for (let i = 0; i < n; i++) {
-      const x = cx + rand(-8, 8), z = cz + rand(-8, 8); if (!ok(x, z, 2)) continue;
-      const w = rand(2.5, 6), d = rand(2.5, 6), h = rand(1.5, 9), ry = rand(0, 3); const y = heightAt(x, z);
-      const col = pick([0x7a766e, 0x6b665e, 0x878074, 0x5f5a53]);
-      B.box(w, h, d, x, y + h / 2 - 0.6, z, col, rand(-0.05, 0.05), ry, rand(-0.05, 0.05));
+      const x = cx + drand(-8, 8), z = cz + drand(-8, 8); if (!ok(x, z, 2)) continue;
+      const w = drand(2.5, 6), d = drand(2.5, 6), h = drand(1.5, 9), ry = drand(0, 3); const y = heightAt(x, z);
+      const col = dpick([0x7a766e, 0x6b665e, 0x878074, 0x5f5a53]);
+      B.box(w, h, d, x, y + h / 2 - 0.6, z, col, drand(-0.05, 0.05), ry, drand(-0.05, 0.05));
       if (h > 3) { B.box(w * 1.02, 0.45, d * 0.25, x, y + h * 0.55, z, 0x24211e, 0, ry, 0); B.box(w * 0.25, 0.45, d * 1.02, x, y + h * 0.55, z, 0x24211e, 0, ry, 0); }
-      if (Math.random() < 0.6) B.box(w * rand(0.3, 0.7), rand(0.5, 2), d * rand(0.3, 0.7), x + rand(-0.5, 0.5), y + h - 0.2, z + rand(-0.5, 0.5), col, rand(-0.4, 0.4), ry, rand(-0.4, 0.4));
+      if (DR() < 0.6) B.box(w * drand(0.3, 0.7), drand(0.5, 2), d * drand(0.3, 0.7), x + drand(-0.5, 0.5), y + h - 0.2, z + drand(-0.5, 0.5), col, drand(-0.4, 0.4), ry, drand(-0.4, 0.4));
       OBST.push({ x, z, r: Math.max(w, d) * 0.6 });
-      for (let k = 0; k < 4; k++) { const rx = x + rand(-4, 4), rz = z + rand(-4, 4); B.add(G.ico, rand(0.3, 0.9), rand(0.2, 0.5), rand(0.3, 0.9), rx, heightAt(rx, rz) + 0.1, rz, col, rand(0, 3), rand(0, 3), 0); }
+      for (let k = 0; k < 4; k++) { const rx = x + drand(-4, 4), rz = z + drand(-4, 4); B.add(G.ico, drand(0.3, 0.9), drand(0.2, 0.5), drand(0.3, 0.9), rx, heightAt(rx, rz) + 0.1, rz, col, drand(0, 3), drand(0, 3), 0); }
     }
   }
   // vegetation by biome
   for (let i = 0; i < 1400 * Math.min(SC * SC, 2.6); i++) {
-    const x = rand(-EDGE, EDGE), z = rand(-EDGE, EDGE); if (!ok(x, z, -10)) continue; const y = heightAt(x, z); if (y > 15) continue;
-    const w = biomeW(x, z); const roll = Math.random();
+    const x = drand(-EDGE, EDGE), z = drand(-EDGE, EDGE); if (!ok(x, z, -10)) continue; const y = heightAt(x, z); if (y > 15) continue;
+    const w = biomeW(x, z); const roll = DR();
     if (roll < w.snow) { // snowy pine
-      if (fbm(x * 0.05, z * 0.05 + 40) < 0.45) continue; const h = rand(3.5, 7); const tl = rand(-0.05, 0.05);
+      if (fbm(x * 0.05, z * 0.05 + 40) < 0.45) continue; const h = drand(3.5, 7); const tl = drand(-0.05, 0.05);
       B.add(G.cone, 0.28, h * 0.5, 0.28, x, y + h * 0.25, z, 0x3b2a1e);
       const greens = [0x1f3b2c, 0x24432f, 0x1a3427];
       for (let k = 0; k < 4; k++) { const s = (1 - k * 0.22) * h * 0.27; const yy = y + h * (0.3 + k * 0.18); B.add(G.cone, s, h * 0.3, s, x, yy, z, greens[k % 3], tl, k * 0.7, tl); B.add(G.cone, s * 0.8, h * 0.1, s * 0.8, x, yy + h * 0.1, z, 0xeef3f8, tl, k * 0.7 + 0.3, tl); }
       B.add(G.cone, h * 0.06, h * 0.12, h * 0.06, x, y + h * 0.98, z, 0xf4f8fc);
     } else if (roll < w.snow + w.green) { // leafy tree / bush
-      if (fbm(x * 0.05, z * 0.05 + 40) < 0.42) continue; const h = rand(2.6, 5);
-      const pal = pick([[0x3f6b2a, 0x4d7a30, 0x5f8a36], [0x36602a, 0x447030, 0x527d34], [0x557a2c, 0x6a8f34, 0x7a9a3a]]);
+      if (fbm(x * 0.05, z * 0.05 + 40) < 0.42) continue; const h = drand(2.6, 5);
+      const pal = dpick([[0x3f6b2a, 0x4d7a30, 0x5f8a36], [0x36602a, 0x447030, 0x527d34], [0x557a2c, 0x6a8f34, 0x7a9a3a]]);
       B.add(G.cone, 0.24, h * 0.75, 0.24, x, y + h * 0.37, z, 0x4a3524);
       B.add(G.cyl6, 0.07, h * 0.35, 0.07, x + 0.25, y + h * 0.55, z, 0x4a3524, 0, 0, -0.7);
       B.add(G.cyl6, 0.07, h * 0.3, 0.07, x - 0.2, y + h * 0.5, z + 0.15, 0x4a3524, 0.4, 0, 0.7);
-      B.add(G.ico, h * 0.36, h * 0.3, h * 0.36, x, y + h * 0.72, z, pal[0], rand(0, 3), rand(0, 3), 0);
-      for (let k = 0; k < 3; k++) { const a = k / 3 * TAU + rand(0, 1); B.add(G.ico, h * 0.24, h * 0.21, h * 0.24, x + Math.sin(a) * h * 0.26, y + h * rand(0.72, 0.9), z + Math.cos(a) * h * 0.26, pal[1 + (k % 2)], rand(0, 3), rand(0, 3), 0); }
+      B.add(G.ico, h * 0.36, h * 0.3, h * 0.36, x, y + h * 0.72, z, pal[0], drand(0, 3), drand(0, 3), 0);
+      for (let k = 0; k < 3; k++) { const a = k / 3 * TAU + drand(0, 1); B.add(G.ico, h * 0.24, h * 0.21, h * 0.24, x + Math.sin(a) * h * 0.26, y + h * drand(0.72, 0.9), z + Math.cos(a) * h * 0.26, pal[1 + (k % 2)], drand(0, 3), drand(0, 3), 0); }
       B.add(G.ico, h * 0.2, h * 0.18, h * 0.2, x, y + h * 1.0, z, pal[2], 1, 2, 0);
-      if (Math.random() < 0.4) for (let k = 0; k < 3; k++) B.add(G.ico, 0.35, 0.25, 0.35, x + rand(-1.4, 1.4), y + 0.2, z + rand(-1.4, 1.4), pal[0], rand(0, 3), 0, 0);
+      if (DR() < 0.4) for (let k = 0; k < 3; k++) B.add(G.ico, 0.35, 0.25, 0.35, x + drand(-1.4, 1.4), y + 0.2, z + drand(-1.4, 1.4), pal[0], drand(0, 3), 0, 0);
     } else if (roll < w.snow + w.green + w.sand) { // cactus / dry palm
-      if (Math.random() < 0.6) continue;
-      if (Math.random() < 0.6) { const h = rand(1.5, 3); B.add(G.cyl6, 0.22, h, 0.22, x, y + h / 2, z, 0x4f7a3a); B.add(G.cyl6, 0.13, h * 0.4, 0.13, x + 0.35, y + h * 0.55, z, 0x4f7a3a); B.add(G.cyl6, 0.13, 0.4, 0.13, x + 0.2, y + h * 0.38, z, 0x4f7a3a, 0, 0, Math.PI / 2); }
-      else { const h = rand(4, 6); B.add(G.cyl6, 0.18, h, 0.18, x, y + h / 2, z, 0x6e5838, 0.1, 0, 0.08); for (let k = 0; k < 5; k++) { const a = k / 5 * TAU; B.box(0.15, 0.08, 2, x + Math.sin(a) * 0.9, y + h - 0.3, z + Math.cos(a) * 0.9, 0x5f7a32, 0, a, 0); } }
+      if (DR() < 0.6) continue;
+      if (DR() < 0.6) { const h = drand(1.5, 3); B.add(G.cyl6, 0.22, h, 0.22, x, y + h / 2, z, 0x4f7a3a); B.add(G.cyl6, 0.13, h * 0.4, 0.13, x + 0.35, y + h * 0.55, z, 0x4f7a3a); B.add(G.cyl6, 0.13, 0.4, 0.13, x + 0.2, y + h * 0.38, z, 0x4f7a3a, 0, 0, Math.PI / 2); }
+      else { const h = drand(4, 6); B.add(G.cyl6, 0.18, h, 0.18, x, y + h / 2, z, 0x6e5838, 0.1, 0, 0.08); for (let k = 0; k < 5; k++) { const a = k / 5 * TAU; B.box(0.15, 0.08, 2, x + Math.sin(a) * 0.9, y + h - 0.3, z + Math.cos(a) * 0.9, 0x5f7a32, 0, a, 0); } }
     } else { // dead tree on rock land
-      if (Math.random() < 0.7) continue; const h = rand(1.8, 3.4);
-      B.add(G.cyl6, 0.14, h, 0.14, x, y + h / 2, z, 0x3b2e22, rand(-0.15, 0.15), 0, rand(-0.15, 0.15));
+      if (DR() < 0.7) continue; const h = drand(1.8, 3.4);
+      B.add(G.cyl6, 0.14, h, 0.14, x, y + h / 2, z, 0x3b2e22, drand(-0.15, 0.15), 0, drand(-0.15, 0.15));
       B.add(G.cyl6, 0.07, h * 0.5, 0.07, x + 0.3, y + h * 0.75, z, 0x3b2e22, 0, 0, -0.8);
     }
   }
   for (let i = 0; i < 320 * Math.min(SC * SC, 9); i++) {
-    const x = rand(-EDGE, EDGE), z = rand(-EDGE, EDGE); if (!ok(x, z, -10)) continue; const s = rand(0.4, 2.2); const w = biomeW(x, z);
-    const col = w.snow > 0.5 ? pick([0xc8d0d8, 0x9aa4ad]) : w.sand > 0.5 ? pick([0xb08a5a, 0x9c7a50]) : pick([0x7b6f5f, 0x6a6052, 0x8a7d6a]);
-    B.add(G.ico, s * rand(0.8, 1.3), s * rand(0.5, 0.9), s * rand(0.8, 1.3), x, heightAt(x, z) + s * 0.2, z, col, rand(0, 3), rand(0, 3), rand(0, 3));
+    const x = drand(-EDGE, EDGE), z = drand(-EDGE, EDGE); if (!ok(x, z, -10)) continue; const s = drand(0.4, 2.2); const w = biomeW(x, z);
+    const col = w.snow > 0.5 ? dpick([0xc8d0d8, 0x9aa4ad]) : w.sand > 0.5 ? dpick([0xb08a5a, 0x9c7a50]) : dpick([0x7b6f5f, 0x6a6052, 0x8a7d6a]);
+    B.add(G.ico, s * drand(0.8, 1.3), s * drand(0.5, 0.9), s * drand(0.8, 1.3), x, heightAt(x, z) + s * 0.2, z, col, drand(0, 3), drand(0, 3), drand(0, 3));
     if (s > 1.4) OBST.push({ x, z, r: s });
   }
   // wells: small rock ring
@@ -392,7 +396,7 @@ function buildDecor() {
   indexObst();
   buildGroundCover();
 }
-function buildGroundCover() {
+function buildGroundCover() { DRS = SEED ^ 0x9a55;
   const tuft = new THREE.ConeGeometry(0.12, 0.9, 3); tuft.translate(0, 0.45, 0);
   const blob = new THREE.IcosahedronGeometry(0.28, 0);
   const flower = new THREE.SphereGeometry(0.12, 5, 4); flower.translate(0, 0.55, 0);
@@ -403,16 +407,16 @@ function buildGroundCover() {
   const near = (x, z) => { for (const f of FLAT) if (Math.hypot(x - f.x, z - f.z) < f.r - 3) return true; for (const w of WELLS) if (Math.hypot(x - w.x, z - w.z) < 4.5) return true; return false; };
   let gi = 0, bi = 0, fi = 0;
   for (let tries = 0; tries < 60000 * GK && (gi < N || bi < NB); tries++) {
-    const x = rand(-EDGE, EDGE), z = rand(-EDGE, EDGE); if (near(x, z)) continue; const y = heightAt(x, z); if (y > 15) continue;
-    const w = biomeW(x, z); const r = Math.random();
+    const x = drand(-EDGE, EDGE), z = drand(-EDGE, EDGE); if (near(x, z)) continue; const y = heightAt(x, z); if (y > 15) continue;
+    const w = biomeW(x, z); const r = DR();
     if (r < w.green && gi < N) {
       if (fbm(x * 0.09 + 11, z * 0.09) < 0.4) continue;
-      for (let k = 0; k < 3 && gi < N; k++) { const xx = x + rand(-0.5, 0.5), zz = z + rand(-0.5, 0.5); e.set(rand(-0.25, 0.25), rand(0, 6), rand(-0.25, 0.25)); q.setFromEuler(e); const s2 = rand(0.6, 1.4); sc.set(s2, s2 * rand(0.7, 1.3), s2); ps.set(xx, heightAt(xx, zz) - 0.05, zz); m.compose(ps, q, sc); grass.setMatrixAt(gi, m); col.setHSL(rand(0.22, 0.3), rand(0.45, 0.65), rand(0.22, 0.36)); grass.setColorAt(gi++, col); }
-      if (fi < NF && Math.random() < 0.18) { ps.set(x, y, z); sc.set(1, 1, 1); q.identity(); m.compose(ps, q, sc); flowers.setMatrixAt(fi, m); flowers.setColorAt(fi++, C(pick([0xffe24a, 0xff5a5a, 0xffffff, 0xb07aff, 0xff9a3a]))); }
+      for (let k = 0; k < 3 && gi < N; k++) { const xx = x + drand(-0.5, 0.5), zz = z + drand(-0.5, 0.5); e.set(drand(-0.25, 0.25), drand(0, 6), drand(-0.25, 0.25)); q.setFromEuler(e); const s2 = drand(0.6, 1.4); sc.set(s2, s2 * drand(0.7, 1.3), s2); ps.set(xx, heightAt(xx, zz) - 0.05, zz); m.compose(ps, q, sc); grass.setMatrixAt(gi, m); col.setHSL(drand(0.22, 0.3), drand(0.45, 0.65), drand(0.22, 0.36)); grass.setColorAt(gi++, col); }
+      if (fi < NF && DR() < 0.18) { ps.set(x, y, z); sc.set(1, 1, 1); q.identity(); m.compose(ps, q, sc); flowers.setMatrixAt(fi, m); flowers.setColorAt(fi++, C(dpick([0xffe24a, 0xff5a5a, 0xffffff, 0xb07aff, 0xff9a3a]))); }
     } else if (bi < NB) {
-      let c2; if (w.snow > 0.5) c2 = pick([0xf2f6fa, 0xdfe7ef]); else if (w.sand > 0.5) c2 = pick([0x8a7a4a, 0x9a8650, 0x6f6a3a]); else if (w.mtn > 0.5) c2 = pick([0x7a7166, 0x6a635a]); else c2 = pick([0x5a6a32, 0x6e6a3c]);
+      let c2; if (w.snow > 0.5) c2 = dpick([0xf2f6fa, 0xdfe7ef]); else if (w.sand > 0.5) c2 = dpick([0x8a7a4a, 0x9a8650, 0x6f6a3a]); else if (w.mtn > 0.5) c2 = dpick([0x7a7166, 0x6a635a]); else c2 = dpick([0x5a6a32, 0x6e6a3c]);
       if (w.green > 0.5) continue;
-      e.set(rand(0, 3), rand(0, 6), rand(0, 3)); q.setFromEuler(e); const s2 = rand(0.5, 1.6); sc.set(s2, s2 * rand(0.4, 0.8), s2); ps.set(x, y + 0.05, z); m.compose(ps, q, sc); blobs.setMatrixAt(bi, m); blobs.setColorAt(bi++, C(c2));
+      e.set(drand(0, 3), drand(0, 6), drand(0, 3)); q.setFromEuler(e); const s2 = drand(0.5, 1.6); sc.set(s2, s2 * drand(0.4, 0.8), s2); ps.set(x, y + 0.05, z); m.compose(ps, q, sc); blobs.setMatrixAt(bi, m); blobs.setColorAt(bi++, C(c2));
     }
   }
   grass.count = gi; blobs.count = bi; flowers.count = fi;

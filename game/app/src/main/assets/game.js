@@ -58,11 +58,12 @@ const MISSIONS = [
   { name: 'Căderea Cetății', map: 'Inima continentului', size: 480, seed: 5531, rings: [[190, 7, 0, 1.1], [148, 6, 1, 1.3], [106, 5, 2, 1.3], [62, 4, 2, 1.2]], gar: 0.75, obj: 'citadel', depth: 99,
     brief: 'A sosit ziua. Cetatea Legiunii controlează ultimul satelit care încă poate arunca fier asupra noastră. Rupe inelele de apărare, sparge zidurile și distruge Cetatea. Pentru Coaliție!' },
 ];
+const MSCALE = 3; for (const m of MISSIONS) m.size *= MSCALE;   // mission maps are three times larger than the base layouts
 const MDEPTH = [0, ...MISSIONS.map(m => m.depth)];
 let MISSION = 0, CAMP = 0; try { MISSION = clamp(+localStorage.getItem('ironfall.mission') | 0, 0, MISSIONS.length); CAMP = clamp(+localStorage.getItem('ironfall.camp') | 0, 0, MISSIONS.length); } catch (e) {}
 if (NETCFG) MISSION = 0;
 const MDEF = MISSION ? MISSIONS[MISSION - 1] : null;
-if (MDEF) MAPS.push({ name: MDEF.map, size: MDEF.size, seed: MDEF.seed, rings: MDEF.rings, gar: MDEF.gar, mission: MISSION });
+if (MDEF) MAPS.push({ name: MDEF.map, size: MDEF.size, seed: MDEF.seed, rings: MDEF.rings.map(([r, n, t, g]) => [r * MSCALE, n, t, g]), gar: MDEF.gar, mission: MISSION });
 let MAPI = 0; try { MAPI = clamp(+(localStorage.getItem('ironfall.map') || 0) | 0, 0, MAPS.length - 1); } catch (e) {}
 if (NETCFG) { const md = NETCFG.mdef && cleanMap(NETCFG.mdef); if (md) { MAPS.push(md); MAPI = MAPS.length - 1; } else MAPI = clamp(NETCFG.map | 0, 0, BUILTIN_MAPS - 1); }
 if (MDEF) MAPI = MAPS.length - 1;

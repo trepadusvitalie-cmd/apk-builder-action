@@ -413,3 +413,13 @@ i.eu { font-style: normal; color: var(--amber); font-size: .9em; margin-left: 1p
 img.ric.r3d { object-fit: contain; filter: drop-shadow(0 1px 2px #000b); }
 #labCol .lt img.r3d { left: 6%; top: 6%; width: 88%; height: 88%; filter: drop-shadow(0 1px 1px #000) drop-shadow(0 0 3px #47d3ff88); }
 #panel .rcard img.r3d { width: 30px; height: 30px; margin: -3px 0 -2px; filter: drop-shadow(0 2px 2px #000a); }
+/* compact research menu for phones */
+#panel .chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-bottom: 3px; }
+#panel .chips::-webkit-scrollbar { display: none; }
+#panel .chips button { flex: none; min-height: 20px; font-size: 9.5px; padding: 0 6px; }
+#panel .rgrid { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 2px; }
+#panel .rcard { padding: 1px 1px 2px; }
+#panel .rcard img.r3d, #panel .rcard .ric { width: 24px; height: 24px; margin: -2px 0 -3px; }
+#panel .rcard .rn { font-size: 8px; -webkit-line-clamp: 1; display: block; white-space: nowrap; text-overflow: ellipsis; max-width: 100%; }
+#panel .rcard .rm { font-size: 7px; }
+#panel .labs .labsh { font-size: 9.5px; margin: 0 0 3px; }

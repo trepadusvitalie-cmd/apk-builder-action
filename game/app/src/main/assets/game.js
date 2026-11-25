@@ -987,16 +987,20 @@ function unitGeo(d, team) {
         { const k = 0.505; tb.box(0.9 * s, 0.9 * s, 0.05 * s, c0[0], c0[1] + sa * L * k, c0[2] + ca * L * k, 0x2e3328, -a, 0, 0); tb.add(G.cyl16, 0.32 * s, 0.07 * s, 0.32 * s, c0[0], c0[1] + sa * L * (k + 0.01), c0[2] + ca * L * (k + 0.01), 0xc8321e, Math.PI / 2 - a, 0, 0); } // front cap
         msl = { kind: 'orizont', x: c0[0], y: c0[1], z: c0[2], a, len: L * 0.92 };
       } else if (w.big) { tb.box(0.25 * s, 0.9 * s, 0.25 * s, 0.35 * s, 0.5 * s, -0.2 * s, 0x5a564f); tb.box(0.5 * s, 0.12 * s, 2.0 * s, 0, 0.45 * s, 0.05 * s, 0x3a3a36, -0.62, 0, 0); msl = { kind: 'ballistic', x: 0, y: 0.8 * s, z: 0.15 * s, a: 0.62, len: 2.45 * s }; }
-      else { // big armoured rocket pod: 4x3 tubes with red warheads
-        const a = 0.55, ca = Math.cos(a), sa = Math.sin(a), P = (x, y, z) => [x, 0.75 * s + y * ca + z * sa, 0.05 * s - y * sa + z * ca];
-        tb.box(0.35 * s, 0.6 * s, 0.4 * s, 0, 0.35 * s, -0.1 * s, T.dark);
-        tb.box(0.9 * s, 0.22 * s, 0.7 * s, 0, 0.2 * s, -0.1 * s, T.body); tb.hazard(0.9 * s, 0.1 * s, 0, 0.2 * s, 0.255 * s, 'z', 1);
-        { const [x, y, z] = P(0, 0, 0); tb.box(1.2 * s, 0.82 * s, 1.5 * s, x, y, z, T.body, -a, 0, 0); tb.camo(1.2 * s, 0.84 * s, 1.5 * s, x, y, z, -a); }
-        for (const zz of [-0.45, 0.45]) { const [x, y, z] = P(0, 0, zz * s); tb.box(1.26 * s, 0.86 * s, 0.12 * s, x, y, z, T.acc, -a, 0, 0); }
-        for (const sx of [-1, 1]) { const [x, y, z] = P(sx * 0.62 * s, 0, 0); tb.box(0.06 * s, 0.9 * s, 1.56 * s, x, y, z, T.dark, -a, 0, 0); }
-        for (let i = 0; i < 4; i++) for (let j = 0; j < 3; j++) { const ox = (i - 1.5) * 0.26 * s, oy = (j - 1) * 0.24 * s;
-          { const [x, y, z] = P(ox, oy, 0.76 * s); tb.add(G.cyl10, 0.1 * s, 0.06 * s, 0.1 * s, x, y, z, 0x111111, Math.PI / 2 - a, 0, 0); }
-          { const [x, y, z] = P(ox, oy, 0.72 * s); tb.add(G.sph, 0.07 * s, 0.07 * s, 0.07 * s, x, y, z, 0xc8321e); } }
+      else { // multiple rocket launcher on open rails: a big tilted frame, two tiers of eight rails, a long rocket on each
+        const a = 0.42, ca = Math.cos(a), sa = Math.sin(a), P = (x, y, z) => [x, 0.78 * s + y * ca + z * sa, -0.15 * s - y * sa + z * ca];
+        const W = 0.84 * s, RL = 2.5 * s;
+        tb.box(1.2 * s, 0.3 * s, 1.1 * s, 0, 0.18 * s, -0.2 * s, T.dark); tb.hazard(1.2 * s, 0.1 * s, 0, 0.18 * s, 0.355 * s, 'z', 1);
+        for (const sx of [-1, 1]) { tb.box(0.12 * s, 0.55 * s, 0.7 * s, sx * 0.5 * s, 0.5 * s, -0.35 * s, 0x4a4a46); tb.add(G.cyl10, 0.05 * s, 0.9 * s, 0.05 * s, sx * 0.35 * s, 0.55 * s, 0.25 * s, 0xb8b8b0, 0.9, 0, 0); }
+        for (const sx of [-1, 1]) { const [x, y, z] = P(sx * W, 0.1 * s, 0); tb.box(0.08 * s, 0.16 * s, RL + 0.1 * s, x, y, z, T.body, -a, 0, 0); }          // side beams
+        for (const zz of [-1.05, -0.1, 0.85]) { const [x, y, z] = P(0, -0.1 * s, zz * s); tb.box(2 * W + 0.1 * s, 0.08 * s, 0.1 * s, x, y, z, zz > 0 ? T.acc : 0x3a3a36, -a, 0, 0); } // cross members
+        { const [x, y, z] = P(0, 0.12 * s, -0.1 * s); tb.box(2 * W, 0.04 * s, 0.1 * s, x, y, z, 0x3a3a36, -a, 0, 0); }
+        for (let t = 0; t < 2; t++) for (let i = 0; i < 8; i++) { const ox = (i - 3.5) * 0.2 * s, oy = t * 0.24 * s;
+          { const [x, y, z] = P(ox, oy - 0.05 * s, 0); tb.box(0.05 * s, 0.035 * s, RL, x, y, z, 0x2e2e2a, -a, 0, 0); }                                      // rail
+          { const [x, y, z] = P(ox, oy + 0.04 * s, -0.05 * s); tb.add(G.cyl10, 0.065 * s, 1.9 * s, 0.065 * s, x, y, z, 0x5e6252, Math.PI / 2 - a, 0, 0); }   // rocket body
+          { const [x, y, z] = P(ox, oy + 0.04 * s, 1.03 * s); tb.add(G.cone, 0.075 * s, 0.32 * s, 0.075 * s, x, y, z, 0x9a3024, Math.PI / 2 - a, 0, 0); }      // warhead
+          { const [x, y, z] = P(ox, oy + 0.04 * s, 0.62 * s); tb.add(G.cyl10, 0.072 * s, 0.07 * s, 0.072 * s, x, y, z, 0xc9b48a, Math.PI / 2 - a, 0, 0); } // band
+          { const [x, y, z] = P(ox, oy + 0.04 * s, -0.98 * s); tb.box(0.15 * s, 0.015 * s, 0.14 * s, x, y, z, 0x3a3a36, -a, 0, 0); } }                      // fins
       }
     } else if (d.wp === 'hhowitzer') { // three long barrels on a big armoured cradle, splinter camouflage
       const ang = 0.5, Lb = 3.1 * s, rr = 0.12 * s, CAMO = [0x8fa284, 0xcdbf92, 0x5e7058, 0x9ab6b8];
@@ -2419,7 +2423,7 @@ function renderPanel() {
       const labs = ents.filter(e => e.alive && e.team === 0 && e.type === 'lab');
       const busy = labs.filter(l => l.res).length;
       const free = labs.filter(l => l.complete && !l.res).length;
-      h += `<div class="labs"><div class="labsh">Laboratoare: <b>${labs.length}/${MAX_LABS}</b> · cercetări în paralel: <b>${busy}</b> · libere <b>${free}</b>${free ? ' — alege o cercetare, merge în primul laborator liber' : ''}</div>`;
+      h += `<div class="labs"><div class="labsh">Laboratoare <b>${labs.length}/${MAX_LABS}</b> · lucrează <b>${busy}</b> · libere <b>${free}</b></div>`;
       if (false) labs.forEach((l, i) => { h += `<button class="labrow ${l === b ? 'cur' : ''} ${l.res ? '' : 'idle'}" data-act="sellab" data-v="${l.id}">${l.res ? RICON[l.res.id] : l.lastRes ? `<span class="lastico">${RICON[l.lastRes]}</span>` : UIC.lab.replace('class="ui"', 'class="ric"')}<span class="ln">#${i + 1}</span><span class="lt"><b>${!l.complete ? 'În construcție' : l.res ? l.res.name : l.lastRes ? '✔ ' + (RS.find(x => x.id === l.lastRes) || {}).name + ' — liber' : 'Liber — alege o cercetare'}</b>${l.res ? `<span class="bar b"><i id="labB${l.id}"></i></span>` : ''}</span><span class="lr" id="labT${l.id}"></span></button>`; });
       h += `</div>`;
       const avail = br => br.ids.filter(id => { const r = RS.find(x => x.id === id); return !T.tech.has(id) && !r.req.some(q => !T.tech.has(q)); }).length;

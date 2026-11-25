@@ -1406,8 +1406,14 @@ function bldGeo(type, team) {
       B.box(0.7, 0.55, 1.1, 2.3, 0.3, -1.4, T.dark); B.add(G.cyl16, 0.3, 0.9, 0.3, 2.3, 0.62, -1.4, 0xc8321e, Math.PI / 2, 0, 0); B.add(G.cyl6, 0.04, 1.2, 0.04, 1.9, 0.4, -0.8, 0x222222, 0, 0, 1.2);
       break; }
     case 'radartower':
-      B.box(3.6, 1.2, 3.6, 0, -0.3, 0, conc); B.box(2.4, 1.6, 2.4, 0, 0.9, 0, T.body); B.box(2.5, 0.25, 2.5, 0, 1.75, 0, T.acc);
-      B.add(G.cyl16, 0.35, 0.5, 0.35, 0, 2.1, 0, 0x6a6a64); B.box(1.2, 0.2, 1.2, 0, 2.35, 0, T.dark);   // short pedestal for the rotating antenna
+      // concrete tripod tower: round footing, three tapered legs leaning in, a cast platform on top carrying the rotating antenna
+      B.add(G.cyl16, 1.95, 0.6, 1.95, 0, -0.25, 0, conc2); B.add(G.cyl16, 1.75, 0.12, 1.75, 0, 0.1, 0, 0x7a756b);
+      for (let i = 0; i < 3; i++) { const a = i / 3 * TAU + 0.5, ca = Math.cos(a), sa = Math.sin(a);
+        B.box(0.5, 3.4, 0.5, ca * 1.03, 1.62, -sa * 1.03, conc, 0, a, 0.29); B.box(0.8, 0.35, 0.8, ca * 1.5, 0.22, -sa * 1.5, conc2, 0, a, 0);   // leg + foot block
+        B.box(0.08, 3.0, 0.06, ca * 1.3, 1.5, -sa * 1.3, 0x6f6a61, 0, a, 0.29); }                                                           // pour seam
+      for (let i = 0; i < 3; i++) { const a = i / 3 * TAU + 0.5 + Math.PI / 3; B.box(0.12, 0.12, 1.35, Math.cos(a) * 0.62, 1.7, -Math.sin(a) * 0.62, 0x4a4d50, 0, a + Math.PI / 2, 0); }   // steel cross-bracing
+      B.add(G.cyl16, 1.0, 0.45, 1.0, 0, 3.35, 0, conc); B.add(G.cyl16, 1.06, 0.1, 1.06, 0, 3.6, 0, 0x7a756b); B.add(G.cyl16, 1.02, 0.06, 1.02, 0, 3.2, 0, T.acc);
+      B.add(G.cyl16, 0.35, 0.4, 0.35, 0, 3.8, 0, 0x6a6a64);   // pedestal for the rotating antenna
       { const d = new Builder();   // steel lattice radar reflector (curved), yoke and feed horn; no lights
         d.box(0.36, 0.34, 0.36, 0, 0.17, 0, 0x3c3e3a); d.box(0.9, 0.12, 0.2, 0, 0.36, 0, 0x4a4d50);
         for (let k = -2; k <= 2; k++) { const x = k * 0.47, z = -0.07 * k * k; d.box(0.48, 1.0, 0.05, x, 0.92, z, 0x9aa0a4, -0.18, -k * 0.15, 0); }
@@ -1510,7 +1516,7 @@ function makeBldMesh(type, team) { // team = colour palette index
   if (type === 'pump') { const b = new THREE.Mesh(g.anim.beam, matVC); b.position.set(0, 3.55, 0); grp.add(b); parts.beam = b; }
   if (type === 'silo') { for (const sd of [-1, 1]) { const l = new THREE.Mesh(g.anim.lid, matVC); l.position.set(sd * 1.45, 0.5, 0); l.scale.x = sd; l.castShadow = true; grp.add(l); parts[sd < 0 ? 'lidL' : 'lidR'] = l; }
     const L = 9; const m = new THREE.Mesh(missileGeo('icbm'), matVC); m.rotation.x = -Math.PI / 2; m.scale.setScalar(L); m.position.y = -L * 0.62; grp.add(m); parts.msl = m; parts.mslL = L; }
-  if (type === 'radartower') { const d = new THREE.Mesh(g.anim.dish, matVC); d.position.set(0, 2.4, 0); d.scale.setScalar(1.9); grp.add(d); parts.dish = d; }
+  if (type === 'radartower') { const d = new THREE.Mesh(g.anim.dish, matVC); d.position.set(0, 3.95, 0); d.scale.setScalar(1.9); grp.add(d); parts.dish = d; }
   if (type === 'tower' || BD[type].tw) {
     const t = new THREE.Group(); t.position.y = BD[type].ty || 3.3; t.scale.setScalar(BD[type].ts || 1); grp.add(t);
     parts.wl = BD[type].tw ? [BD[type].tw] : ['mg', 'cannon', 'rockets', 'laser'];
@@ -1744,8 +1750,8 @@ function spawnProj(kind, src, tgt, dmg, splash, ox, oy, oz, w, realT, mlen, lift
     m = new THREE.Mesh(missileGeo(mk), matVC); m.add(new THREE.Mesh(mslExh, exhMat)); m.add(new THREE.Mesh(mslExhCore, exhCoreMat));
     m.scale.setScalar(mlen || ({ rocket: 1.5, viper: 2.3, seeker: 2.0, orizont: 4.5, ballistic: 3, salvo: 1.4 })[mk]); }
   else if (kind === 'shell') { m = new THREE.Mesh(artShellGeo, matVC); m.scale.setScalar(1.5); const g = new THREE.Mesh(shellGeo, shellMat); g.scale.setScalar(0.9); g.position.z = -0.45; m.add(g); }
-  else if (kind === 'mortar' && !(w && w.plasma)) { m = new THREE.Mesh(artShellGeo, matVC); m.scale.setScalar(w && w.big ? 2.6 : w && w.art === 'how' ? 2.0 : 1.7); }
-  else { m = new THREE.Mesh(shellGeo, w && w.plasma ? plasmaMat : shellMat); if (kind === 'mortar') m.scale.setScalar(w && w.big ? 2.6 : w && w.plasma ? 2.4 : 1.6); }
+  else if (kind === 'mortar' && !(w && w.plasma)) { m = new THREE.Mesh(artShellGeo, matVC); m.scale.setScalar(w && w.big ? 0.9 : w && w.art === 'how' ? 0.7 : 0.6); }
+  else { m = new THREE.Mesh(shellGeo, w && w.plasma ? plasmaMat : shellMat); if (kind === 'mortar') m.scale.setScalar(w && w.big ? 0.9 : w && w.plasma ? 1.4 : 0.6); }
   scene.add(m); if (lift) m.position.set(ox, oy, oz);
   const tx = tgt.x, tz = tgt.z, ty = tgt.y + (tgt.kind === 'bld' ? 1.5 : 0.8); const d = Math.hypot(tx - ox, tz - oz); const spd = (kind === 'shell' ? 26 : kind === 'mortar' ? 26 : 22) * (kind === 'mortar' ? Math.sqrt(RNG_A) : PROJ_SPD);
   // artillery firing at a close target it can see itself shoots flat and fast (direct fire), not in a high arc
@@ -1886,7 +1892,12 @@ function fireWeapon(src, t, w, mx, my, mz, mul) {
   else fx('muzzle', mx, my, mz, 1.4);
   if (w.kind === 'mg') { const ty = t.y + (t.kind === 'bld' ? 1.5 : 0.7); tracer(mx, my, mz, t.x + rand(-0.4, 0.4), ty, t.z + rand(-0.4, 0.4)); if (Math.random() < 0.3) { fx('spark', t.x, ty, t.z, 1); if (Math.random() < 0.5) sfx('ric', t.x, t.z); } damage(t, dmg, src); sfx('mg', mx, mz); }
   else if (w.kind === 'shell') { spawnProj('shell', src, t, dmg, 0, mx, my, mz); const hx = mx - src.x, hz = mz - src.z, hl = Math.hypot(hx, hz) || 1; for (let i = 0; i < 6; i++) { const d = i * 1.6; fx('smoke', mx + hx / hl * d + rand(-0.8, 0.8), my + rand(-0.3, 0.6), mz + hz / hl * d + rand(-0.8, 0.8), 1.4 + i * 0.25); } fx('trail', mx, my, mz, 2.2); fx('dust', src.x, src.y + 0.3, src.z, 2.2); sfx('shell', mx, mz); }
-  else if (w.kind === 'mortar') { spawnProj('mortar', src, t, dmg, w.splash, mx, my, mz, w); fx('smoke', mx, my, mz, w.big ? 2.6 : 1.5); fx('smoke', mx, my + 0.8, mz, w.big ? 2 : 1.1); fx('trail', mx, my, mz, w.big ? 2 : 1.2); fx('flash', mx, my, mz, w.big ? 1.2 : 0.6); sfx(ART_SND[w.id] || 'art_mortar', mx, mz); }
+  else if (w.kind === 'mortar') { spawnProj('mortar', src, t, dmg, w.splash, mx, my, mz, w);
+    { const hx = mx - src.x, hz = mz - src.z, hl = Math.hypot(hx, hz) || 1, k = w.big ? 1.5 : w.art === 'how' ? 1.2 : 1;   // muzzle blast: flash, smoke cloud drifting forward, dust kicked up round the gun
+      if (Math.abs(mx - cam.x) < 140 && Math.abs(mz - cam.z) < 140) fireball3D(mx + hx / hl * 0.4, my + 0.2, mz + hz / hl * 0.4, 0.5 * k, null, 0, 0.5);
+      for (let i = 0; i < 6; i++) { const d = i * 1.1; fx(i % 2 ? 'smoke' : 'steam', mx + hx / hl * d + rand(-0.6, 0.6), my + 0.3 + i * 0.3, mz + hz / hl * d + rand(-0.6, 0.6), (1.8 + i * 0.4) * k); } fx('steam', mx, my + 0.6, mz, 2.6 * k); fx('flash', mx, my, mz, 1.2 * k);
+      for (let i = 0; i < 4; i++) { const a = i / 4 * TAU + rand(-0.4, 0.4); fx('dust', src.x + Math.sin(a) * 1.6, src.y + 0.3, src.z + Math.cos(a) * 1.6, 1.8 * k); } }
+    fx('smoke', mx, my, mz, w.big ? 2.6 : 1.5); fx('smoke', mx, my + 0.8, mz, w.big ? 2 : 1.1); fx('trail', mx, my, mz, w.big ? 2 : 1.2); fx('flash', mx, my, mz, w.big ? 1.2 : 0.6); sfx(ART_SND[w.id] || 'art_mortar', mx, mz); }
   else if (w.kind === 'salvo') { sfx(ART_SND[w.id], mx, mz);
     const ms = w.n === 1 ? (src.mslMesh || (src.parts && src.parts.msl)) : null; let mlen = 0;
     if (ms && S.time >= (src.mslT || 0)) { const v = new THREE.Vector3(); ms.getWorldPosition(v); mx = v.x; my = v.y; mz = v.z; mlen = ms.getWorldScale(v).x; ms.visible = false; src.mslT = S.time + w.rof * 0.7; reloadVis.push({ m: ms, t: src.mslT }); }
@@ -3132,7 +3143,10 @@ function engineAudio(dt) {
 }
 const lastS = {};
 function sfx(type, x, z) {
+  if (type === 'whistle') return;   // incoming-shell whistle removed
   const ctx = AU.ctx; if (!ctx || !AU.sfx || ctx.state !== 'running') return; if (!SB.click) buildSfx();
+  // keep the mixer light on phones: at most 12 battle sounds at once (UI clicks always play)
+  const ui = ['click', 'ack', 'done', 'done2', 'alert'].includes(type); if (!ui && (AU.voices || 0) >= 12) return;
   const t = ctx.currentTime;
   const thr = { weld: 0.55, flame: 0.12, laser: 0.06, mg: 0.07, shell: 0.05, rocket: 0.08, boom: 0.06, bigboom: 0.2, hit: 0.05, imp_shell: 0.05, imp_rocket: 0.06, imp_mortar: 0.07, imp_how: 0.12, imp_hhow: 0.2, imp_inc: 0.15, imp_plasma: 0.12, imp_salvo: 0.09, whistle: 0.15, ric: 0.12, debris: 0.1, collapse: 0.4, cookoff: 0.3, click: 0.03, ack: 0.25 }[type] || 0; if (lastS[type] && t - lastS[type] < thr) return; lastS[type] = t;
   let vol = 1, pan = 0;
@@ -3143,7 +3157,8 @@ function sfx(type, x, z) {
   const g = ctx.createGain(); g.gain.value = VOL * vol; const p = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
   const loud = key.startsWith('imp_') || key.startsWith('art_') || ['boom', 'bigboom', 'cannon', 'rocket', 'collapse', 'debris', 'cookoff'].includes(key);
   if (loud && x !== undefined) { const d = Math.hypot(x - cam.x, z - cam.z); const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = clamp(16000 / (1 + Math.pow(d / 22, 1.7)), 500, 16000); s.connect(lp); lp.connect(g); } else s.connect(g);
-  if (p) { p.pan.value = pan; g.connect(p); p.connect(AU.sfxG); if (['cannon', 'boom', 'bigboom', 'rocket', 'hit', 'collapse', 'debris', 'cookoff'].includes(key) || key.startsWith('art_') || key.startsWith('imp_')) p.connect(AU.srev); } else g.connect(AU.sfxG);
+  if (p) { p.pan.value = pan; g.connect(p); p.connect(AU.sfxG); if (['bigboom', 'collapse'].includes(key) || key.startsWith('art_') || key === 'imp_how' || key === 'imp_hhow') p.connect(AU.srev); } else g.connect(AU.sfxG);
+  if (!ui) { AU.voices = (AU.voices || 0) + 1; s.onended = () => { AU.voices--; }; }
   s.start(t);
   if (type === 'done') setTimeout(() => sfx('done2'), 140);
 }

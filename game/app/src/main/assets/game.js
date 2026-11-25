@@ -552,8 +552,8 @@ const DCLASS = {
   bunker: { name: 'Buncăr', hp: 1300, cost: 110, size: 3.4, time: 22, h: 2, ty: 0.72, ts: 1.15, rb: -1, dm: 1.25, req: 'bunker', wps: ['mg', 'cannon', 'flame', 'laser'] },
   hard: { name: 'Fortificație', hp: 1700, cost: 170, size: 3.8, time: 28, h: 3.8, ty: 3.5, ts: 1.15, rb: 3, dm: 1.6, req: 'hardpoint', wps: ['mg', 'cannon', 'flame', 'rockets', 'laser'] },
   fort: { name: 'Fortăreață', hp: 5200, cost: 560, size: 8, time: 70, h: 6, ty: 5.6, ts: 1.9, rb: 6, dm: 3.6, req: 'fortress', wps: ['cannon', 'rockets', 'laser'] },
-  aa: { name: 'Antiaeriană (PVO)', hp: 900, cost: 100, size: 3.4, time: 20, h: 3.6, ty: 2.85, ts: 1.2, rb: 2, dm: 1.3, req: null, wps: ['aamg', 'aacannon', 'sam', 'aalaser'] },
-  pit: { name: 'Amplasament', hp: 700, cost: 80, size: 4.0, time: 18, h: 3.4, ty: 2.65, ts: 1.1, rb: 0, dm: 1.4, req: null, wps: ['mortar', 'imortar', 'empmortar', 'salvo', 'howitzer', 'ihowitzer', 'rhowitzer', 'hhowitzer', 'plasma', 'ballistic', 'rbattery', 'smissile', 'omissile'] },
+  aa: { name: 'Antiaeriană (PVO)', hp: 900, cost: 100, size: 4.6, time: 20, h: 2.8, ty: 2.0, ts: 1.2, rb: 2, dm: 1.3, req: null, wps: ['aamg', 'aacannon', 'sam', 'aalaser'] },
+  pit: { name: 'Amplasament', hp: 700, cost: 80, size: 4.6, time: 18, h: 2.8, ty: 2.0, ts: 1.1, rb: 0, dm: 1.4, req: null, wps: ['mortar', 'imortar', 'empmortar', 'salvo', 'howitzer', 'ihowitzer', 'rhowitzer', 'hhowitzer', 'plasma', 'ballistic', 'rbattery', 'smissile', 'omissile'] },
 };
 const IMP_SND = { mortar: 'imp_mortar', rmortar: 'imp_mortar', imortar: 'imp_inc', ihowitzer: 'imp_inc', empmortar: 'imp_salvo', salvo: 'imp_salvo', howitzer: 'imp_how', rhowitzer: 'imp_how', hhowitzer: 'imp_hhow', ballistic: 'imp_hhow', plasma: 'imp_plasma', rbattery: 'imp_salvo', smissile: 'imp_rocket', omissile: 'imp_hhow' };
 const ART_SND = { mortar: 'art_mortar', imortar: 'art_inc', empmortar: 'art_emp', rmortar: 'art_rmortar', salvo: 'art_salvo', howitzer: 'art_how', ihowitzer: 'art_inc', rhowitzer: 'art_rhow', hhowitzer: 'art_hhow', plasma: 'art_plasma', ballistic: 'art_ball', rbattery: 'art_salvo', smissile: 'art_salvo', omissile: 'art_ball' };
@@ -1224,6 +1224,17 @@ function tripod(B, T, conc, conc2, H, R) {
   B.add(G.cyl16, 1.15, 0.12, 1.15, 0, H + 0.6, 0, 0x4a4a46);
   for (let k = 0; k < 8; k++) { const a = k / 8 * TAU; B.add(G.cyl10, 0.06, 0.06, 0.06, Math.sin(a) * 1.3, H + 0.58, Math.cos(a) * 1.3, 0x2a2a28); }
 }
+// stepped concrete gun base: three tiers with sloped faces, pour joints, hazard stripe and a turntable on top (turret sits at y 2.0)
+function stepBase(B, T, conc, conc2) {      const tiers = [[5.2, 0.7, 0.0], [4.0, 0.6, 0.65], [2.9, 0.5, 1.2]];
+      for (const [w, h, y] of tiers) { const c = y > 1 ? conc : conc2;
+        B.box(w - 0.6, h, w - 0.6, 0, y + h / 2, 0, c);
+        for (const sd of [-1, 1]) { const o = w / 2 - 0.36; B.box(w - 0.6, h * 1.12, 0.5, 0, y + h / 2 - 0.02, sd * o, c, -sd * 0.5, 0, 0); B.box(0.5, h * 1.12, w - 0.6, sd * o, y + h / 2 - 0.02, 0, c, 0, 0, sd * 0.5); }   // sloped faces leaning in
+        for (const sx of [-1, 1]) for (const sz of [-1, 1]) B.box(0.42, h * 1.05, 0.42, sx * (w / 2 - 0.38), y + h / 2 - 0.02, sz * (w / 2 - 0.38), 0x7a756b, 0, Math.PI / 4, 0);   // corner caps
+        B.box(w - 0.62, 0.03, 0.05, 0, y + h + 0.005, 0, 0x6e695f); B.box(0.05, 0.03, w - 0.62, 0, y + h + 0.005, 0, 0x6e695f); }   // pour joints
+      B.add(G.cyl16, 1.3, 0.22, 1.3, 0, 1.8, 0, conc2); B.add(G.cyl16, 1.15, 0.1, 1.15, 0, 1.94, 0, 0x4a4a46); B.add(G.cyl16, 1.2, 0.05, 1.2, 0, 1.9, 0, T.acc);
+      for (let k = 0; k < 8; k++) { const a = k / 8 * TAU; B.add(G.cyl10, 0.06, 0.06, 0.06, Math.sin(a) * 1.25, 1.93, Math.cos(a) * 1.25, 0x2a2a28); }
+      for (let k = 0; k < 7; k++) B.box(0.5, 0.04, 0.14, -1.0 + k * 0.33, 0.66, 2.05, k % 2 ? 0x1c1c1c : 0xe8c02a);   // hazard stripe on the front step
+       }
 function sqFort(B, T, conc, conc2, k, H, tiers) {
   const slit = 0x141414, steel = 0x3c3e3a, W = 8 * k, h2 = W / 2;
   B.box(W + 1.4 * k, 1.2, W + 1.4 * k, 0, -0.1, 0, conc2);                                              // footing
@@ -1441,7 +1452,7 @@ function bldGeo(type, team) {
       break;
     case 'ptrap': czech(B, -0.6, -0.4, 0, 0.3); czech(B, 0.7, -0.4, 0.4, 1.1); B.box(2.2, 0.2, 2.2, 0, -0.3, 0, 0x6a6458); break;
     case 'pwall': return bldGeo('wall', team);
-    case 'cls_aa': tripod(B, T, conc, conc2, 2.2, 2.2); for (let k = 0; k < 6; k++) { const a = k / 6 * TAU + 0.2; B.add(G.sph, 0.45, 0.28, 0.3, Math.sin(a) * 2.0, 0.35, Math.cos(a) * 2.0, 0x9a8a62, 0, a, 0); } break;
+    case 'cls_aa': stepBase(B, T, conc, conc2); for (let k = 0; k < 4; k++) { const a = k / 4 * TAU + Math.PI / 4; B.add(G.sph, 0.45, 0.28, 0.3, Math.sin(a) * 2.2, 0.85, Math.cos(a) * 2.2, 0x9a8a62, 0, a, 0); } break;   // sandbags on the lowest step
     case 'cls_bunker':
       // round concrete pillbox: thick wall, a dark firing slit all the way round, overhanging roof slab, rear door
       B.add(G.cyl16, 2.25, 0.3, 2.25, 0, 0.05, 0, conc2);                  // footing
@@ -1460,7 +1471,7 @@ function bldGeo(type, team) {
       for (let k = -1; k <= 1; k++) for (const sz of [-1, 1]) B.box(0.9, 0.12, 0.08, k * 1.1, 1.6, sz * 1.82, 0x5a564f);
       break;
     case 'cls_fort': { const y = sqFort(B, T, conc, conc2, 0.85, 3.6, 0); B.box(3.2, 5.6 - y, 3.2, 0, (5.6 + y) / 2, 0, conc2); B.box(3.4, 0.2, 3.4, 0, 5.55, 0, 0x7a756b); break; }
-    case 'cls_pit': tripod(B, T, conc, conc2, 2.0, 2.4); B.box(0.9, 0.35, 0.5, 1.7, 0.42, -1.2, 0x5a5a3a); B.box(0.8, 0.3, 0.45, 1.7, 0.74, -1.2, 0x6a5a3a); break;   // ammunition crates by the footing
+    case 'cls_pit': stepBase(B, T, conc, conc2); B.box(0.9, 0.35, 0.5, 1.85, 0.88, -1.85, 0x5a5a3a); B.box(0.8, 0.3, 0.45, 1.85, 1.2, -1.85, 0x6a5a3a); break;   // ammunition crates on the lowest step
     case 'tower':
       // tall concrete pillar with a gun platform on top
       tripod(B, T, conc, conc2, 4.2, 2.1);
@@ -1482,7 +1493,8 @@ function bldGeo(type, team) {
       break; }
   }
   // foundation skirt reaching down into the ground, so nothing floats on a slope
-  if (type === 'cls_aa' || type === 'cls_bunker' || type === 'cls_pit') { const r = type === 'cls_pit' ? 2.4 : type === 'cls_aa' ? 2.2 : 2.2; B.add(G.cyl16, r, 3.0, r, 0, -1.55, 0, conc2); }
+  if (type === 'cls_pit' || type === 'cls_aa') B.box(5.1, 3.0, 5.1, 0, -1.5, 0, conc2);
+  else if (type === 'cls_bunker') { const r = 2.2; B.add(G.cyl16, r, 3.0, r, 0, -1.55, 0, conc2); }
   else if (type === 'tower') B.add(G.cyl16, 2.1, 3.0, 2.1, 0, -1.55, 0, conc2);
   else if (type === 'cls_hard' || type === 'cls_fort') { const sz = BD[type] ? BD[type].size : (DCLASS[type.slice(4)] || { size: 3.6 }).size; B.box(sz * 1.05, 3.0, sz * 1.05, 0, -1.7, 0, conc2); }
   const res = { geo: B.build(), anim }; bldCache[key] = res; return res;
@@ -1887,6 +1899,9 @@ function inRange(u, t, extra) { return Math.hypot(t.x - u.x, t.z - u.z) - t.r <=
 
 // tip of a raised artillery barrel relative to the turret base, in units of the chassis size: [height, forward]
 const artMuzzle = w => w.kind !== 'mortar' ? null : w.id === 'hhowitzer' ? [2.1, 2.77] : w.art === 'how' ? (w.big ? [1.87, 2.83] : [1.63, 2.39]) : w.art === 'mortar' || w.id === 'mortar' ? [1.0, 0.6] : null;
+// rocket launchers: rockets and their flash leave from the front of the launch pods (middle height, front face of the turret model)
+const geoBox = geo => { if (!geo.boundingBox) geo.computeBoundingBox(); return geo.boundingBox; };
+const podMuzzle = (w, geo) => (w.kind === 'rocket' || (w.kind === 'salvo' && w.n > 1)) && geo ? (bb => [(bb.min.y + bb.max.y) / 2 + (bb.max.y - bb.min.y) * 0.15, bb.max.z * 0.95])(geoBox(geo)) : null;
 function fireWeapon(src, t, w, mx, my, mz, mul) {
   const dmg = w.dmg * (mul || 1) * (TEAMS[src.team].dmg[wfam(w)] || 1) * (1 + 0.1 * (src.rank || 0));
   if (src.kind === 'unit') src.kv = (src.kv || 0) + (w.kind === 'shell' ? 3.2 : w.kind === 'mortar' ? (w.art === 'how' ? 4 : 2.2) : w.kind === 'rocket' || w.kind === 'missile' ? 1 : 0.35) / Math.max(0.8, CH[src.d.ch].size);
@@ -2132,7 +2147,8 @@ function updUnit(u, dt) {
       const ml = (w.kind === 'shell' ? 2.2 : w.kind === 'laser' ? 0.9 : w.kind === 'flame' ? 1.5 : w.kind === 'mortar' ? (w.art === 'how' ? 2.2 : 1.2) : 1.6) * s;
       // raised artillery barrels: smoke and shell leave from the real muzzle tip, high up at the end of the barrel
       const MZ = artMuzzle(w);
-      const mf = MZ ? MZ[1] * s : ml, mY = MZ ? u.y + u.h - 0.6 + MZ[0] * s : u.y + u.h - 0.3;
+      const PM = MZ ? null : podMuzzle(w, u.tur.geometry);
+      const mf = MZ ? MZ[1] * s : PM ? PM[1] : ml, mY = MZ ? u.y + u.h - 0.6 + MZ[0] * s : PM ? u.y + u.h - 0.6 + PM[0] : u.y + u.h - 0.3;
       fireWeapon(u, t, w, u.x + Math.sin(wy) * mf, mY, u.z + Math.cos(wy) * mf, u.rb > 1.3 ? 1.25 : u.rb > 1 ? 1.15 : 1);
       u.cd = u.cdMax = w.rof * srand(0.9, 1.1) * (TEAMS[u.team].rof[wfam(w)] || 1);
     }
@@ -2223,7 +2239,7 @@ function updBld(b, dt) {
     b.cd -= dt;
     if (b.target && b.target.alive) {
       const a = Math.atan2(b.target.x - b.x, b.target.z - b.z); const local = angDiff(b.rot, a); b.turYaw += clamp(angDiff(b.turYaw, local), -4 * dt, 4 * dt);
-      if (b.cd <= 0 && Math.abs(angDiff(b.turYaw, local)) < 0.2) { const wy = b.rot + b.turYaw; const ts = b.def.ts || 1, MZ = artMuzzle(w), k = CH.heavy.size * ts, fw = MZ ? MZ[1] * k : 2 * ts; fireWeapon(b, b.target, w, b.x + Math.sin(wy) * fw, b.y + (b.def.ty || 3.3) + (MZ ? MZ[0] * k : 0.3 * ts), b.z + Math.cos(wy) * fw, b.def.dm || 1.3); b.cd = w.rof * (TEAMS[b.team].rof[wfam(w)] || 1); }
+      if (b.cd <= 0 && Math.abs(angDiff(b.turYaw, local)) < 0.2) { const wy = b.rot + b.turYaw; const ts = b.def.ts || 1, MZ = artMuzzle(w), k = CH.heavy.size * ts, PM = MZ ? null : podMuzzle(w, b.parts[wk] && b.parts[wk].geometry), fw = MZ ? MZ[1] * k : PM ? PM[1] * ts : 2 * ts; fireWeapon(b, b.target, w, b.x + Math.sin(wy) * fw, b.y + (b.def.ty || 3.3) + (MZ ? MZ[0] * k : PM ? PM[0] * ts : 0.3 * ts), b.z + Math.cos(wy) * fw, b.def.dm || 1.3); b.cd = w.rof * (TEAMS[b.team].rof[wfam(w)] || 1); }
     }
     b.parts.tur.rotation.y = b.turYaw; }
   }

@@ -1846,19 +1846,21 @@ function updSpot(dt) { spotT -= dt; if (spotT > 0) return; spotT = 0.5;
     SPOT[t] = out; SPOTSET[t] = set; } }
 const spotted = (team, e) => SPOTSET[team] && SPOTSET[team].has(e);
 const effRange = (u, t) => u.st.w.long && t && spotted(u.team, t) ? LONG_R : u.st.range * (u.rb || 1);
-function nearestSpotted(team, x, z, range) { let best = null, bd = 1e9; for (const e of SPOT[team] || []) { if (!e.alive || flying(e)) continue; const d = Math.hypot(e.x - x, e.z - z) - e.r; if (d < range && d < bd) { bd = d; best = e; } } return best; }
+// walls and anti-tank traps are only shot at when nothing better is in reach (units, guns, factories come first)
+const lowPri = e => e.type === 'wall' || e.type === 'pwall' || e.type === 'ptrap';
+function nearestSpotted(team, x, z, range) { let best = null, bd = 1e9; for (const e of SPOT[team] || []) { if (!e.alive || flying(e)) continue; const d = Math.hypot(e.x - x, e.z - z) - e.r; const s = d + (lowPri(e) ? 5000 : 0); if (d < range && s < bd) { bd = s; best = e; } } return best; }
 // direct-fire weapons (laser, cannon, machine gun, rockets, flamer) need a clear line of sight: no shooting through hills
 const directW = w => w && w.dmg > 0 && !w.art && w.kind !== 'bomb' && w.kind !== 'salvo' && w.kind !== 'mortar';
 function losClear(ax, ay, az, t) {
-  const bx = t.x, bz = t.z, by = t.y + Math.max(0.6, (t.h || 2) * 0.55), d = Math.hypot(bx - ax, bz - az); if (d < 6) return true;
+  const bx = t.x, bz = t.z, by = t.y + Math.max(1, (t.h || 2) * 0.9), d = Math.hypot(bx - ax, bz - az); if (d < 6) return true;
   const n = Math.min(60, Math.ceil(d / 2.5));
-  for (let i = 1; i < n; i++) { const k = i / n; if (k * d < 3 || (1 - k) * d < (t.r || 1) + 1) continue; if (heightAt(ax + (bx - ax) * k, az + (bz - az) * k) > ay + (by - ay) * k - 0.25) return false; }
+  for (let i = 1; i < n; i++) { const k = i / n; if (k * d < 3 || (1 - k) * d < (t.r || 1) + 1) continue; if (heightAt(ax + (bx - ax) * k, az + (bz - az) * k) > ay + (by - ay) * k + 0.9) return false; }
   return true;
 }
-const eyeY = e => e.y + (e.kind === 'bld' ? (e.def.ty || 3.3) : Math.max(1.2, (e.h || 2) * 0.8));
+const eyeY = e => e.y + (e.kind === 'bld' ? (e.def.ty || 3.3) + 0.5 : Math.max(1.5, (e.h || 2)) + 0.3);
 function nearestEnemy(team, x, z, range, w, eye) {
   let best = null, bd = 1e9; const na = w && !canHitAir(w), ao = w && w.aa, dw = directW(w) ? (eye !== undefined ? eye : heightAt(x, z) + 2) : null;
-  for (const e of ents) { if (!e.alive || e.team === team || (na && flying(e)) || (ao && !flying(e))) continue; const d = Math.hypot(e.x - x, e.z - z) - e.r; if (d > range) continue; const s = d + (e.kind === 'bld' ? 5 : 0); if (s < bd && (dw === null || flying(e) || losClear(x, dw, z, e))) { bd = s; best = e; } }
+  for (const e of ents) { if (!e.alive || e.team === team || (na && flying(e)) || (ao && !flying(e))) continue; const d = Math.hypot(e.x - x, e.z - z) - e.r; if (d > range) continue; const s = d + (e.kind === 'bld' ? (lowPri(e) ? 5000 : 5) : 0); if (s < bd && (dw === null || flying(e) || losClear(x, dw, z, e))) { bd = s; best = e; } }
   return best;
 }
 function inRange(u, t, extra) { return Math.hypot(t.x - u.x, t.z - u.z) - t.r <= effRange(u, t) + (extra || 0); }
@@ -3585,7 +3587,7 @@ window.onBack = () => {
   if (S.paused || !$('pause').classList.contains('hidden')) return false;
   S.paused = !NET.on; $('pause').classList.remove('hidden'); return true;
 };
-window.__game = { losClear, RS_DEPTH, RICON, RS, LS, worldHash, bombFx, fireball3D, kill, wrecks, FBALLS, updFireballs, SPOT, nearestSpotted, WP, impactFx, XST, heightAt,  killNear: () => { for (const e of ents) if (e.alive && e.team === 1 && Math.hypot(e.x - PLAYER2.x, e.z - PLAYER2.z) < 25) kill(e); }, NET, execCmd, doCmd, byId, PLAYER, PLAYER2, S, TEAMS, ents, cam, setSel, sel: () => sel, createUnit, createBuilding, sfx, AU, SB, buildSfx, projs: () => projs, BD, WP };
+window.__game = { losClear, nearestEnemy, eyeY, RS_DEPTH, RICON, RS, LS, worldHash, bombFx, fireball3D, kill, wrecks, FBALLS, updFireballs, SPOT, nearestSpotted, WP, impactFx, XST, heightAt,  killNear: () => { for (const e of ents) if (e.alive && e.team === 1 && Math.hypot(e.x - PLAYER2.x, e.z - PLAYER2.z) < 25) kill(e); }, NET, execCmd, doCmd, byId, PLAYER, PLAYER2, S, TEAMS, ents, cam, setSel, sel: () => sel, createUnit, createBuilding, sfx, AU, SB, buildSfx, projs: () => projs, BD, WP };
 
 resize(); updateCamera(0); requestAnimationFrame(loop);
 // background scene behind the intro

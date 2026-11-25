@@ -2418,7 +2418,7 @@ function renderPanel() {
       const busy = labs.filter(l => l.res).length;
       const free = labs.filter(l => l.complete && !l.res).length;
       h += `<div class="labs"><div class="labsh">Laboratoare: <b>${labs.length}/${MAX_LABS}</b> · cercetări în paralel: <b>${busy}</b> · libere <b>${free}</b>${free ? ' — alege o cercetare, merge în primul laborator liber' : ''}</div>`;
-      labs.forEach((l, i) => { h += `<button class="labrow ${l === b ? 'cur' : ''} ${l.res ? '' : 'idle'}" data-act="sellab" data-v="${l.id}">${l.res ? RICON[l.res.id] : l.lastRes ? `<span class="lastico">${RICON[l.lastRes]}</span>` : UIC.lab.replace('class="ui"', 'class="ric"')}<span class="ln">#${i + 1}</span><span class="lt"><b>${!l.complete ? 'În construcție' : l.res ? l.res.name : l.lastRes ? '✔ ' + (RS.find(x => x.id === l.lastRes) || {}).name + ' — liber' : 'Liber — alege o cercetare'}</b>${l.res ? `<span class="bar b"><i id="labB${l.id}"></i></span>` : ''}</span><span class="lr" id="labT${l.id}"></span></button>`; });
+      if (false) labs.forEach((l, i) => { h += `<button class="labrow ${l === b ? 'cur' : ''} ${l.res ? '' : 'idle'}" data-act="sellab" data-v="${l.id}">${l.res ? RICON[l.res.id] : l.lastRes ? `<span class="lastico">${RICON[l.lastRes]}</span>` : UIC.lab.replace('class="ui"', 'class="ric"')}<span class="ln">#${i + 1}</span><span class="lt"><b>${!l.complete ? 'În construcție' : l.res ? l.res.name : l.lastRes ? '✔ ' + (RS.find(x => x.id === l.lastRes) || {}).name + ' — liber' : 'Liber — alege o cercetare'}</b>${l.res ? `<span class="bar b"><i id="labB${l.id}"></i></span>` : ''}</span><span class="lr" id="labT${l.id}"></span></button>`; });
       h += `</div>`;
       const avail = br => br.ids.filter(id => { const r = RS.find(x => x.id === id); return !T.tech.has(id) && !r.req.some(q => !T.tech.has(q)); }).length;
       h += `<div class="chips">${BRANCHES.map((br, i) => `<button data-act="rbr" data-v="${i}" class="${labBr === i ? 'on' : ''}">${br.name}${avail(br) ? ` <b class="cnt">${avail(br)}</b>` : ''}</button>`).join('')}</div>`;
@@ -2445,13 +2445,16 @@ function renderPanel() {
   panel.classList.toggle('mini', panelMini);
 }
 function updDyn() {
+  labColPos();
   const e = sel[0]; if (!e) return;
   const hp = $('pHp'); if (hp) { const r = clamp(e.hp / e.maxHp, 0, 1); hp.style.width = (r * 100) + '%'; hp.style.background = r > 0.5 ? '#7fb84a' : r > 0.25 ? '#e0b030' : '#d04020'; }
   const ht = $('pHpT'); if (ht) ht.textContent = Math.ceil(e.hp) + '/' + e.maxHp;
   const pb = $('pBuild'); if (pb) pb.style.width = (e.built * 100) + '%';
   const pp = $('pProd'); if (pp) pp.style.width = e.queue && e.queue.length ? (e.prod / unitStats(e.queue[0], 0).time * 100) + '%' : '0%';
   const pr = $('pRes'); if (pr && e.res) pr.style.width = (e.resProg / e.res.time * 100) + '%';
-  if (e.type === 'lab') for (const l of ents) if (l.alive && l.type === 'lab' && l.team === 0) { const bb = $('labB' + l.id), tt = $('labT' + l.id);
+  if (e.type === 'lab') for (const l of ents) if (l.alive && l.type === 'lab' && l.team === 0) { const bb = $('labB' + l.id), tt = $('labT' + l.id), lc = $('lc' + l.id), lt = $('lct' + l.id);
+    if (lc) lc.style.setProperty('--p', (l.res ? l.resProg / l.res.time * 100 : !l.complete ? (l.built || 0) * 100 : 0) + '%');
+    if (lt) lt.textContent = l.res ? fmtTime(Math.ceil((l.res.time - l.resProg) / (TEAMS[0].rsMul || 1))) : '';
     if (bb && l.res) bb.style.width = (l.resProg / l.res.time * 100) + '%';
     if (tt) tt.textContent = l.res ? fmtTime(Math.ceil((l.res.time - l.resProg) / (TEAMS[0].rsMul || 1))) : ''; }
 }
@@ -2463,7 +2466,25 @@ function ordersBox(army) {
   h += `</div><div class="ord2"><button data-act="patrol" class="${patrolNext ? 'on' : ''}">🔁 Patrulare</button><button data-act="rtb">🏠 La bază</button><button data-act="rtr">🔧 La reparații</button><button data-act="recyc">♻ Reciclează</button></div>`;
   return h;
 }
-function updatePanel() { const s = computeSig(); if (s !== panelSig) { panelSig = s; renderPanel(); } updDyn(); }
+// the five research labs as small fixed tiles on the left side of the research menu
+function labColHtml() {
+  const labs = ents.filter(e => e.alive && e.team === 0 && e.type === 'lab'); let h = '';
+  for (let i = 0; i < MAX_LABS; i++) { const l = labs[i];
+    if (!l) { h += `<div class="lt none"><span class="pl">＋</span><span class="n">${i + 1}</span></div>`; continue; }
+    h += `<button class="lt ${l === sel[0] ? 'cur' : ''} ${!l.complete ? 'bld' : l.res ? '' : 'free'}" data-lab="${l.id}" id="lc${l.id}"><span class="ring"></span>${l.res ? RICON[l.res.id] : `<span class="pl">${l.complete ? '＋' : '⚒'}</span>`}<span class="n">${i + 1}</span><span class="tm" id="lct${l.id}"></span></button>`; }
+  return h;
+}
+function labColPos() {
+  const lc = $('labCol'); if (lc.classList.contains('hidden')) return;
+  const r = panel.getBoundingClientRect(); if (!r.height) { lc.style.display = 'none'; return; } lc.style.display = '';
+  const sz = Math.round(clamp((Math.max(r.height, 150) - 4 * 7) / 5 * 0.72, 24, 34));
+  lc.style.setProperty('--s', sz + 'px'); lc.style.left = Math.max(2, r.left - sz - 7) + 'px'; lc.style.top = (r.top + 4) + 'px';
+}
+$('labCol').addEventListener('click', ev => { const b = ev.target.closest('[data-lab]'); if (!b) return; const l = byId(+b.dataset.lab); if (l && l.alive) { sfx('click'); setSel([l]); } });
+function updatePanel() { const s = computeSig(); if (s !== panelSig) { panelSig = s; renderPanel();
+    const lc = $('labCol'), on = !placing && sel.length === 1 && sel[0].type === 'lab' && sel[0].team === 0;
+    lc.classList.toggle('hidden', !on); if (on) lc.innerHTML = labColHtml(); }
+  updDyn(); }
 panel.addEventListener('click', ev => {
   const b = ev.target.closest('[data-act]'); if (!b || b.disabled) return; const act = b.dataset.act, v = b.dataset.v; sfx('click');
   const T = TEAMS[0]; const e = sel[0];

@@ -375,3 +375,28 @@ i.eu { font-style: normal; color: var(--amber); font-size: .9em; margin-left: 1p
 #panel .ord .ol { font-size: 10.5px; color: var(--dim); padding-right: 3px; white-space: nowrap; }
 #panel .ord button, #panel .ord2 button { padding: 4px 2px; font-size: 10.5px; min-height: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #panel .ord2 { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; margin-top: 4px; }
+/* research labs: five fixed holographic tiles left of the research menu */
+#labCol { position: fixed; z-index: 6; display: flex; flex-direction: column; gap: 7px; --s: 40px; pointer-events: auto; }
+#labCol .lt { position: relative; width: var(--s); height: var(--s); min-height: 0; padding: 0; border-radius: 50%; background: radial-gradient(#0d2130f0, #06101af0); border: 1px solid #47d3ff66; box-shadow: 0 0 7px #47d3ff44; display: block; }
+#labCol .ring { position: absolute; inset: -3px; border-radius: 50%; background: conic-gradient(#47d3ff var(--p, 0%), #47d3ff18 0);
+  -webkit-mask: radial-gradient(circle, transparent calc(var(--s) / 2 - 1px), #000 calc(var(--s) / 2)); mask: radial-gradient(circle, transparent calc(var(--s) / 2 - 1px), #000 calc(var(--s) / 2)); }
+#labCol .lt .ric, #labCol .lt svg { position: absolute; left: 18%; top: 14%; width: 64%; height: 64%; filter: drop-shadow(0 0 3px #47d3ffaa); }
+#labCol .n { position: absolute; left: -4px; top: -4px; width: 12px; height: 12px; border-radius: 50%; background: #47d3ff; color: #022; font: 700 8px/12px sans-serif; text-align: center; }
+#labCol .tm { position: absolute; left: -6px; right: -6px; bottom: -6px; text-align: center; font: 700 8px sans-serif; color: #bff1ff; text-shadow: 0 0 3px #000, 0 0 3px #000; }
+#labCol .pl { position: absolute; inset: 0; display: grid; place-items: center; font-size: calc(var(--s) * .42); color: #47d3ffaa; }
+#labCol .free { border-style: dashed; box-shadow: none; }
+#labCol .bld .ring { background: conic-gradient(#f0b44a var(--p, 0%), #f0b44a18 0); }
+#labCol .none { opacity: .35; border-style: dashed; box-shadow: none; }
+#labCol .cur { border-color: #fff; box-shadow: 0 0 11px #47d3ffcc; }
+/* glass lens look: metal bezel, deep glass, sun glare from the top-left */
+#labCol .lt { background: radial-gradient(circle at 35% 30%, #1c4a66 0%, #0b2233 45%, #040b12 100%); border: 1.5px solid #9fe8ff;
+  box-shadow: 0 0 0 2px #0a1a24, 0 0 0 3px #6c8fa0aa, 0 3px 6px #000c, 0 0 10px #47d3ff55, inset 0 -4px 8px #47d3ff33, inset 0 2px 3px #0008; overflow: visible; }
+#labCol .lt::after { content: ''; position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(ellipse 60% 38% at 38% 18%, #ffffffd0 0%, #ffffff55 35%, #fff0 70%),
+              radial-gradient(circle at 74% 26%, #fff 0 1.2px, #fff6 2px, #fff0 4.5px),
+              linear-gradient(200deg, #fff0 55%, #fff2 75%, #fff0 90%);
+  mix-blend-mode: screen; }
+#labCol .lt .ric, #labCol .lt svg { filter: drop-shadow(0 1px 1px #000) drop-shadow(0 0 3px #47d3ffaa) saturate(1.25) brightness(1.08); }
+#labCol .lt .tm, #labCol .lt .n { z-index: 2; }
+#labCol .none::after, #labCol .free::after { opacity: .55; }
+#labCol .cur { border-color: #fff; box-shadow: 0 0 0 2px #0a1a24, 0 0 0 3px #f0d48a, 0 3px 6px #000c, 0 0 14px #47d3ffdd, inset 0 -4px 8px #47d3ff44; }

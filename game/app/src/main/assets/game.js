@@ -440,6 +440,7 @@ const TEAMC = [
   { body: 0x9c3528, dark: 0x4a1812, acc: 0xf0b44a, mini: '#e06050', name: 'Iconițe (roșu avansat)' },
 ];
 const ICON_PAL = TEAMC.length - 2, ICON_RED = TEAMC.length - 1;
+if (window.__palOverride) { const o = window.__palOverride; TEAMC[0].body = o.body; TEAMC[0].dark = o.dark; TEAMC[0].acc = o.acc; }   // test hook for colour previews
 const CH = {
   scout: { name: 'Cercetaș', hp: 80, cost: 25, spd: 1.25, size: 0.8, hue: 0xb8a868 },
   light: { name: 'Ușor', hp: 110, cost: 35, spd: 1, size: 0.9 },
@@ -966,14 +967,19 @@ function unitGeo(d, team) {
     } else if (A === 'salvo') {
       tb.add(G.cyl16, 0.5 * s, 0.15 * s, 0.5 * s, 0, 0.08 * s, 0, T.dark);
       const tube = (x, y, z, r, L, a, c) => tb.add(G.cyl16, r, L, r, x, y, z, c, Math.PI / 2 - a, 0, 0);
-      if (d.wp === 'rbattery') { // three grey launcher blocks side by side, 3x3 tubes each, on a heavy cradle
-        const a = 0.6, ca = Math.cos(a), sa = Math.sin(a), P = (x, y, z) => [x, 0.85 * s + y * ca + z * sa, 0.0 * s - y * sa + z * ca];
-        tb.box(1.3 * s, 0.5 * s, 0.9 * s, 0, 0.35 * s, -0.25 * s, T.dark); tb.hazard(1.3 * s, 0.14 * s, 0, 0.3 * s, 0.205 * s, 'z', 1);
-        for (const sx of [-1, 1]) tb.box(0.12 * s, 0.8 * s, 0.5 * s, sx * 0.55 * s, 0.6 * s, -0.1 * s, 0x4a4a46);
-        for (let b = -1; b <= 1; b++) { const ox = b * 0.5 * s;
-          { const [x, y, z] = P(ox, 0, 0); tb.box(0.46 * s, 0.5 * s, 1.5 * s, x, y, z, 0x6f7a52, -a, 0, 0); tb.camo(0.46 * s, 0.52 * s, 1.5 * s, x, y, z, -a, 5); }
-          { const [x, y, z] = P(ox, 0, -0.55 * s); tb.box(0.48 * s, 0.52 * s, 0.1 * s, x, y, z, T.acc, -a, 0, 0); } { const [x, y, z] = P(ox, 0.26 * s, 0.3 * s); tb.box(0.47 * s, 0.03 * s, 0.25 * s, x, y, z, T.acc, -a, 0, 0); }
-          for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) { const [x, y, z] = P(ox + (i - 1) * 0.13 * s, (j - 1) * 0.13 * s, 0.76 * s); tb.add(G.cyl10, 0.055 * s, 0.04 * s, 0.055 * s, x, y, z, 0x111111, Math.PI / 2 - a, 0, 0); } }
+      if (d.wp === 'rbattery') { // heavy launcher: one big box of 4 x 8 open tubes on a swivel cradle, olive green
+        const a = 0.42, ca = Math.cos(a), sa = Math.sin(a), P = (x, y, z) => [x, 0.95 * s + y * ca + z * sa, -0.3 * s - y * sa + z * ca];
+        const BW = 2.0 * s, BH = 1.05 * s, BL = 2.3 * s;
+        tb.box(1.4 * s, 0.4 * s, 1.3 * s, 0, 0.25 * s, -0.45 * s, T.dark);                                            // swivel base
+        for (const sx of [-1, 1]) { tb.box(0.14 * s, 0.75 * s, 0.7 * s, sx * 0.62 * s, 0.6 * s, -0.4 * s, 0x4a4a46); tb.add(G.cyl10, 0.07 * s, 1.0 * s, 0.07 * s, sx * 0.3 * s, 0.6 * s, 0.25 * s, 0xb8b8b0, 0.75, 0, 0); }
+        { const [x, y, z] = P(0, 0, 0); tb.box(BW, BH, BL, x, y, z, 0x5e6a3e, -a, 0, 0); }                             // launcher box
+        for (const zz of [-0.95, -0.2, 0.55]) { const [x, y, z] = P(0, 0, zz * s); tb.box(BW + 0.06 * s, BH + 0.06 * s, 0.08 * s, x, y, z, 0x4b5530, -a, 0, 0); } // frame ribs
+        { const [x, y, z] = P(0, BH / 2 + 0.04 * s, -0.2 * s); tb.box(BW * 0.9, 0.05 * s, BL * 0.8, x, y, z, 0x4b5530, -a, 0, 0); }
+        { const [x, y, z] = P(0, 0, BL / 2); tb.box(BW - 0.04 * s, BH - 0.04 * s, 0.04 * s, x, y, z, 0x4b5530, -a, 0, 0); } // front face
+        for (let r = 0; r < 4; r++) for (let i = 0; i < 8; i++) { const ox = (i - 3.5) * 0.235 * s, oy = (r - 1.5) * 0.235 * s;
+          { const [x, y, z] = P(ox, oy, BL / 2 + 0.02 * s); tb.add(G.cyl16, 0.105 * s, 0.05 * s, 0.105 * s, x, y, z, 0x6e7a4c, Math.PI / 2 - a, 0, 0); }   // tube rim
+          { const [x, y, z] = P(ox, oy, BL / 2 + 0.035 * s); tb.add(G.cyl16, 0.08 * s, 0.05 * s, 0.08 * s, x, y, z, 0x0e0e0c, Math.PI / 2 - a, 0, 0); } } // open mouth
+        { const [x, y, z] = P(BW / 2 + 0.06 * s, 0.1 * s, 0.3 * s); tb.box(0.08 * s, 0.4 * s, 0.6 * s, x, y, z, T.acc, -a, 0, 0); }                 // team marking plate
       } else if (d.wp === 'smissile') { // camouflaged launch box: 2x2 canisters, seeker tips peeking out of the openings
         const a = 0.45, ca = Math.cos(a), sa = Math.sin(a), P = (x, y, z) => [x, 0.78 * s + y * ca + z * sa, 0.05 * s - y * sa + z * ca];
         tb.box(1.0 * s, 0.45 * s, 0.8 * s, 0, 0.3 * s, -0.25 * s, 0x5f6a48); tb.camo(1.0 * s, 0.47 * s, 0.8 * s, 0, 0.3 * s, -0.25 * s, 0, 5); tb.hazard(1.0 * s, 0.12 * s, 0, 0.26 * s, 0.155 * s, 'z', 1);
@@ -993,7 +999,14 @@ function unitGeo(d, team) {
         for (const k of [-0.38, 0, 0.38]) tb.box(1.06 * s, 1.06 * s, 0.14 * s, c0[0], c0[1] + sa * L * k, c0[2] + ca * L * k, T.acc, -a, 0, 0);       // canister rings in team colour
         { const k = 0.505; tb.box(0.9 * s, 0.9 * s, 0.05 * s, c0[0], c0[1] + sa * L * k, c0[2] + ca * L * k, 0x2e3328, -a, 0, 0); tb.add(G.cyl16, 0.32 * s, 0.07 * s, 0.32 * s, c0[0], c0[1] + sa * L * (k + 0.01), c0[2] + ca * L * (k + 0.01), 0xc8321e, Math.PI / 2 - a, 0, 0); } // front cap
         msl = { kind: 'orizont', x: c0[0], y: c0[1], z: c0[2], a, len: L * 0.92 };
-      } else if (w.big) { tb.box(0.25 * s, 0.9 * s, 0.25 * s, 0.35 * s, 0.5 * s, -0.2 * s, 0x5a564f); tb.box(0.5 * s, 0.12 * s, 2.0 * s, 0, 0.45 * s, 0.05 * s, 0x3a3a36, -0.62, 0, 0); msl = { kind: 'ballistic', x: 0, y: 0.8 * s, z: 0.15 * s, a: 0.62, len: 2.45 * s }; }
+      } else if (w.big) { // launcher pod: a big camouflaged box raised steeply on hydraulic rams, the missile sealed inside
+        const a = 0.95, ca = Math.cos(a), sa = Math.sin(a), PL = 2.7 * s, P = (y, z) => [0.6 * s + y * ca + z * sa, -0.9 * s - y * sa + z * ca];
+        tb.box(1.3 * s, 0.35 * s, 1.4 * s, 0, 0.2 * s, -0.6 * s, 0x5f6a48); tb.camo(1.32 * s, 0.37 * s, 1.42 * s, 0, 0.2 * s, -0.6 * s, 0, 5);  // turntable deck
+        for (const sx of [-1, 1]) { tb.add(G.cyl10, 0.08 * s, 1.5 * s, 0.08 * s, sx * 0.45 * s, 0.75 * s, -0.2 * s, 0xb8b8b0, 0.6, 0, 0); tb.add(G.cyl10, 0.12 * s, 0.7 * s, 0.12 * s, sx * 0.45 * s, 0.5 * s, -0.45 * s, 0x3a3a36, 0.6, 0, 0); } // rams
+        { const [y, z] = P(0, PL / 2); tb.box(1.25 * s, 0.95 * s, PL, 0, y, z, 0x5f6a48, -a, 0, 0); tb.camo(1.27 * s, 0.97 * s, PL + 0.02 * s, 0, y, z, -a, 12); }
+        for (const k of [0.15, 0.5, 0.85]) { const [y, z] = P(0, PL * k); tb.box(1.3 * s, 1.0 * s, 0.08 * s, 0, y, z, 0x3a3a30, -a, 0, 0); }   // frame ribs
+        { const [y, z] = P(0, PL + 0.02 * s); tb.box(1.15 * s, 0.85 * s, 0.04 * s, 0, y, z, 0x2a2c26, -a, 0, 0); }                               // top hatch (open end)
+        { const [y, z] = P(0, PL * 0.62); msl = { kind: 'ballistic', x: 0, y, z, a, len: 2.3 * s }; } }
       else { // multiple rocket launcher on open rails: a big tilted frame, two tiers of eight rails, a long rocket on each
         const a = 0.42, ca = Math.cos(a), sa = Math.sin(a), P = (x, y, z) => [x, 0.78 * s + y * ca + z * sa, -0.15 * s - y * sa + z * ca];
         const W = 0.84 * s, RL = 2.5 * s;
@@ -1737,7 +1750,7 @@ function fireWeapon(src, t, w, mx, my, mz, mul) {
   else if (w.kind === 'salvo') { sfx(ART_SND[w.id], mx, mz);
     const ms = w.n === 1 ? (src.mslMesh || (src.parts && src.parts.msl)) : null; let mlen = 0;
     if (ms && S.time >= (src.mslT || 0)) { const v = new THREE.Vector3(); ms.getWorldPosition(v); mx = v.x; my = v.y; mz = v.z; mlen = ms.getWorldScale(v).x; ms.visible = false; src.mslT = S.time + w.rof * 0.7; reloadVis.push({ m: ms, t: src.mslT }); }
-    for (let i = 0; i < w.n; i++) later(i * 0.12, () => { if (src.alive && t.alive) { spawnProj('mortar', src, { ...t, x: t.x + srand(-2.5, 2.5) * (w.n > 1 ? 1 : 0), z: t.z + srand(-2.5, 2.5) * (w.n > 1 ? 1 : 0), alive: false, kind: t.kind, y: t.y }, dmg, w.splash, mx, my, mz, w, t, mlen, !!mlen); fx('fire', mx, my, mz, w.big ? 1.4 : 0.55); fx('smoke', mx, my - 0.3, mz, w.big ? 3 : 1.4); fx('trail', mx, my, mz, w.big ? 2.6 : 1.2); if (w.big) fx('dust', src.x, src.y + 0.3, src.z, 4); } }); }
+    for (let i = 0; i < w.n; i++) later(i * 0.12, () => { if (src.alive && t.alive) { spawnProj('mortar', src, { ...t, x: t.x + srand(-2.5, 2.5) * (w.n > 1 ? 1 : 0), z: t.z + srand(-2.5, 2.5) * (w.n > 1 ? 1 : 0), alive: false, kind: t.kind, y: t.y }, dmg, w.splash, mx, my, mz, w, t, mlen, !!mlen); fx('fire', mx, my, mz, w.big ? 1.4 : 0.55); fx('smoke', mx, my - 0.3, mz, w.big ? 3 : 1.4); fx('trail', mx, my, mz, w.big ? 2.6 : 1.2); if (w.big) { fx('dust', src.x, src.y + 0.3, src.z, 4); for (let k = 0; k < 7; k++) fx('smoke', src.x + rand(-4, 4), src.y + rand(0.5, 3), src.z + rand(-4, 4), rand(3, 5.5)); fx('blacksmoke', src.x, src.y + 1, src.z, 3); } } }); }
   else if (w.kind === 'flame') { const ty = t.y + (t.kind === 'bld' ? 1.2 : 0.6);
     for (let k = 1; k <= 5; k++) { const f = k / 5; fx('flame', lerp(mx, t.x, f) + rand(-0.3, 0.3), lerp(my, ty, f) + rand(-0.2, 0.3), lerp(mz, t.z, f) + rand(-0.3, 0.3), 0.6 + f * 1.1); }
     if (Math.random() < 0.4) fx('smoke', t.x, ty + 1, t.z, 0.7); damage(t, dmg, src);

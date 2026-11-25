@@ -1811,7 +1811,7 @@ function vtolTick(u, dt) {
     const d = Math.hypot(t.x - u.x, t.z - u.z) - t.r, a = Math.atan2(t.x - u.x, t.z - u.z);
     if (d <= u.st.range && Math.abs(angDiff(u.heading, a)) < (w.kind === 'bomb' ? 1.0 : 0.38) && u.cd <= 0) {
       fireWeapon(u, t, w, u.x + Math.sin(u.heading) * 1.8 * s, u.y + 0.5, u.z + Math.cos(u.heading) * 1.8 * s, 1); u.ammo--;
-      u.cd = w.rof * (w.kind === 'mg' ? 1 : 1.6) * (TEAMS[u.team].rof[wfam(w)] || 1); } }
+      u.cd = u.cdMax = w.rof * (w.kind === 'mg' ? 1 : 1.6) * (TEAMS[u.team].rof[wfam(w)] || 1); } }
   else u.cd = Math.max(0, u.cd - dt);
 }
 // ---- standing orders (fire / movement / retreat), patrol, return, recycle
@@ -1912,7 +1912,7 @@ function updUnit(u, dt) {
     if (inRange(u, t, 0.5) && Math.abs(angDiff(u.turYaw, local)) < 0.25 && u.cd <= 0) {
       const wy = u.heading + u.turYaw; const s = CH[u.d.ch].size;
       const ml = (w.kind === 'shell' ? 3.9 : w.kind === 'laser' ? 2.3 : w.kind === 'flame' ? 1.5 : w.kind === 'mortar' ? (w.art === 'how' ? 2.2 : 1.2) : 1.6) * s; fireWeapon(u, t, w, u.x + Math.sin(wy) * ml, u.y + u.h - 0.3, u.z + Math.cos(wy) * ml, u.rb > 1.3 ? 1.25 : u.rb > 1 ? 1.15 : 1);
-      u.cd = w.rof * srand(0.9, 1.1) * (TEAMS[u.team].rof[wfam(w)] || 1);
+      u.cd = u.cdMax = w.rof * srand(0.9, 1.1) * (TEAMS[u.team].rof[wfam(w)] || 1);
     }
   } else if ((!u.isTruck || u.state !== 'build') && w.kind !== 'radar' && !(w.kind === 'repair' && u.heal)) { u.cd = Math.max(0, u.cd - dt); u.turYaw += clamp(angDiff(u.turYaw, 0), -2 * dt, 2 * dt); }
   u.tur.rotation.y = u.turYaw;
@@ -2622,6 +2622,11 @@ function drawOverlay() {
     og.fillStyle = 'rgba(0,0,0,.6)'; og.fillRect(p.x - w / 2 - 1, p.y - 1, w + 2, 6);
     og.fillStyle = e.team === 1 ? (r > 0.5 ? '#e05a3a' : '#a02010') : (r > 0.5 ? '#7fd04a' : r > 0.25 ? '#e0b030' : '#d04020'); og.fillRect(p.x - w / 2, p.y, w * r, 4);
     if (e.kind === 'bld' && !e.complete) { og.fillStyle = '#3f9fe0'; og.fillRect(p.x - w / 2, p.y + 6, w * e.built, 3); }
+    if (e.kind === 'unit' && e.team === 0 && e.st.w.dmg > 0) {   // white reload line under the health bar
+      const k = e.cdMax > 0 ? clamp(1 - e.cd / e.cdMax, 0, 1) : 1;
+      og.fillStyle = 'rgba(0,0,0,.7)'; og.fillRect(p.x - w / 2 - 1, p.y + 4, w + 2, 4);
+      og.fillStyle = k >= 1 ? '#ffffff' : '#d8d8d8'; og.fillRect(p.x - w / 2, p.y + 5, w * k, 2);
+      og.strokeStyle = 'rgba(255,255,255,.35)'; og.lineWidth = 1; og.strokeRect(p.x - w / 2 - 1.5, p.y - 1.5, w + 3, 10); }
   }
   if (gesture && gesture.type === 'box') { og.strokeStyle = '#7fff7f'; og.lineWidth = 1.5; og.fillStyle = 'rgba(120,255,120,.12)'; const x = Math.min(gesture.sx, gesture.x), y = Math.min(gesture.sy, gesture.y), w = Math.abs(gesture.x - gesture.sx), h = Math.abs(gesture.y - gesture.sy); og.fillRect(x, y, w, h); og.strokeRect(x, y, w, h); }
 }

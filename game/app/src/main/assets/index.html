@@ -7,6 +7,14 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <filter id="gloss" x="-15%" y="-15%" width="130%" height="130%" color-interpolation-filters="sRGB">
+    <feGaussianBlur in="SourceAlpha" stdDeviation="1.1" result="b"/>
+    <feSpecularLighting in="b" surfaceScale="3.2" specularConstant="1.15" specularExponent="24" lighting-color="#fff6dc" result="s"><feDistantLight azimuth="225" elevation="50"/></feSpecularLighting>
+    <feComposite in="s" in2="SourceAlpha" operator="in" result="s2"/>
+    <feComposite in="SourceGraphic" in2="s2" operator="arithmetic" k1="0" k2="1" k3="0.9" k4="0"/>
+  </filter>
+</defs></svg>
 <canvas id="c"></canvas>
 <canvas id="ov"></canvas>
 <div id="vig"></div>

@@ -400,3 +400,6 @@ i.eu { font-style: normal; color: var(--amber); font-size: .9em; margin-left: 1p
 #labCol .lt .tm, #labCol .lt .n { z-index: 2; }
 #labCol .none::after, #labCol .free::after { opacity: .55; }
 #labCol .cur { border-color: #fff; box-shadow: 0 0 0 2px #0a1a24, 0 0 0 3px #f0d48a, 0 3px 6px #000c, 0 0 14px #47d3ffdd, inset 0 -4px 8px #47d3ff44; }
+/* sun-glint shading on research icons */
+#labCol .lt .ric, #labCol .lt svg { filter: url(#gloss) drop-shadow(0 1px 1px #000) drop-shadow(0 0 3px #47d3ffaa) saturate(1.2); }
+.rcard .ric { filter: url(#gloss) drop-shadow(0 2px 2px #0009); }

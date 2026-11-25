@@ -1897,7 +1897,7 @@ function fireWeapon(src, t, w, mx, my, mz, mul) {
   else if (w.kind === 'mortar') { spawnProj('mortar', src, t, dmg, w.splash, mx, my, mz, w);
     { const hx = mx - src.x, hz = mz - src.z, hl = Math.hypot(hx, hz) || 1, k = w.big ? 1.5 : w.art === 'how' ? 1.2 : 1;   // muzzle blast: flash, smoke cloud drifting forward, dust kicked up round the gun
       if (Math.abs(mx - cam.x) < 140 && Math.abs(mz - cam.z) < 140) fireball3D(mx + hx / hl * 0.4, my + 0.2, mz + hz / hl * 0.4, 0.5 * k, null, 0, 0.5);
-      for (let i = 0; i < 6; i++) { const d = i * 1.1; fx(i % 2 ? 'smoke' : 'steam', mx + hx / hl * d + rand(-0.6, 0.6), my + 0.3 + i * 0.3, mz + hz / hl * d + rand(-0.6, 0.6), (1.8 + i * 0.4) * k); } fx('steam', mx, my + 0.6, mz, 2.6 * k); fx('flash', mx, my, mz, 1.2 * k);
+      for (let i = 0; i < 6; i++) { const d = i * 1.1; fx(i % 2 ? 'smoke' : 'steam', mx + hx / hl * d + rand(-0.3, 0.3), my + 0.15 + d * (w.art === 'mortar' || w.id === 'mortar' ? 1.1 : 0.5), mz + hz / hl * d + rand(-0.3, 0.3), (1.4 + i * 0.4) * k); } fx('steam', mx, my + 0.6, mz, 2.6 * k); fx('flash', mx, my, mz, 1.2 * k);
       for (let i = 0; i < 4; i++) { const a = i / 4 * TAU + rand(-0.4, 0.4); fx('dust', src.x + Math.sin(a) * 1.6, src.y + 0.3, src.z + Math.cos(a) * 1.6, 1.8 * k); } }
     fx('smoke', mx, my, mz, w.big ? 2.6 : 1.5); fx('smoke', mx, my + 0.8, mz, w.big ? 2 : 1.1); fx('trail', mx, my, mz, w.big ? 2 : 1.2); fx('flash', mx, my, mz, w.big ? 1.2 : 0.6); sfx(ART_SND[w.id] || 'art_mortar', mx, mz); }
   else if (w.kind === 'salvo') { sfx(ART_SND[w.id], mx, mz);
@@ -2127,7 +2127,11 @@ function updUnit(u, dt) {
     u.cd -= dt;
     if (inRange(u, t, 0.5) && Math.abs(angDiff(u.turYaw, local)) < 0.25 && u.cd <= 0 && (u.losOk !== false || u.losFor !== t || !directW(w))) {
       const wy = u.heading + u.turYaw; const s = CH[u.d.ch].size;
-      const ml = (w.kind === 'shell' ? 2.2 : w.kind === 'laser' ? 0.9 : w.kind === 'flame' ? 1.5 : w.kind === 'mortar' ? (w.art === 'how' ? 2.2 : 1.2) : 1.6) * s; fireWeapon(u, t, w, u.x + Math.sin(wy) * ml, u.y + u.h - 0.3, u.z + Math.cos(wy) * ml, u.rb > 1.3 ? 1.25 : u.rb > 1 ? 1.15 : 1);
+      const ml = (w.kind === 'shell' ? 2.2 : w.kind === 'laser' ? 0.9 : w.kind === 'flame' ? 1.5 : w.kind === 'mortar' ? (w.art === 'how' ? 2.2 : 1.2) : 1.6) * s;
+      // raised artillery barrels: smoke and shell leave from the real muzzle tip, high up at the end of the barrel
+      const MZ = w.kind !== 'mortar' ? null : w.id === 'hhowitzer' ? [2.1, 2.77] : w.art === 'how' ? (w.big ? [1.87, 2.83] : [1.63, 2.39]) : w.art === 'mortar' || w.id === 'mortar' ? [1.0, 0.6] : null;
+      const mf = MZ ? MZ[1] * s : ml, mY = MZ ? u.y + u.h - 0.6 + MZ[0] * s : u.y + u.h - 0.3;
+      fireWeapon(u, t, w, u.x + Math.sin(wy) * mf, mY, u.z + Math.cos(wy) * mf, u.rb > 1.3 ? 1.25 : u.rb > 1 ? 1.15 : 1);
       u.cd = u.cdMax = w.rof * srand(0.9, 1.1) * (TEAMS[u.team].rof[wfam(w)] || 1);
     }
   } else if ((!u.isTruck || u.state !== 'build') && w.kind !== 'radar' && !(w.kind === 'repair' && u.heal)) { u.cd = Math.max(0, u.cd - dt); u.turYaw += clamp(angDiff(u.turYaw, 0), -2 * dt, 2 * dt); }

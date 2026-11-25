@@ -1187,7 +1187,7 @@ function sqFort(B, T, conc, conc2, k, H, tiers) {
   for (const sd of [-1, 1]) { B.box(W + 0.6 * k, 1.1 * k, 1.6 * k, 0, 0.6 * k, sd * (h2 + 0.35 * k), conc2, sd * 0.75, 0, 0); // sloped glacis on all four sides
     B.box(1.6 * k, 1.1 * k, W + 0.6 * k, sd * (h2 + 0.35 * k), 0.6 * k, 0, conc2, 0, 0, -sd * 0.75); }
   B.box(W, H, W, 0, H / 2, 0, conc);                                                                      // main block
-  B.box(W + 0.12, 0.18, W + 0.12, 0, H * 0.55, 0, T.acc);                                                 // thin team line
+  B.box(W + 0.12, 0.08, W + 0.12, 0, H * 0.55, 0, conc2);                                                 // pour joint
   for (let j = -2; j <= 2; j++) for (const sd of [-1, 1]) {                                               // firing slits and pour joints
     B.box(0.9 * k, 0.16 * k, 0.06, j * 1.5 * k, H * 0.75, sd * (h2 + 0.02), slit); B.box(0.06, 0.16 * k, 0.9 * k, sd * (h2 + 0.02), H * 0.75, j * 1.5 * k, slit);
     B.box(0.05, H * 0.9, 0.04, j * 1.6 * k + 0.8 * k, H / 2, sd * (h2 + 0.02), conc2); }
@@ -1197,12 +1197,12 @@ function sqFort(B, T, conc, conc2, k, H, tiers) {
   B.box(W - 0.8 * k, 0.3 * k, W - 0.8 * k, 0, H + 0.35 * k, 0, 0x5d5950);
   let y = H + 0.4 * k, w = W;
   for (let t = 0; t < tiers; t++) { w *= 0.62; const hh = 2.4 * k;                                       // stepped square upper blocks
-    B.box(w, hh, w, 0, y + hh / 2, 0, t % 2 ? conc : conc2); B.box(w + 0.2, 0.3 * k, w + 0.2, 0, y + hh, 0, T.dark);
+    B.box(w, hh, w, 0, y + hh / 2, 0, t % 2 ? conc : conc2); B.box(w + 0.2, 0.3 * k, w + 0.2, 0, y + hh, 0, 0x7a756b);
     for (const sd of [-1, 1]) { B.box(w * 0.6, 0.18 * k, 0.06, 0, y + hh * 0.6, sd * (w / 2 + 0.02), slit); B.box(0.06, 0.18 * k, w * 0.6, sd * (w / 2 + 0.02), y + hh * 0.6, 0, slit); }
     y += hh; }
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) {                                                    // square corner bastions with gun turrets
     const x = sx * h2, z = sz * h2, bw = 2.3 * k, bh = H + 1.6 * k;
-    B.box(bw, bh, bw, x, bh / 2, z, conc2); B.box(bw + 0.3 * k, 0.35 * k, bw + 0.3 * k, x, bh + 0.15 * k, z, T.dark);
+    B.box(bw, bh, bw, x, bh / 2, z, conc2); B.box(bw + 0.3 * k, 0.35 * k, bw + 0.3 * k, x, bh + 0.15 * k, z, 0x7a756b);
     B.box(bw * 0.5, 0.16 * k, 0.06, x, bh * 0.7, z + sz * (bw / 2 + 0.02), slit); B.box(0.06, 0.16 * k, bw * 0.5, x + sx * (bw / 2 + 0.02), bh * 0.7, z, slit);
     const ty = bh + 0.3 * k + 0.35 * k, a = Math.atan2(sx, sz);
     B.box(1.2 * k, 0.7 * k, 1.3 * k, x, ty, z, steel, 0, a, 0);                                            // square turret
@@ -1218,17 +1218,39 @@ function bldGeo(type, team) {
   const key = type + team; if (bldCache[key]) return bldCache[key];
   const T = TEAMC[team]; const B = new Builder(); const conc = 0x8c867a, conc2 = 0x6f6a61; const anim = {};
   switch (type) {
-    case 'hq':
-      B.box(7.2, 2, 7.2, 0, -0.5, 0, conc); B.box(5.2, 2.4, 5.2, 0, 1.7, 0, T.body); B.box(5.3, 0.35, 5.3, 0, 2.7, 0, T.acc);
-      B.box(5.25, 0.45, 4.4, 0, 1.6, 0, 0x1c2228); B.box(4.4, 0.45, 5.25, 0, 1.6, 0, 0x1c2228);
-      B.box(3.4, 1.6, 3.4, 0, 3.7, 0, T.dark); for (const sx of [-1, 1]) for (const sz of [-1, 1]) B.box(0.6, 3.2, 0.6, sx * 2.6, 1.6, sz * 2.6, T.dark);
-      B.add(G.cyl6, 0.1, 4, 0.1, 1.3, 6, 1.3, 0x333333); B.box(0.6, 0.6, 0.6, -1.2, 4.8, -1.2, 0x444444);
-      for (let k = 0; k < 3; k++) B.box(1.0, 0.1, 0.1, 1.3, 5 + k * 0.8, 1.3, 0x333333);
-      B.box(2.2, 2.2, 0.15, 0, 1.5, 2.65, 0x2c2a26); B.box(2.6, 0.25, 0.9, 0, 2.75, 2.95, T.acc); B.box(2.4, 0.3, 1.2, 0, 0.6, 3.3, 0x55524b, 0.15, 0, 0);
-      for (const sx of [-1, 1]) { B.box(0.15, 1.6, 0.15, sx * 1.6, 1.2, 3.4, 0x444444); B.box(0.25, 0.25, 0.25, sx * 1.6, 2.05, 3.4, 0xfff2c0); }
-      B.box(1.2, 0.5, 1.2, 1.1, 4.7, -1.1, 0x3a3833); for (let k = 0; k < 3; k++) B.box(0.06, 0.4, 1.0, 0.75 + k * 0.35, 5.0, -1.1, 0x22201d);
-      { const d = new Builder(); d.add(G.dome, 1.3, 0.5, 1.3, 0, 0, 0, 0xd8d4c8, Math.PI * 0.75, 0, 0); d.add(G.cyl6, 0.06, 1, 0.06, 0, 0.3, 0.3, 0x333333, 0.6, 0, 0); anim.dish = d.build(); }
-      break;
+    case 'hq': { // modern armoured command centre
+      const glass = 0x1d3f52, glass2 = 0x2f6f8c, steel = 0x3c3e3a, conc3 = 0x9a948a;
+      B.box(7.4, 1.4, 7.4, 0, -0.3, 0, conc2);                                                              // footing
+      for (const sd of [-1, 1]) { B.box(7.2, 0.9, 1.2, 0, 0.45, sd * 3.25, conc, sd * 0.6, 0, 0); B.box(1.2, 0.9, 7.2, sd * 3.25, 0.45, 0, conc, 0, 0, -sd * 0.6); } // sloped glacis
+      B.box(6.0, 0.5, 6.0, 0, 0.65, 0, conc3);                                                              // podium
+      B.box(5.4, 2.4, 5.4, 0, 2.1, 0, T.body);                                                              // armoured main block
+      for (const sd of [-1, 1]) { B.box(5.6, 1.5, 0.35, 0, 1.55, sd * 2.78, T.dark, sd * -0.35, 0, 0); B.box(0.35, 1.5, 5.6, sd * 2.78, 1.55, 0, T.dark, 0, 0, sd * 0.35); } // sloped skirt armour
+      for (const sd of [-1, 1]) { B.box(4.6, 0.5, 0.06, 0, 2.75, sd * 2.72, glass); B.box(0.06, 0.5, 4.6, sd * 2.72, 2.75, 0, glass); } // window band
+      for (let k = -2; k <= 2; k++) for (const sd of [-1, 1]) { B.box(0.08, 0.52, 0.08, k * 1.1, 2.75, sd * 2.74, steel); B.box(0.08, 0.52, 0.08, sd * 2.74, 2.75, k * 1.1, steel); }
+      B.box(5.5, 0.18, 5.5, 0, 3.35, 0, T.acc);                                                             // thin team line
+      B.box(5.7, 0.3, 5.7, 0, 3.55, 0, conc2);                                                              // roof slab
+      // command deck: chamfered tower with a panoramic window, leaning outward like a control room
+      B.box(3.4, 1.5, 3.4, 0.4, 4.45, 0.4, T.dark);
+      for (const sd of [-1, 1]) { B.box(3.5, 0.8, 0.12, 0.4, 4.6, 0.4 + sd * 1.72, glass2, sd * 0.25, 0, 0); B.box(0.12, 0.8, 3.5, 0.4 + sd * 1.72, 4.6, 0.4, glass2, 0, 0, -sd * 0.25); }
+      B.box(3.8, 0.22, 3.8, 0.4, 5.3, 0.4, steel);
+      // phased-array radar faces on the deck roof
+      for (const [a, x, z] of [[0, 0.4, 1.3], [Math.PI / 2, 1.3, 0.4], [Math.PI, 0.4, -0.5], [-Math.PI / 2, -0.5, 0.4]]) { B.box(1.3, 1.0, 0.12, x, 5.85, z, 0x2a2d30, -0.35, a, 0); B.box(1.1, 0.8, 0.02, x + Math.sin(a) * 0.07, 5.85, z + Math.cos(a) * 0.07, 0x4a5258, -0.35, a, 0); }
+      B.box(1.1, 0.9, 1.1, 0.4, 5.85, 0.4, 0x2a2d30);
+      // communications mast with cross-arms and a red beacon
+      B.add(G.cyl6, 0.08, 4.2, 0.08, 0.4, 8.2, 0.4, 0x333333); for (let k = 0; k < 3; k++) B.box(1.2 - k * 0.3, 0.06, 0.06, 0.4, 7 + k * 0.9, 0.4, 0x333333);
+      B.box(0.18, 0.18, 0.18, 0.4, 10.35, 0.4, 0xff3020);
+      // rooftop helipad
+      B.add(G.cyl16, 1.25, 0.08, 1.25, -1.45, 3.75, -1.45, 0x2c2e2b); B.add(G.cyl16, 1.28, 0.05, 1.28, -1.45, 3.74, -1.45, 0xe8c02a);
+      B.box(0.14, 0.02, 1.0, -1.75, 3.8, -1.45, 0xf0f0f0); B.box(0.14, 0.02, 1.0, -1.15, 3.8, -1.45, 0xf0f0f0); B.box(0.6, 0.02, 0.14, -1.45, 3.8, -1.45, 0xf0f0f0);
+      // armoured entrance with hazard frame and floodlights
+      B.box(2.0, 1.8, 0.25, 0, 1.75, 2.85, steel); B.box(0.06, 1.7, 0.05, 0, 1.75, 2.99, 0x22241f);
+      for (let k = 0; k < 8; k++) B.box(0.3, 0.18, 0.08, -1.05 + k * 0.3, 2.75, 2.98, k % 2 ? 0x1c1c1c : 0xe8c02a, 0, 0, 0.5);
+      B.box(2.6, 0.12, 1.2, 0, 0.92, 3.4, conc3);                                                         // ramp
+      for (const sx of [-1, 1]) { B.box(0.12, 1.4, 0.12, sx * 1.6, 1.6, 3.6, steel); B.box(0.3, 0.18, 0.25, sx * 1.6, 2.35, 3.55, 0xfff2c0); }
+      // side plant: cooling units and a generator box
+      for (const sz of [-1, 0, 1]) { B.box(0.9, 0.7, 0.9, 2.95, 1.25, sz * 1.15, 0x55584f); B.add(G.cyl10, 0.32, 0.05, 0.32, 2.95, 1.62, sz * 1.15, 0x1c1c1c); }
+      { const d = new Builder(); d.add(G.dome, 1.1, 0.42, 1.1, 0, 0, 0, 0xd8d4c8, Math.PI * 0.75, 0, 0); d.add(G.cyl6, 0.06, 0.9, 0.06, 0, 0.3, 0.3, 0x333333, 0.6, 0, 0); anim.dish = d.build(); }
+      break; }
     case 'factory': {
       B.box(8.6, 2, 7.8, 0, -0.5, 0, conc); B.box(8.4, 0.12, 7.6, 0, 0.52, 0, 0x7a746a);
       B.box(7, 3.2, 5.6, 0, 2, 0, T.body);
@@ -1380,11 +1402,11 @@ function bldGeo(type, team) {
       for (let k = 0; k < 6; k++) { const a = k * 1.05 + 0.3; B.box(0.5, 0.35, 0.05, Math.sin(a) * 2.01, 0.35 + (k % 2) * 0.3, Math.cos(a) * 2.01, 0x7a756b, 0, a, 0); } // weathered patches
       break;
     case 'cls_hard':
-      B.box(3.6, 3.3, 3.6, 0, 1.0, 0, conc); B.box(3.8, 0.6, 3.8, 0, -0.5, 0, conc2); B.box(3.7, 0.35, 3.7, 0, 2.7, 0, T.acc); B.box(3.9, 0.45, 3.9, 0, 3.1, 0, T.dark);
+      B.box(3.6, 3.3, 3.6, 0, 1.0, 0, conc); B.box(3.8, 0.6, 3.8, 0, -0.5, 0, conc2); B.box(3.7, 0.12, 3.7, 0, 2.7, 0, conc2); B.box(3.9, 0.45, 3.9, 0, 3.1, 0, 0x7a756b);
       for (const sx of [-1, 1]) for (const sz of [-1, 1]) B.box(0.7, 3.6, 0.7, sx * 1.6, 1.2, sz * 1.6, 0x6f6a61);
       for (let k = -1; k <= 1; k++) for (const sz of [-1, 1]) B.box(0.9, 0.12, 0.08, k * 1.1, 1.6, sz * 1.82, 0x5a564f);
       break;
-    case 'cls_fort': { const y = sqFort(B, T, conc, conc2, 0.85, 3.6, 0); B.box(3.2, 5.6 - y, 3.2, 0, (5.6 + y) / 2, 0, conc2); B.box(3.4, 0.2, 3.4, 0, 5.55, 0, T.dark); break; }
+    case 'cls_fort': { const y = sqFort(B, T, conc, conc2, 0.85, 3.6, 0); B.box(3.2, 5.6 - y, 3.2, 0, (5.6 + y) / 2, 0, conc2); B.box(3.4, 0.2, 3.4, 0, 5.55, 0, 0x7a756b); break; }
     case 'cls_pit': // solid reinforced-concrete foundation: wide footing, thick slab, chamfered edges, turntable ring
       B.box(4.6, 0.35, 4.6, 0, -0.02, 0, conc2);                                                         // footing
       B.box(4.2, 0.4, 4.2, 0, 0.32, 0, conc);                                                            // main slab
@@ -1410,8 +1432,8 @@ function bldGeo(type, team) {
       B.box(5.7, 3.6, 1.4, 0, 1.6, 0, st);                                    // wall slab
       for (const sz of [-1, 1]) B.box(5.7, 1.4, 0.7, 0, 0.75, sz * 0.85, st2, sz * 0.45, 0, 0); // sloped lower buttresses
       for (let i = -2; i <= 2; i++) for (const sz of [-1, 1]) B.box(0.05, 3.5, 0.04, i * 1.15 + 0.57, 1.6, sz * 0.71, st2); // panel joints
-      B.box(5.75, 0.3, 1.6, 0, 3.5, 0, T.dark);                               // cap beam
-      B.box(5.72, 0.16, 1.42, 0, 2.7, 0, T.acc);                              // thin team line
+      B.box(5.75, 0.3, 1.6, 0, 3.5, 0, 0x7a756b);                             // cap beam
+      B.box(5.72, 0.06, 1.42, 0, 2.7, 0, 0x6c675e);                           // pour joint
       for (const sx of [-1.7, 1.7]) for (const sz of [-1, 1]) B.box(0.8, 0.14, 0.06, sx, 2.2, sz * 0.72, 0x141414); // firing slits
       for (const sx of [-2.6, 0, 2.6]) B.add(G.cyl6, 0.05, 0.7, 0.05, sx, 3.95, 0, 0x3a3a38); B.box(5.7, 0.06, 0.06, 0, 4.25, 0, 0x3a3a38); // steel rail
       break; }
@@ -1449,7 +1471,7 @@ function bldY(x, z, size) { const r = size * 0.4; let s = 0; const pts = [[0, 0]
 function attachMissile(turMesh, g) { if (!g.msl) return null; const m = new THREE.Mesh(missileGeo(g.msl.kind), matVC); m.position.set(g.msl.x, g.msl.y, g.msl.z); m.rotation.x = -g.msl.a; m.scale.setScalar(g.msl.len); m.castShadow = true; turMesh.add(m); return m; }
 function makeBldMesh(type, team) { // team = colour palette index
   const g = bldGeo(type, team); const grp = new THREE.Group(); const main = new THREE.Mesh(g.geo, matVC); main.castShadow = true; main.receiveShadow = true; grp.add(main); const parts = {};
-  if (type === 'hq') { const d = new THREE.Mesh(g.anim.dish, matVC); d.position.set(-1.2, 5.4, -1.2); grp.add(d); parts.dish = d; }
+  if (type === 'hq') { const d = new THREE.Mesh(g.anim.dish, matVC); d.position.set(1.95, 4.1, -1.95); grp.add(d); parts.dish = d; }
   if (type === 'lab') { const d = new THREE.Mesh(g.anim.dish, matVC); d.position.set(-1.6, 4.05, 0.2); grp.add(d); parts.dish = d; }
   if (type === 'generator') { const f = new THREE.Mesh(g.anim.fan, matVC); f.position.set(-0.9, 3.15, 0.9); grp.add(f); parts.fan = f; const gl = new THREE.Mesh(g.anim.glow, matGlow); grp.add(gl); parts.glow = gl; }
   if (type === 'pump') { const b = new THREE.Mesh(g.anim.beam, matVC); b.position.set(0, 3.55, 0); grp.add(b); parts.beam = b; }
@@ -2305,7 +2327,7 @@ function fortDecor(o) {
       const nx = Math.sin(g), nz = Math.cos(g), tx = Math.cos(g), tz = -Math.sin(g);
       for (const side of [-1, 1]) { // square concrete guard blocks either side of the gate
         const x = nx * WR + tx * side * 4.6, z = nz * WR + tz * side * 4.6, y = gy(x, z);
-        B.box(3.2, 5.6, 3.2, x, y + 2.2, z, 0x8a857b, 0, g, 0); B.box(3.5, 0.4, 3.5, x, y + 5.1, z, T.dark, 0, g, 0);
+        B.box(3.2, 5.6, 3.2, x, y + 2.2, z, 0x8a857b, 0, g, 0); B.box(3.5, 0.4, 3.5, x, y + 5.1, z, 0x7a756b, 0, g, 0);
         B.box(2.4, 0.2, 0.06, x + nx * 1.62, y + 3.8, z + nz * 1.62, 0x141414, 0, g, 0);
         B.box(1.4, 0.7, 1.4, x, y + 5.65, z, 0x3c3e3a, 0, g, 0); B.add(G.cyl10, 0.08, 1.4, 0.08, x + nx * 1.1, y + 5.7, z + nz * 1.1, 0x262624, 0, g + Math.PI / 2, Math.PI / 2); // gun cupola
       }

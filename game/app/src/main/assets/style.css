@@ -446,3 +446,12 @@ img.ui { width: 18px; height: 18px; flex: none; vertical-align: -4px; object-fit
 
 /* radar screen bezel */
 #mini { background: #04100a; border: 3px solid #3c4434; box-shadow: 0 0 0 2px #0b0d09, 0 0 0 5px #5b6450, 0 0 0 7px #1a1d16, 0 0 14px rgba(80,255,120,.35), inset 0 0 12px #000; }
+
+/* campaign */
+#camp .cint, #brief .cint { font-size: 14px; line-height: 1.45; color: #e3d9bf; margin: 6px 0 10px; }
+#camp .clist { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+#camp .cm { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; padding: 8px 10px; }
+#camp .cm b { color: #f0b43c; } #camp .cm.done b { color: #7fd04a; } #camp .cm small { opacity: .7; }
+#camp .cm[disabled] { opacity: .45; }
+#brief .bmap { color: #cfc6ae; font-size: 13px; } #brief .bobj { margin: 4px 0; font-size: 14px; } #brief .bobj b { color: #f0b43c; }
+.rcard.mlock .rm { color: #9aa0a6; }

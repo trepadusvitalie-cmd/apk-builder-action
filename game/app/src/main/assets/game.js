@@ -44,8 +44,28 @@ let CUSTOM_MAPS = []; try { CUSTOM_MAPS = (JSON.parse(localStorage.getItem('iron
 MAPS.push(...CUSTOM_MAPS);
 const mapCode = m => 'IF1-' + btoa(unescape(encodeURIComponent(JSON.stringify({ name: m.name, size: m.size, nr: m.nr, dens: m.dens, oil: m.oil, seed: m.seed })))).replace(/=+$/, '');
 const mapFromCode = c => { try { c = String(c).trim().replace(/^IF1-/i, ''); return cleanMap(JSON.parse(decodeURIComponent(escape(atob(c))))); } catch (e) { return null; } };
+// ---- campaign: 5 story missions, each on its own map, research unlocked step by step ----
+const CAMPAIGN_INTRO = 'Anul 2200. Acum o sută de ani, rețeaua de sateliți de luptă a scăpat de sub control și a aruncat asupra Pământului ploaia de fier — Căderea. Din ruine s-a ridicat Legiunea Roșie, care a pus mâna pe vechea Cetate de comandă din centrul continentului. Tu conduci ultimii soldați ai Coaliției Sudului.';
+const MISSIONS = [
+  { name: 'Primul foc', map: 'Valea Verde', size: 240, seed: 1101, rings: [[84, 3, 0, 1.4]], gar: 0.8, obj: 'outposts', depth: 1,
+    brief: 'Ne-am ascuns în Valea Verde, dar Legiunea ne-a găsit. Trei avanposturi blochează drumul spre sondele de petrol. Construiește generatoare, fă primele tancuri și curăță valea.' },
+  { name: 'Dunele de fier', map: 'Deșertul de Est', size: 300, seed: 2207, rings: [[112, 4, 0, 1.3], [72, 3, 1, 1.5]], gar: 0.9, obj: 'outposts', depth: 2,
+    brief: 'Avem nevoie de petrol pentru iarnă. În Dunele de Fier, Legiunea păzește cele mai bogate sonde cu două linii de forturi. Șenilele, rachetele și mortierele noi te vor ajuta să treci prin ele.' },
+  { name: 'Trecătoarea înghețată', map: 'Munții de Nord', size: 340, seed: 3313, rings: [[126, 5, 0, 1.2], [88, 4, 1, 1.3], [52, 3, 2, 1.2]], gar: 0.85, obj: 'outposts', depth: 3,
+    brief: 'Singurul drum spre nord trece prin munții înghețați, unde Legiunea a ridicat trei inele de forturi. Inginerii noștri au terminat laserul de luptă, primele avioane VTOL și fortificațiile.' },
+  { name: 'Canionul de foc', map: 'Canionul de Foc', size: 420, seed: 4421, rings: [[165, 6, 0, 1.2], [128, 6, 1, 1.3], [90, 5, 2, 1.3], [52, 4, 2, 1.2]], gar: 0.8, obj: 'outposts', depth: 4,
+    brief: 'Am găsit fabricile de artilerie ale Legiunii în Canionul de Foc. Distruge-le înainte să termine noile obuziere și lansatoarele de plasmă. Sunt cele mai bine apărate baze de până acum.' },
+  { name: 'Căderea Cetății', map: 'Inima continentului', size: 480, seed: 5531, rings: [[190, 7, 0, 1.1], [148, 6, 1, 1.3], [106, 5, 2, 1.3], [62, 4, 2, 1.2]], gar: 0.75, obj: 'citadel', depth: 99,
+    brief: 'A sosit ziua. Cetatea Legiunii controlează ultimul satelit care încă poate arunca fier asupra noastră. Rupe inelele de apărare, sparge zidurile și distruge Cetatea. Pentru Coaliție!' },
+];
+const MDEPTH = [0, ...MISSIONS.map(m => m.depth)];
+let MISSION = 0, CAMP = 0; try { MISSION = clamp(+localStorage.getItem('ironfall.mission') | 0, 0, MISSIONS.length); CAMP = clamp(+localStorage.getItem('ironfall.camp') | 0, 0, MISSIONS.length); } catch (e) {}
+if (NETCFG) MISSION = 0;
+const MDEF = MISSION ? MISSIONS[MISSION - 1] : null;
+if (MDEF) MAPS.push({ name: MDEF.map, size: MDEF.size, seed: MDEF.seed, rings: MDEF.rings, gar: MDEF.gar, mission: MISSION });
 let MAPI = 0; try { MAPI = clamp(+(localStorage.getItem('ironfall.map') || 0) | 0, 0, MAPS.length - 1); } catch (e) {}
 if (NETCFG) { const md = NETCFG.mdef && cleanMap(NETCFG.mdef); if (md) { MAPS.push(md); MAPI = MAPS.length - 1; } else MAPI = clamp(NETCFG.map | 0, 0, BUILTIN_MAPS - 1); }
+if (MDEF) MAPI = MAPS.length - 1;
 const MC = MAPS[MAPI];
 if (!NETCFG && MC.seed !== null && MC.seed !== undefined) SEED = MC.seed;
 const MAP = MC.size, HALF = MAP / 2, EDGE = HALF - 9, SC = MAP / 300;
@@ -67,7 +87,7 @@ RINGS.forEach((R, ri) => {
     OUTPOSTS.push({ x: Math.sin(a) * R.r, z: Math.cos(a) * R.r, tier: R.tier, a, prodT: 0, nextWave: 0, citadel: false });
   }
 });
-OUTPOSTS.push({ x: 0, z: 0, tier: 3, a: 0, prodT: 0, nextWave: 0, citadel: true });
+if (!MDEF || MDEF.obj === 'citadel') OUTPOSTS.push({ x: 0, z: 0, tier: 3, a: 0, prodT: 0, nextWave: 0, citadel: true });
 const FLAT = [{ x: PLAYER.x, z: PLAYER.z - 8, r: 44 }, ...GUEST_BASE.slice(1).map(b => ({ x: b.x, z: b.z, r: 24 })), { x: 0, z: 0, r: 34 }, ...OUTPOSTS.filter(o => !o.citadel).map(o => ({ x: o.x, z: o.z, r: 16 }))];
 const WELL_POS = [[-14, PLAYER.z + 12], [16, PLAYER.z + 10], [0, PLAYER.z - 16], ...GUEST_BASE.slice(1).map(b => [b.x + (b.x < 0 ? -12 : 12), b.z + 9]), ...[[-40, 118], [42, 116], [-70, 95], [72, 92], [0, 70], [-95, 40], [96, 30], [-20, -96], [30, -120], [-110, -40], [110, -70], [-60, -130], [70, 60], [-60, 60]].map(([x, z]) => [x * SC, z * SC])];
 { let k = 0; const extra = Math.min(170, Math.round(16 * (SC * SC - 1) + (MC.custom ? 14 * Math.min(SC * SC, 11) * (MC.oil - 1) : 0))); for (let t = 0; k < extra && t < 9000; t++) { const x = (hash2(t, 7) - 0.5) * (MAP - 40), z = (hash2(t, 13) - 0.5) * (MAP - 40);
@@ -639,6 +659,8 @@ const PAID = {}; for (const [k, p] of Object.entries(PACKS)) for (const id of p.
 const OWNED = new Set(), PRICES = {}; let billSig = 0;
 try { for (const k of JSON.parse(localStorage.getItem('ironfall.owned') || '[]')) if (PACKS[k]) OWNED.add(k); } catch (e) {}
 const paidLocked = id => PAID[id] && !OWNED.has(PAID[id]);
+const missionLocked = id => MISSION > 0 && RS_DEPTH[id] > MDEPTH[MISSION];
+const missionOf = id => { for (let k = 1; k < MDEPTH.length; k++) if (RS_DEPTH[id] <= MDEPTH[k]) return k; return MISSIONS.length; };
 window.IF_onBilling = (owned, prices, msg) => {
   let fresh = false; for (const k of owned || []) if (PACKS[k] && !OWNED.has(k)) { OWNED.add(k); fresh = true; if (typeof toast === 'function') toast('🔓 ' + PACKS[k].name + ' — deblocat!'); }
   Object.assign(PRICES, prices || {}); billSig++;
@@ -2584,13 +2606,14 @@ function renderPanel() {
       h += `<div class="labs"><div class="labsh">Laboratoare <b>${labs.length}/${MAX_LABS}</b> · lucrează <b>${busy}</b> · libere <b>${free}</b></div>`;
       if (false) labs.forEach((l, i) => { h += `<button class="labrow ${l === b ? 'cur' : ''} ${l.res ? '' : 'idle'}" data-act="sellab" data-v="${l.id}">${l.res ? RICON[l.res.id] : l.lastRes ? `<span class="lastico">${RICON[l.lastRes]}</span>` : UIC.lab.replace('class="ui"', 'class="ric"')}<span class="ln">#${i + 1}</span><span class="lt"><b>${!l.complete ? 'În construcție' : l.res ? l.res.name : l.lastRes ? '✔ ' + (RS.find(x => x.id === l.lastRes) || {}).name + ' — liber' : 'Liber — alege o cercetare'}</b>${l.res ? `<span class="bar b"><i id="labB${l.id}"></i></span>` : ''}</span><span class="lr" id="labT${l.id}"></span></button>`; });
       h += `</div>`;
-      const avail = br => br.ids.filter(id => { const r = RS.find(x => x.id === id); return !T.tech.has(id) && !r.req.some(q => !T.tech.has(q)); }).length;
+      const avail = br => br.ids.filter(id => { const r = RS.find(x => x.id === id); return !T.tech.has(id) && !missionLocked(id) && !r.req.some(q => !T.tech.has(q)); }).length;
       h += `<div class="chips">${BRANCHES.map((br, i) => `<button data-act="rbr" data-v="${i}" class="${labBr === i ? 'on' : ''}">${br.name}${avail(br) ? ` <b class="cnt">${avail(br)}</b>` : ''}</button>`).join('')}</div>`;
       for (const br of [BRANCHES[labBr]]) {
         const st = id => { const r = RS.find(x => x.id === id); return T.tech.has(id) ? 3 : T.researching.has(id) ? 0 : r.req.some(q => !T.tech.has(q)) ? 2 : 1; };
         h += `<div class="rgrid">`;
         for (const id of [...br.ids].sort((a, c) => st(a) - st(c))) { const r = RS.find(x => x.id === id);
           const done = T.tech.has(r.id), locked = !done && r.req.some(q => !T.tech.has(q)), busy = !done && T.researching.has(r.id);
+          if (!done && !busy && missionLocked(r.id)) { h += `<button class="rcard locked mlock" disabled>${RICON[r.id]}<span class="rn">${r.name}</span><span class="rm">🔒 Mis. ${missionOf(r.id)}</span></button>`; continue; }
           if (!done && !busy && paidLocked(r.id)) { const k = PAID[r.id];
             h += `<button class="rcard paid" data-act="buy" data-v="${k}">${RICON[r.id]}<span class="rn">${r.name}</span><span class="rm">🔒 ${PRICES[k] || '2 $'}</span></button>`; continue; }
           const meta = done ? '✔ Cercetat' : locked ? '🔒 ' + r.req.map(q => RS.find(x => x.id === q).name).join(', ') : busy ? '⏳ În curs' : `${r.cost}⚡ · ${r.time}s`;
@@ -3380,7 +3403,9 @@ function setupForces() {   // the same on every phone of a multiplayer game: sam
   }
   for (const u of ents) if (u.kind === 'unit') u.heading = Math.PI;
   setupEnemy();
-  applyTechLevel(S.tl);
+  if (MDEF) { const prev = MDEPTH[MISSION - 1]; for (const r of [...RS].sort((a, b) => RS_DEPTH[a.id] - RS_DEPTH[b.id])) if (RS_DEPTH[r.id] <= prev && !PAID[r.id]) finishResearch(0, r.id);
+    TEAMS[0].energy = 500 + 350 * (MISSION - 1); }
+  else applyTechLevel(S.tl);
 }
 let ecoT = 0, aiT = 0, uiT = 0, winT = 0;
 function update(dt) {
@@ -3399,13 +3424,20 @@ function update(dt) {
 function checkEnd() {
   if (S.over) return;
   const has = (t, types) => ents.some(e => e.alive && e.team === t && types.includes(e.type));
-  if (!has(1, ['citadel'])) endGame(true);
+  if (MDEF && MDEF.obj === 'outposts' ? OUTPOSTS.every(o => !o.alive) : !has(1, ['citadel'])) endGame(true);
   else if (!has(0, ['hq', 'factory']) && !ents.some(e => e.alive && e.team === 0 && e.isTruck)) endGame(false);
 }
 function endGame(win) {
   S.over = true; $('end').classList.remove('hidden'); $('endT').textContent = win ? 'VICTORIE' : 'ÎNFRÂNGERE';
   $('endS').innerHTML = `Timp: ${fmtTime(S.time)} · Unități produse: ${S.stats.built} · Inamici distruși: ${S.stats.killed} · Pierderi: ${S.stats.lost}`;
   sfx(win ? 'done' : 'alert');
+  if (MDEF) { if (win) { CAMP = Math.max(CAMP, MISSION); try { localStorage.setItem('ironfall.camp', CAMP); } catch (e) {} }
+    $('endT').textContent = win ? (MISSION === MISSIONS.length ? 'CAMPANIE CÂȘTIGATĂ' : 'MISIUNE ÎNDEPLINITĂ') : 'MISIUNE EȘUATĂ';
+    if (win && MISSION === MISSIONS.length) $('endS').innerHTML = 'Cetatea a căzut. Legiunea Roșie nu mai există, iar cerul este, în sfârșit, liniștit. Mulțumim, comandante!<br>' + $('endS').innerHTML;
+    const row = $('bAgain').parentNode; row.querySelectorAll('.mx').forEach(x => x.remove());
+    if (win && MISSION < MISSIONS.length) { const b = document.createElement('button'); b.className = 'ok big mx'; b.textContent = '▶ Misiunea următoare'; b.onclick = () => missionGo(MISSION + 1); row.prepend(b); }
+    $('bAgain').textContent = win ? '🎖 Campanie' : '↻ Reîncearcă';
+    $('bAgain').onclick = ev => { ev.stopImmediatePropagation(); if (win) { try { localStorage.removeItem('ironfall.mission'); localStorage.setItem('ironfall.openCamp', '1'); } catch (e) {} location.reload(); } else missionGo(MISSION); }; }
 }
 
 let last = performance.now();
@@ -3433,7 +3465,28 @@ addEventListener('resize', resize);
 try { const d0 = localStorage.getItem('ironfall.diff'); if (d0 !== null) { S.diff = +d0; document.querySelectorAll('#diff button').forEach(x => x.classList.toggle('on', +x.dataset.v === S.diff)); } } catch (e) {}
 document.querySelectorAll('#diff button').forEach(b => b.addEventListener('click', () => { document.querySelectorAll('#diff button').forEach(x => x.classList.remove('on')); b.classList.add('on'); S.diff = +b.dataset.v; }));
 function startGame() { audioInit(); $('intro').classList.add('hidden'); $('hud').classList.remove('hidden'); setupGame(); S.running = true; toast('Construiește generatoare pe sondele de petrol! ⚡'); setTimeout(make3DIcons, 400); }
-$('bPlay').addEventListener('click', startGame);
+$('bPlay').addEventListener('click', () => { if (MISSION) { try { localStorage.removeItem('ironfall.mission'); localStorage.setItem('ironfall.autostart', '1'); } catch (e) {} location.reload(); return; } startGame(); });
+function missionGo(k) { try { localStorage.setItem('ironfall.mission', k); localStorage.setItem('ironfall.autostart', '1'); } catch (e) {} location.reload(); }
+function campOpen() {   // campaign screen: the story so far and the 5 missions
+  let m = $('camp'); if (m) m.remove(); m = document.createElement('div'); m.id = 'camp'; m.className = 'modal';
+  m.innerHTML = `<div class="mbox wide scroll"><h2>🎖 Campanie</h2><p class="cint">${CAMPAIGN_INTRO}</p><div class="clist">${MISSIONS.map((d, i) => { const k = i + 1, open = k <= CAMP + 1, done = k <= CAMP;
+    return `<button class="cm ${done ? 'done' : ''}" data-k="${k}" ${open ? '' : 'disabled'}><b>${done ? '✔' : open ? '▶' : '🔒'} Misiunea ${k}</b><span>${d.name}</span><small>${d.map} · ${d.size} m</small></button>`; }).join('')}</div>
+    <div class="row"><button data-c="x">Închide</button></div></div>`;
+  m.addEventListener('click', ev => { if (ev.target.closest('[data-c="x"]')) { m.remove(); return; } const b = ev.target.closest('[data-k]'); if (b && !b.disabled) briefOpen(+b.dataset.k); });
+  document.body.appendChild(m); sfx('click'); }
+function briefOpen(k) {
+  const d = MISSIONS[k - 1], n = RS.filter(r => RS_DEPTH[r.id] > MDEPTH[k - 1] && RS_DEPTH[r.id] <= MDEPTH[k]).length;
+  let m = $('brief'); if (m) m.remove(); m = document.createElement('div'); m.id = 'brief'; m.className = 'modal';
+  m.innerHTML = `<div class="mbox wide scroll"><h2>Misiunea ${k}: ${d.name}</h2><div class="bmap">🗺️ ${d.map} · ${d.size}×${d.size} m</div><p class="cint">${d.brief}</p>
+    <div class="bobj"><b>Obiectiv:</b> <span>${d.obj === 'citadel' ? 'Distruge Cetatea Legiunii.' : 'Distruge toate avanposturile inamice.'}</span></div>
+    <div class="bobj"><b>Tehnologii noi de cercetat:</b> ${n}</div>
+    <div class="row"><button class="ok big" data-b="go">▶ Începe misiunea</button><button data-b="back">Înapoi</button></div></div>`;
+  m.addEventListener('click', ev => { const b = ev.target.closest('[data-b]'); if (!b) return; if (b.dataset.b === 'go') missionGo(k); else m.remove(); });
+  document.body.appendChild(m); sfx('click'); }
+{ const hb = $('bPlay'); const cb = document.createElement('button'); cb.id = 'bCamp'; cb.className = 'ok big'; cb.textContent = '🎖 CAMPANIE'; cb.addEventListener('click', campOpen); hb.parentNode.insertBefore(cb, hb); }
+setTimeout(() => { let auto = false, oc = false; try { auto = localStorage.getItem('ironfall.autostart') === '1'; oc = localStorage.getItem('ironfall.openCamp') === '1'; localStorage.removeItem('ironfall.autostart'); localStorage.removeItem('ironfall.openCamp'); } catch (e) {}
+  if (oc) campOpen();
+  if (auto && !NETCFG) { startGame(); if (MDEF) setTimeout(() => toast(`🎖 Misiunea ${MISSION}: ${MDEF.name} — ${MDEF.obj === 'citadel' ? 'Distruge Cetatea Legiunii.' : 'Distruge toate avanposturile inamice.'}`), 1200); } }, 60);
 $('bMp').addEventListener('click', () => { audioInit(); mpOpen(); });
 $('mp').addEventListener('click', mpClick);
 $('mp').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.id === 'mpSay') { e.preventDefault(); chatSay(); } });
@@ -3455,7 +3508,7 @@ document.querySelectorAll('#tlSel button').forEach(b => b.addEventListener('clic
 tlRefresh();
 // ---- map list + map maker ----
 function saveCustomMaps() { try { localStorage.setItem('ironfall.maps', JSON.stringify(CUSTOM_MAPS.map(m => ({ name: m.name, size: m.size, nr: m.nr, dens: m.dens, oil: m.oil, seed: m.seed })))); } catch (e) {} }
-function loadMap(i) { const mm = $('mapSel'); try { localStorage.setItem('ironfall.map', i); localStorage.setItem('ironfall.diff', S.diff); } catch (e) {} if (mm) mm.classList.add('loading'); setTimeout(() => location.reload(), 50); }
+function loadMap(i) { const mm = $('mapSel'); try { localStorage.removeItem('ironfall.mission'); localStorage.setItem('ironfall.map', i); localStorage.setItem('ironfall.diff', S.diff); } catch (e) {} if (mm) mm.classList.add('loading'); setTimeout(() => location.reload(), 50); }
 { const mm = $('mapSel'); if (mm) {
   mm.innerHTML = MAPS.slice(0, BUILTIN_MAPS + CUSTOM_MAPS.length).map((m, i) => { const n = m.rings.reduce((a, r) => a + r[1], 0) + 1;
     return `<button data-m="${i}" class="mapc ${i === MAPI ? 'on' : ''}">${m.custom ? `<i class="cp" data-cp="${i}" title="Cod pentru prieten">🔗</i><i class="del" data-del="${i}" title="Șterge">✕</i>` : ''}<b>${m.custom ? '★ ' : ''}${m.name}</b><small>${m.size}×${m.size} m · ${n} baze inamice</small><small>${m.rings.length} inele de forturi</small></button>`; }).join('')

@@ -356,3 +356,17 @@ i.eu { font-style: normal; color: var(--amber); font-size: .9em; margin-left: 1p
 .mef input[type=range] { accent-color: #f0b44a; width: 100%; margin: 0; }
 .mef label { font-size: 11px; } #mapEd .mpb { margin: 4px 0; } #mapEd .row { margin-top: 6px; }
 .mef .mew { grid-column: 1 / -1; } .mef .mew .opts { display: inline-flex; }
+/* lobby: players on the left, chat on the right */
+#mp .mbox { width: min(640px, 96vw); }
+.mpcode.sm { font-size: 26px; letter-spacing: 6px; margin: 0 0 0 6px; display: inline-block; vertical-align: middle; }
+.mplob { display: flex; gap: 8px; text-align: left; align-items: stretch; margin: 6px 0; }
+.mplob #mpPl { flex: 0 0 40%; margin: 0; max-height: 150px; overflow-y: auto; font-size: 13px; color: #d8d2c4; }
+.mppl { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.5; }
+.mppl i { color: var(--dim); font-size: 11px; } .mppl small { color: var(--dim); }
+.mpchatw { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.mpchat { flex: 1; height: 112px; overflow-y: auto; background: #0007; border: 1px solid #ffffff14; border-radius: 8px; padding: 5px 8px; font-size: 13px; line-height: 1.35; color: #e6e0d2; word-wrap: break-word; }
+.mpchat .dim { color: var(--dim); font-style: italic; }
+.mpsay { display: flex; gap: 5px; }
+#mpSay { flex: 1; min-width: 0; background: #111; color: #eee; border: 1px solid #555; border-radius: 8px; padding: 6px 8px; font-size: 14px; }
+#mpName { width: 180px; background: #111; color: #eee; border: 1px solid #555; border-radius: 8px; padding: 6px 8px; font-size: 15px; text-align: center; }
+@media (max-width: 520px) { .mplob { flex-direction: column; } .mplob #mpPl { flex: none; } }

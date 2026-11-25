@@ -50,9 +50,11 @@ const MC = MAPS[MAPI];
 if (!NETCFG && MC.seed !== null && MC.seed !== undefined) SEED = MC.seed;
 const MAP = MC.size, HALF = MAP / 2, EDGE = HALF - 9, SC = MAP / 300;
 const PLAYER = { x: 0, z: HALF - 26 };
-const PLAYER2 = { x: Math.round(52 * Math.min(SC, 1.3)), z: HALF - 34 }; // second commander's base (co-op)
-const PLAYER3 = { x: -PLAYER2.x, z: PLAYER2.z }, PLAYER4 = { x: PLAYER2.x * 2, z: HALF - 40 }; // third and fourth commanders (4-player co-op)
-const GUEST_BASE = [PLAYER, PLAYER2, PLAYER3, PLAYER4];
+// co-op: up to 10 commanders. The host is at PLAYER; guests 1..9 get bases in two rows along the southern edge.
+const BSP = Math.round(44 * Math.min(SC, 1.3)), ROWA = HALF - 34, ROWB = HALF - 34 - Math.round(44 * Math.min(SC, 1.3));
+const GUEST_BASE = [PLAYER, { x: BSP, z: ROWA }, { x: -BSP, z: ROWA }, { x: BSP * 2, z: ROWA - 4 }, { x: -BSP * 2, z: ROWA - 4 },
+  { x: 0, z: ROWB }, { x: BSP, z: ROWB + 4 }, { x: -BSP, z: ROWB + 4 }, { x: Math.round(BSP * 1.75), z: ROWB + 14 }, { x: -Math.round(BSP * 1.75), z: ROWB + 14 }];
+const PLAYER2 = GUEST_BASE[1], MAXP = GUEST_BASE.length;
 const CENTER = { x: 0, z: 0 };
 const BASES = [PLAYER, CENTER];
 const RINGS = MC.rings.map(([r, n, tier, gap]) => ({ r, n, tier, gap }));
@@ -66,13 +68,13 @@ RINGS.forEach((R, ri) => {
   }
 });
 OUTPOSTS.push({ x: 0, z: 0, tier: 3, a: 0, prodT: 0, nextWave: 0, citadel: true });
-const FLAT = [{ x: PLAYER.x, z: PLAYER.z - 8, r: 44 }, { x: PLAYER2.x, z: PLAYER2.z, r: 28 }, { x: PLAYER3.x, z: PLAYER3.z, r: 28 }, { x: PLAYER4.x, z: PLAYER4.z, r: 28 }, { x: 0, z: 0, r: 34 }, ...OUTPOSTS.filter(o => !o.citadel).map(o => ({ x: o.x, z: o.z, r: 16 }))];
-const WELL_POS = [[-14, PLAYER.z + 12], [16, PLAYER.z + 10], [0, PLAYER.z - 16], [PLAYER2.x + 12, PLAYER2.z + 9], [PLAYER3.x - 12, PLAYER3.z + 9], [PLAYER4.x - 12, PLAYER4.z + 9], ...[[-40, 118], [42, 116], [-70, 95], [72, 92], [0, 70], [-95, 40], [96, 30], [-20, -96], [30, -120], [-110, -40], [110, -70], [-60, -130], [70, 60], [-60, 60]].map(([x, z]) => [x * SC, z * SC])];
+const FLAT = [{ x: PLAYER.x, z: PLAYER.z - 8, r: 44 }, ...GUEST_BASE.slice(1).map(b => ({ x: b.x, z: b.z, r: 24 })), { x: 0, z: 0, r: 34 }, ...OUTPOSTS.filter(o => !o.citadel).map(o => ({ x: o.x, z: o.z, r: 16 }))];
+const WELL_POS = [[-14, PLAYER.z + 12], [16, PLAYER.z + 10], [0, PLAYER.z - 16], ...GUEST_BASE.slice(1).map(b => [b.x + (b.x < 0 ? -12 : 12), b.z + 9]), ...[[-40, 118], [42, 116], [-70, 95], [72, 92], [0, 70], [-95, 40], [96, 30], [-20, -96], [30, -120], [-110, -40], [110, -70], [-60, -130], [70, 60], [-60, 60]].map(([x, z]) => [x * SC, z * SC])];
 { let k = 0; const extra = Math.min(170, Math.round(16 * (SC * SC - 1) + (MC.custom ? 14 * Math.min(SC * SC, 11) * (MC.oil - 1) : 0))); for (let t = 0; k < extra && t < 9000; t++) { const x = (hash2(t, 7) - 0.5) * (MAP - 40), z = (hash2(t, 13) - 0.5) * (MAP - 40);
-  if (Math.hypot(x, z) < 40 || Math.hypot(x - PLAYER.x, z - PLAYER.z) < 35 || Math.hypot(x - PLAYER2.x, z - PLAYER2.z) < 30 || Math.hypot(x - PLAYER3.x, z - PLAYER3.z) < 30 || Math.hypot(x - PLAYER4.x, z - PLAYER4.z) < 30 || OUTPOSTS.some(o => Math.hypot(o.x - x, o.z - z) < 24) || WELL_POS.some(w => Math.hypot(w[0] - x, w[1] - z) < 30)) continue; WELL_POS.push([x, z]); k++; } }
+  if (Math.hypot(x, z) < 40 || Math.hypot(x - PLAYER.x, z - PLAYER.z) < 35 || GUEST_BASE.some(b => Math.hypot(x - b.x, z - b.z) < 30) || OUTPOSTS.some(o => Math.hypot(o.x - x, o.z - z) < 24) || WELL_POS.some(w => Math.hypot(w[0] - x, w[1] - z) < 30)) continue; WELL_POS.push([x, z]); k++; } }
 for (const o of OUTPOSTS) if (!o.citadel) { const a = o.a + 0.18; const r = Math.hypot(o.x, o.z) + 9; WELL_POS.push([Math.sin(a) * r, Math.cos(a) * r]); }
 WELL_POS.push([14, 8], [-14, -8]);
-for (let i = WELL_POS.length - 1; i >= 6; i--) { const [x, z] = WELL_POS[i]; if (Math.abs(x) > EDGE - 6 || Math.abs(z) > EDGE - 6 || (MC.custom && MC.oil < 1 && hash2(i, 31) > MC.oil)) WELL_POS.splice(i, 1); }
+for (let i = WELL_POS.length - 1; i >= 3 + MAXP - 1; i--) { const [x, z] = WELL_POS[i]; if (Math.abs(x) > EDGE - 6 || Math.abs(z) > EDGE - 6 || (MC.custom && MC.oil < 1 && hash2(i, 31) > MC.oil)) WELL_POS.splice(i, 1); }
 
 function biomeW(x, z) {
   const a = Math.atan2(x, z) + (fbm(x * 0.008 + 7, z * 0.008) - 0.5) * 1.6;
@@ -424,6 +426,12 @@ const TEAMC = [
   { body: 0x4e6a8a, dark: 0x27364a, acc: 0xffc832, mini: '#ffd23a', name: 'Aliat (albastru-galben)' }, // co-op guest commanders
   { body: 0x8a7348, dark: 0x463a24, acc: 0x30e0b0, mini: '#30e0b0', name: 'Aliat (nisip-turcoaz)' },
   { body: 0x5c5f66, dark: 0x2c2e33, acc: 0xc068ff, mini: '#c068ff', name: 'Aliat (gri-violet)' },
+  { body: 0x6e6a4a, dark: 0x37352a, acc: 0xff8c1a, mini: '#ff9a30', name: 'Aliat (kaki-portocaliu)' },
+  { body: 0x52485e, dark: 0x29232f, acc: 0xff5ab4, mini: '#ff6ac0', name: 'Aliat (mov-roz)' },
+  { body: 0x8c8c86, dark: 0x45453f, acc: 0xf4f4f0, mini: '#f4f4f0', name: 'Aliat (gri-alb)' },
+  { body: 0x3e5a3e, dark: 0x1f2d1f, acc: 0xa8ff3a, mini: '#b0ff50', name: 'Aliat (verde-lime)' },
+  { body: 0x2e3e5e, dark: 0x171f2f, acc: 0x4a8cff, mini: '#5a9aff', name: 'Aliat (bleumarin)' },
+  { body: 0x6a5a48, dark: 0x352d24, acc: 0xb0d8f0, mini: '#b8e0f8', name: 'Aliat (maro-argintiu)' },
 ];
 const CH = {
   scout: { name: 'Cercetaș', hp: 80, cost: 25, spd: 1.25, size: 0.8, hue: 0xb8a868 },
@@ -1298,7 +1306,7 @@ function bldGeo(type, team) {
 // ================= ENTITIES =================
 const ents = []; let uid = 1; const EID = new Map(); const byId = id => EID.get(id);
 const glowDisc = new THREE.CircleGeometry(1, 16).rotateX(-Math.PI / 2);
-const glowMat = [new THREE.MeshBasicMaterial({ color: 0x66ccff, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false }), new THREE.MeshBasicMaterial({ color: 0xff7040, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false }), new THREE.MeshBasicMaterial({ color: 0xffd040, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false }), new THREE.MeshBasicMaterial({ color: 0x30e0b0, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false }), new THREE.MeshBasicMaterial({ color: 0xc068ff, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false })];
+const glowMat = TEAMC.map((t, i) => new THREE.MeshBasicMaterial({ color: [0x66ccff, 0xff7040, 0xffd040][i] || t.acc, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false }));
 
 function createUnit(team, d, x, z, tier, pal) {
   if (pal === undefined) pal = team;
@@ -2710,7 +2718,7 @@ function sfx(type, x, z) {
 const NET_URL = (() => { try { return localStorage.getItem('ironfall.server') || 'https://easofty.com/ironfall/api.php'; } catch (e) { return 'https://easofty.com/ironfall/api.php'; } })();
 const NET = { on: false, host: false, cl: false, room: '', after: 0, me: 1, peers: {}, guests: [], ready: new Set(), players: [], gone: new Set(), ack: {}, pend: [], rx: {}, out: [], lastRx: 0, started: false, prepared: false, loopT: null, fails: 0 };
 // up to 4 commanders: the host plus guests 1..3, each with a base and a colour of their own (one army, shared energy and research)
-const GUEST_PAL = [0, 2, 3, 4], palOf = k => GUEST_PAL[k] || 2;
+const palOf = k => k ? k + 1 : 0;   // guest k (1..9) uses colour k+1 (colour 1 is the enemy)
 async function api(a, params, body) {
   const q = new URLSearchParams(Object.assign({ a, room: NET.room, me: NET.host ? 'h' : 'c' + (NET.me || 1) }, params || {}));
   const ctl = window.AbortController ? new AbortController() : null; const to = ctl ? setTimeout(() => ctl.abort(), 8000) : 0;
@@ -2755,9 +2763,11 @@ function netRecv(m, via) {
     if (m.ack !== undefined) NET.ack[k] = Math.max(NET.ack[k] || 0, m.ack | 0);
     if (m.t === 'p') return;
     if (m.t === 'sdp' || m.t === 'ice') return rtcSignal(m, k);
+    if (m.t === 'hi' || m.t === 'nm') { if (m.n) NET.names[k] = cleanName(m.n) || 'Aliat'; if (m.t === 'nm') { mpHostRefresh(); netSend({ t: 'chh', h: NET.chat }, k); return; } }
     if (m.t === 'hi') netSend({ t: 'cfg', seed: SEED, map: MAPI, diff: S.diff, tl: S.tl, mdef: MC.custom ? MC : null, slot: k }, k);
     else if (m.t === 'ready') { if (NET.started) netSend({ t: 'late' }, k); else { NET.ready.add(k); mpHostRefresh(); } }
     else if (m.t === 'c' && Array.isArray(m.c) && NET.players.includes(k)) NET.pend.push([palOf(k), m.c]);   // goes into the next turn
+    else if (m.t === 'ch' && !NET.started && m.x) { const x = String(m.x).replace(/[\u0000-\u001f]/g, '').slice(0, 120), n = NET.names[k] || 'Aliat'; chatAdd(k, n, x); netSend({ t: 'ch', k, n, x }); }
     else if (m.t === 'rq') lsResend(k, m.n | 0);
     else if (m.t === 'h') lsCheck(k, m.n | 0, m.h | 0);
   } else {
@@ -2765,6 +2775,9 @@ function netRecv(m, via) {
     if (m.t === 'sdp' || m.t === 'ice') return rtcSignal(m, 'h');
     if (m.t === 'cfg') { if (NETCFG) return; if (m.slot) NET.me = m.slot | 0; try { sessionStorage.setItem('ironfall.net', JSON.stringify({ room: NET.room, me: NET.me, seed: m.seed, map: m.map, diff: m.diff, tl: m.tl | 0, mdef: m.mdef || null, after: NET.after })); } catch (e) {} location.reload(); }
     else if (m.t === 'go') lsBegin(m.pl);
+    else if (m.t === 'lob' && Array.isArray(m.p)) { NET.lob = m.p; mpLobby(); }
+    else if (m.t === 'ch') chatAdd(m.k | 0, cleanName(m.n) || 'Aliat', String(m.x || '').slice(0, 120));
+    else if (m.t === 'chh' && Array.isArray(m.h)) { NET.chat = m.h.slice(-40); mpLobby(); }
     else if (m.t === 'T') lsTurns(m);
     else if (m.t === 'fx') LS.fix = m;   // applied when my simulation reaches that turn
     else if (m.t === 'late') { NET.on = false; $('mp').classList.remove('hidden'); mpView('msg', '❌ Partida a început fără tine. Cere-i gazdei o partidă nouă.'); }
@@ -2915,42 +2928,58 @@ function netWatch() {   // connection banner for both sides
 }
 setInterval(netWatch, 1000);
 function netStatus(t) { const el = $('netSt'); if (!el) return; el.textContent = t; el.classList.toggle('hidden', !t); }
-// --- lobby
-function mpHostRefresh() { // host lobby: who has joined and who is ready
-  const pl = $('mpPl'); if (!pl) return; const n = NET.guests.length;
-  pl.innerHTML = `👥 Jucători: <b>${1 + n}/4</b><br>` + [`<span style="color:${TEAMC[0].mini}">■</span> Tu (gazda)`, ...NET.guests.map(k => `<span style="color:${TEAMC[palOf(k)].mini}">■</span> ${TEAMC[palOf(k)].name} — ${NET.ready.has(k) ? '✔ gata' : 'se încarcă harta…'}`)].join('<br>');
-  const msg = $('mpMsg'); if (msg) msg.textContent = !n ? 'Se așteaptă jucătorii…' : NET.ready.size ? (NET.ready.size < n ? 'Unii prieteni încă încarcă harta — poți începe și ei intră când sunt gata.' : 'Toți sunt gata!') : 'Prietenii încarcă harta…';
-  const b = $('mpStart'); if (b) b.disabled = !NET.ready.size;
+// --- lobby: who is in the room, who is ready, and a chat everybody in the room can read before the battle
+const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const cleanName = n => String(n || '').replace(/[\u0000-\u001f]/g, '').trim().slice(0, 16);
+NET.name = (() => { try { return cleanName(localStorage.getItem('ironfall.name')) || 'Comandant'; } catch (e) { return 'Comandant'; } })();
+NET.names = {}; NET.chat = []; NET.lob = [];
+function lobList() { return NET.host ? [[0, NET.name, 1], ...NET.guests.map(k => [k, NET.names[k] || '…', NET.ready.has(k) ? 1 : 0])] : NET.lob; }
+function lobBroadcast() { if (NET.host && !NET.started && NET.guests.length) netSend({ t: 'lob', p: lobList() }); }
+function mpLobby() {
+  const pl = $('mpPl'); if (pl) { const L = lobList();
+    pl.innerHTML = `👥 Jucători: <b>${L.length || 1}/${MAXP}</b>` + L.map(([k, n, r]) => `<div class="mppl"><span style="color:${TEAMC[palOf(k)].mini}">■</span> ${esc(n)}${k === (NET.host ? 0 : NET.me) ? ' <i>(tu)</i>' : ''}${k ? '' : ' <i>gazda</i>'} <small>${k ? (r ? '✔ gata' : '⏳ încarcă…') : ''}</small></div>`).join(''); }
+  const ch = $('mpChat'); if (ch) { ch.innerHTML = NET.chat.map(([k, n, x]) => `<div><b style="color:${TEAMC[palOf(k)].mini}">${esc(n)}:</b> ${esc(x)}</div>`).join('') || '<div class="dim">Niciun mesaj încă — salută-ți aliații!</div>'; ch.scrollTop = ch.scrollHeight; }
+  if (NET.host) { const n = NET.guests.length, msg = $('mpMsg');
+    if (msg) msg.textContent = !n ? 'Se așteaptă jucătorii…' : NET.ready.size ? (NET.ready.size < n ? 'Unii prieteni încă încarcă harta — poți începe, dar cei care nu sunt gata rămân pe dinafară.' : 'Toți sunt gata!') : 'Prietenii încarcă harta…';
+    const b = $('mpStart'); if (b) b.disabled = !NET.ready.size; }
 }
+function mpHostRefresh() { mpLobby(); lobBroadcast(); }
+function chatAdd(k, n, x) { NET.chat.push([k, n, x]); if (NET.chat.length > 40) NET.chat.shift(); mpLobby(); if (k !== (NET.host ? 0 : NET.me)) sfx('click'); }
+function chatSay() { const el = $('mpSay'); if (!el) return; const x = el.value.replace(/[\u0000-\u001f]/g, '').trim().slice(0, 120); if (!x) return; el.value = '';
+  if (NET.host) { chatAdd(0, NET.name, x); if (NET.guests.length) netSend({ t: 'ch', k: 0, n: NET.name, x }); } else netSend({ t: 'ch', x }); }
+const lobbyBox = () => `<div class="mplob"><div class="mpset" id="mpPl"></div><div class="mpchatw"><div class="mpchat" id="mpChat"></div><div class="mpsay"><input id="mpSay" maxlength="120" placeholder="Scrie un mesaj…" autocomplete="off"><button data-mp="say">➤</button></div></div></div>`;
 function mpOpen() { $('mp').classList.remove('hidden'); mpView('menu'); }
 const mpSet = () => `🗺️ <b>${MC.name}</b> (${MC.size} m) · ${['Ușor', 'Normal', 'Greu'][S.diff]} · tehnologie <b>${TL_NAME[S.tl]}</b>`;
 function mpView(v, txt) {
   const box = $('mpBody');
-  if (v === 'menu') box.innerHTML = `<p class="mph">Joacă împreună cu până la 3 prieteni (4 jucători), de oriunde. Comandați aceeași armată (energie și cercetare comune), fiecare cu baza și culoarea lui, împotriva citadelei. Harta, dificultatea și nivelul de tehnologie le alege cel care creează partida.</p>
+  if (v === 'menu') box.innerHTML = `<p class="mph">Joacă împreună cu până la ${MAXP - 1} prieteni (${MAXP} jucători), de oriunde. Comandați aceeași armată (energie și cercetare comune), fiecare cu baza și culoarea lui, împotriva citadelei. Harta, dificultatea și nivelul de tehnologie le alege cel care creează partida.</p>
     <div class="mpset">${mpSet()}</div>
     <div class="mpb" id="mpTl">${TL_NAME.map((n, i) => `<button data-tl="${i}" class="${i === S.tl ? 'on' : ''}">${n}</button>`).join('')}</div>
+    <div class="mpb"><input id="mpName" maxlength="16" placeholder="Numele tău" value="${esc(NET.name)}" autocomplete="off"></div>
     <div class="mpb"><button class="ok big" data-mp="create">➕ Creează partidă</button></div>
     <div class="mpb"><input id="mpCode" maxlength="5" placeholder="COD" autocomplete="off" autocapitalize="characters"><button class="ok big" data-mp="join">➜ Intră cu cod</button></div>
     <div class="mpb"><button data-mp="close">Înapoi</button></div>`;
-  else if (v === 'wait') { box.innerHTML = `<p class="mph">Spune-le prietenilor codul camerei (până la 3 prieteni):</p><div class="mpcode">${NET.room}</div><div class="mpset" id="mpPl"></div><p class="mph" id="mpMsg">${txt || ''}</p><div class="mpb"><button class="ok big" data-mp="start" id="mpStart" disabled>▶ Începe lupta</button><button data-mp="cancel">Anulează</button></div>`; mpHostRefresh(); }
+  else if (v === 'wait') { box.innerHTML = `<p class="mph">Codul camerei (până la ${MAXP - 1} prieteni): <span class="mpcode sm">${NET.room}</span></p><div class="mpset">${mpSet()}</div>${lobbyBox()}<p class="mph" id="mpMsg">${txt || ''}</p><div class="mpb"><button class="ok big" data-mp="start" id="mpStart" disabled>▶ Începe lupta</button><button data-mp="cancel">Anulează</button></div>`; mpHostRefresh(); }
   else if (v === 'msg') box.innerHTML = `<p class="mph">${txt}</p><div class="mpb"><button data-mp="cancel">Înapoi</button></div>`;
-  else if (v === 'guest') box.innerHTML = `<p class="mph">Conectat la camera <b>${NET.room}</b>.</p><div class="mpset">${mpSet()}</div><div class="mpb"><button class="ok big" data-mp="go">▶ Intră în luptă</button></div><p class="mph" id="mpMsg"></p>`;
+  else if (v === 'guest') { box.innerHTML = `<p class="mph">Camera <b>${NET.room}</b> · ${mpSet()}</p>${lobbyBox()}<div class="mpb" id="mpGo"><button class="ok big" data-mp="go">▶ Sunt gata</button><button data-mp="cancel">Ieși</button></div><p class="mph" id="mpMsg"></p>`; mpLobby(); }
 }
+function saveName() { const el = $('mpName'); if (!el) return; NET.name = cleanName(el.value) || 'Comandant'; try { localStorage.setItem('ironfall.name', NET.name); } catch (e) {} }
 async function mpClick(ev) {
-  const tb = ev.target.closest('[data-tl]'); if (tb && !NET.on) { S.tl = +tb.dataset.tl; try { localStorage.setItem('ironfall.tl', S.tl); } catch (e) {} tlRefresh(); mpView('menu'); sfx('click'); return; }
+  const tb = ev.target.closest('[data-tl]'); if (tb && !NET.on) { saveName(); S.tl = +tb.dataset.tl; try { localStorage.setItem('ironfall.tl', S.tl); } catch (e) {} tlRefresh(); mpView('menu'); sfx('click'); return; }
   const b = ev.target.closest('[data-mp]'); if (!b) return; const a = b.dataset.mp; sfx('click');
-  if (a === 'close') { $('mp').classList.add('hidden'); return; }
+  if (a === 'say') { chatSay(); return; }
+  if (a === 'close') { saveName(); $('mp').classList.add('hidden'); return; }
   if (a === 'cancel') { if (NET.room) api('leave').catch(() => {}); location.reload(); return; }
-  if (a === 'create') { mpView('msg', 'Se creează camera…');
+  if (a === 'create') { saveName(); mpView('msg', 'Se creează camera…');
     try { const r = await api('create', { mode: 'coop', map: MAPI }); if (!r.room) throw 0; NET.on = NET.host = true; NET.room = r.room; mpView('wait'); netPollLoop(); }
     catch (e) { mpView('msg', '❌ Nu mă pot conecta la server. Verifică internetul.'); } return; }
-  if (a === 'join') { const code = ($('mpCode').value || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); if (code.length !== 5) { toast('Codul are 5 caractere'); return; }
+  if (a === 'join') { saveName(); const code = ($('mpCode').value || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); if (code.length !== 5) { toast('Codul are 5 caractere'); return; }
     mpView('msg', 'Se intră în camera ' + code + '…');
     try { NET.room = code; NET.me = 1; const r = await api('join'); if (r.slot) NET.me = r.slot | 0; if (r.err) { mpView('msg', '❌ ' + (r.err === 'nu există camera' ? 'Nu există camera ' + code : r.err)); NET.room = ''; return; }
-      NET.on = NET.cl = true; netPollLoop(); netSend({ t: 'hi' }); mpView('msg', 'Se primește harta…'); }
+      NET.on = NET.cl = true; netPollLoop(); netSend({ t: 'hi', n: NET.name }); mpView('msg', 'Se primește harta…'); }
     catch (e) { mpView('msg', String(e && e.message).startsWith('srv:') ? '❌ ' + e.message.slice(4) : '❌ Nu mă pot conecta la server. Verifică internetul.'); } return; }
   if (a === 'start') { if (NET.host && NET.ready.size) { audioInit(); hostStart(); } return; }
-  if (a === 'go') { audioInit(); $('mpBody').innerHTML = '<p class="mph">Gata! Se așteaptă ca gazda să înceapă lupta…</p>'; $('intro').classList.add('hidden'); clientPrepare(); netSend({ t: 'ready' }); }
+  if (a === 'go') { audioInit(); const g = $('mpGo'); if (g) g.innerHTML = '<p class="mph">✔ Ești gata. Se așteaptă ca gazda să înceapă lupta…</p>'; $('intro').classList.add('hidden'); clientPrepare(); netSend({ t: 'ready' }); }
 }
 function clientPrepare() {   // build the map while the host is still in the lobby; the armies come with the host's start signal
   scene.add(sky); buildTerrain(); buildDecor(); buildMiniBg(); NET.prepared = true;
@@ -3030,7 +3059,8 @@ function startGame() { audioInit(); $('intro').classList.add('hidden'); $('hud')
 $('bPlay').addEventListener('click', startGame);
 $('bMp').addEventListener('click', () => { audioInit(); mpOpen(); });
 $('mp').addEventListener('click', mpClick);
-if (NETCFG) { NET.on = NET.cl = true; NET.me = clamp(NETCFG.me | 0 || 1, 1, 3); NET.room = NETCFG.room; NET.after = NETCFG.after | 0; S.diff = NETCFG.diff | 0; S.tl = NETCFG.tl | 0; $('mp').classList.remove('hidden'); mpView('guest'); netPollLoop(); }
+$('mp').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.id === 'mpSay') { e.preventDefault(); chatSay(); } });
+if (NETCFG) { NET.on = NET.cl = true; NET.me = clamp(NETCFG.me | 0 || 1, 1, MAXP - 1); NET.room = NETCFG.room; NET.after = NETCFG.after | 0; S.diff = NETCFG.diff | 0; S.tl = NETCFG.tl | 0; $('mp').classList.remove('hidden'); mpView('guest'); netPollLoop(); netSend({ t: 'nm', n: NET.name }); }
 $('bHelp').addEventListener('click', () => $('help').classList.remove('hidden'));
 $('pHelp').addEventListener('click', () => $('help').classList.remove('hidden'));
 $('hClose').addEventListener('click', () => $('help').classList.add('hidden'));

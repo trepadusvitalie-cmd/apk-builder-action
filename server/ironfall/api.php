@@ -1,6 +1,6 @@
 <?php
 // Ironfall 2200 — tiny room / relay server (no database needed).
-// Up to four phones (one host + three guests) meet here with a room code, exchange WebRTC
+// Up to ten phones (one host + nine guests) meet here with a room code, exchange WebRTC
 // handshake messages, and can fall back to relaying game messages through this script.
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
@@ -13,13 +13,13 @@ const DIR = __DIR__ . '/data';
 const TTL = 3 * 3600;         // rooms expire after 3 hours without activity
 const KEEP = 400;             // messages kept per queue
 const MAX_BODY = 1048576;     // 1 MB per request (first full world update can be large)
-const MAX_GUESTS = 3;         // host + 3 guests = 4 players
+const MAX_GUESTS = 9;         // host + 9 guests = 10 players
 
 function out($a, $code = 200) { http_response_code($code); echo json_encode($a); exit; }
 function roomFile($r) { return DIR . '/r_' . $r . '.json'; }
 function cleanCode($r) { $r = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', (string)$r)); return strlen($r) === 5 ? $r : ''; }
 function fixRoom(&$room) { // fills in anything a room created by an older version of this script lacks
-  foreach (['h', 'c1', 'c2', 'c3'] as $k) { if (!isset($room['q'][$k])) $room['q'][$k] = []; if (!isset($room['seq'][$k])) $room['seq'][$k] = 0; }
+  foreach (array_merge(['h'], array_map(function ($i) { return 'c' . $i; }, range(1, MAX_GUESTS))) as $k) { if (!isset($room['q'][$k])) $room['q'][$k] = []; if (!isset($room['seq'][$k])) $room['seq'][$k] = 0; }
   if (!isset($room['guests'])) $room['guests'] = !empty($room['joined']) ? [1] : [];
   if (!isset($room['started'])) $room['started'] = false;
 }
@@ -62,14 +62,14 @@ function take(&$room, $me, $after) {
 if (!is_dir(DIR)) @mkdir(DIR, 0775, true);
 $a = $_GET['a'] ?? '';
 $meRaw = (string)($_GET['me'] ?? '');
-$me = $meRaw === 'h' ? 'h' : (preg_match('/^c([1-3])$/', $meRaw, $mm) ? 'c' . $mm[1] : 'c1');   // "c" from older apps = guest 1
+$me = $meRaw === 'h' ? 'h' : (preg_match('/^c([1-9])$/', $meRaw, $mm) ? 'c' . $mm[1] : 'c1');   // "c" from older apps = guest 1
 
 if ($a === 'create') {
   gc();
   $abc = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   for ($i = 0; $i < 20; $i++) { $r = ''; for ($k = 0; $k < 5; $k++) $r .= $abc[random_int(0, strlen($abc) - 1)]; if (!is_file(roomFile($r))) break; }
   $room = ['t' => time(), 'mode' => substr(preg_replace('/[^a-z0-9]/', '', $_GET['mode'] ?? 'coop'), 0, 8), 'map' => (int)($_GET['map'] ?? 0), 'joined' => false, 'guests' => [], 'started' => false,
-           'q' => ['h' => [], 'c1' => [], 'c2' => [], 'c3' => []], 'seq' => ['h' => 0, 'c1' => 0, 'c2' => 0, 'c3' => 0]];
+           'q' => [], 'seq' => []]; fixRoom($room);
   file_put_contents(roomFile($r), json_encode($room), LOCK_EX);
   out(['room' => $r]);
 }
@@ -79,7 +79,7 @@ $r = cleanCode($_GET['room'] ?? ''); if (!$r) out(['err' => 'cod greșit'], 400)
 if ($a === 'join') {
   $res = withRoom($r, function (&$room) {
     if ($room['started']) return ['err' => 'partida a început deja'];
-    if (count($room['guests']) >= MAX_GUESTS) return ['err' => 'camera e plină (4 jucători)'];
+    if (count($room['guests']) >= MAX_GUESTS) return ['err' => 'camera e plină (' . (MAX_GUESTS + 1) . ' jucători)'];
     for ($s = 1; $s <= MAX_GUESTS; $s++) if (!in_array($s, $room['guests'], true)) break;
     $room['guests'][] = $s; sort($room['guests']); $room['joined'] = true;
     $room['q']['c' . $s] = []; // a fresh slot starts with an empty queue

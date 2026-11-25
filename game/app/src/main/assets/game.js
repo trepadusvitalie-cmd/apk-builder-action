@@ -995,14 +995,12 @@ function unitGeo(d, team) {
         for (const sx of [-1, 1]) { const [x, y, z] = P(sx * W, 0.1 * s, 0); tb.box(0.08 * s, 0.16 * s, RL + 0.1 * s, x, y, z, 0x6f7a52, -a, 0, 0); tb.camo(0.1 * s, 0.18 * s, RL + 0.1 * s, x, y, z, -a, 4); }          // side beams
         for (const zz of [-1.05, -0.1, 0.85]) { const [x, y, z] = P(0, -0.1 * s, zz * s); tb.box(2 * W + 0.1 * s, 0.08 * s, 0.1 * s, x, y, z, zz > 0 ? T.acc : 0x3a3a36, -a, 0, 0); } // cross members
         { const [x, y, z] = P(0, 0.12 * s, -0.1 * s); tb.box(2 * W, 0.04 * s, 0.1 * s, x, y, z, 0x3a3a36, -a, 0, 0); }
-        for (let t = 0; t < 2; t++) for (let i = 0; i < 8; i++) { const ox = (i - 3.5) * 0.2 * s, oy = t * 0.24 * s;
-          { const [x, y, z] = P(ox, oy - 0.05 * s, 0); tb.box(0.05 * s, 0.035 * s, RL, x, y, z, 0x2e2e2a, -a, 0, 0); }                                      // rail
-          { const [x, y, z] = P(ox, oy + 0.04 * s, -0.05 * s); tb.add(G.cyl10, 0.065 * s, 1.9 * s, 0.065 * s, x, y, z, 0x5e6252, Math.PI / 2 - a, 0, 0); }   // rocket body
-          { const [x, y, z] = P(ox, oy + 0.04 * s, 1.03 * s); tb.add(G.cone, 0.075 * s, 0.32 * s, 0.075 * s, x, y, z, 0x9a3024, Math.PI / 2 - a, 0, 0); }      // warhead
-          { const [x, y, z] = P(ox, oy + 0.04 * s, 0.62 * s); tb.add(G.cyl10, 0.072 * s, 0.07 * s, 0.072 * s, x, y, z, 0xc9b48a, Math.PI / 2 - a, 0, 0); } // band
-          { const [x, y, z] = P(ox, oy + 0.04 * s, -0.98 * s); tb.box(0.15 * s, 0.015 * s, 0.14 * s, x, y, z, 0x3a3a36, -a, 0, 0); } }                      // fins
-        { const [x, y, z] = P(0, 0.4 * s, -0.55 * s); tb.box(2 * W + 0.14 * s, 0.06 * s, 1.25 * s, x, y, z, 0x5f6a48, -a, 0, 0); tb.camo(2 * W + 0.16 * s, 0.08 * s, 1.27 * s, x, y, z, -a, 9); } // camouflage tarp over the rear
-        for (const sx of [-1, 1]) { const [x, y, z] = P(sx * (W + 0.05 * s), 0.18 * s, -0.55 * s); tb.box(0.04 * s, 0.4 * s, 1.25 * s, x, y, z, 0x5f6a48, -a, 0, 0); tb.camo(0.06 * s, 0.42 * s, 1.27 * s, x, y, z, -a, 4); }
+        // the rocket pack is fully hidden under camouflage covers: top, sides and a front flap
+        { const [x, y, z] = P(0, 0.42 * s, 0); tb.box(2 * W + 0.14 * s, 0.06 * s, RL, x, y, z, 0x5f6a48, -a, 0, 0); tb.camo(2 * W + 0.16 * s, 0.08 * s, RL + 0.02 * s, x, y, z, -a, 14); }
+        for (const sx of [-1, 1]) { const [x, y, z] = P(sx * (W + 0.05 * s), 0.17 * s, 0); tb.box(0.05 * s, 0.5 * s, RL, x, y, z, 0x5f6a48, -a, 0, 0); tb.camo(0.07 * s, 0.52 * s, RL + 0.02 * s, x, y, z, -a, 7); }
+        { const [x, y, z] = P(0, 0.17 * s, RL / 2); tb.box(2 * W + 0.12 * s, 0.5 * s, 0.05 * s, x, y, z, 0x5f6a48, -a, 0, 0); tb.camo(2 * W + 0.14 * s, 0.52 * s, 0.07 * s, x, y, z, -a, 5); }
+        { const [x, y, z] = P(0, -0.08 * s, 0); tb.box(2 * W + 0.12 * s, 0.05 * s, RL, x, y, z, 0x4f5a3c, -a, 0, 0); }
+        for (const zz of [-0.7, 0.2, 1.0]) { const [x, y, z] = P(0, 0.46 * s, zz * s); tb.box(2 * W + 0.2 * s, 0.03 * s, 0.05 * s, x, y, z, 0x3a3a30, -a, 0, 0); } // tie-down straps
       }
     } else if (d.wp === 'hhowitzer') { // three long barrels on a big armoured cradle, splinter camouflage
       const ang = 0.5, Lb = 3.1 * s, rr = 0.12 * s, CAMO = [0x8fa284, 0xcdbf92, 0x5e7058, 0x9ab6b8];

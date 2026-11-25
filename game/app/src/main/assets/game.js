@@ -1911,7 +1911,13 @@ function fireWeapon(src, t, w, mx, my, mz, mul) {
   else fx('muzzle', mx, my, mz, 1.4);
   if (w.kind === 'mg') { const ty = t.y + (t.kind === 'bld' ? 1.5 : 0.7); tracer(mx, my, mz, t.x + rand(-0.4, 0.4), ty, t.z + rand(-0.4, 0.4)); if (Math.random() < 0.3) { fx('spark', t.x, ty, t.z, 1); if (Math.random() < 0.5) sfx('ric', t.x, t.z); } damage(t, dmg, src); sfx('mg', mx, mz); }
   else if (w.kind === 'shell') { spawnProj('shell', src, t, dmg, 0, mx, my, mz); const hx = mx - src.x, hz = mz - src.z, hl = Math.hypot(hx, hz) || 1; for (let i = 0; i < 6; i++) { const d = i * 1.6; fx('smoke', mx + hx / hl * d + rand(-0.8, 0.8), my + rand(-0.3, 0.6), mz + hz / hl * d + rand(-0.8, 0.8), 1.4 + i * 0.25); } fx('trail', mx, my, mz, 2.2); fx('dust', src.x, src.y + 0.3, src.z, 2.2); sfx('shell', mx, mz); }
-  else if (w.kind === 'mortar') { spawnProj('mortar', src, t, dmg, w.splash, mx, my, mz, w);
+  else if (w.kind === 'mortar') {
+    if (w.id === 'hhowitzer') {   // three barrels: three shells, one from each muzzle, fired one after another
+      const hx0 = mx - src.x, hz0 = mz - src.z, hl0 = Math.hypot(hx0, hz0) || 1, sz = (src.kind === 'unit' ? CH[src.d.ch].size : CH.heavy.size * (src.def.ts || 1)) * 0.3;
+      for (let i = 0; i < 3; i++) { const o = (i - 1) * sz, bx = mx + hz0 / hl0 * o, bz = mz - hx0 / hl0 * o;
+        later(i * 0.18, () => { if (!src.alive) return; spawnProj('mortar', src, i === 1 || !t.alive ? t : { x: t.x + srand(-1.5, 1.5), z: t.z + srand(-1.5, 1.5), y: t.y, kind: t.kind, alive: false }, dmg / 3, w.splash, bx, my, bz, w, t);
+          if (i) { fx('steam', bx, my + 0.4, bz, 2.2); fx('flash', bx, my, bz, 1.4); sfx(ART_SND[w.id] || 'art_mortar', bx, bz); } }); } }
+    else spawnProj('mortar', src, t, dmg, w.splash, mx, my, mz, w);
     { const hx = mx - src.x, hz = mz - src.z, hl = Math.hypot(hx, hz) || 1, k = w.big ? 1.5 : w.art === 'how' ? 1.2 : 1;   // muzzle blast: flash, smoke cloud drifting forward, dust kicked up round the gun
       if (Math.abs(mx - cam.x) < 140 && Math.abs(mz - cam.z) < 140) fireball3D(mx + hx / hl * 0.4, my + 0.2, mz + hz / hl * 0.4, 0.5 * k, null, 0, 0.5);
       for (let i = 0; i < 6; i++) { const d = i * 1.1; fx(i % 2 ? 'smoke' : 'steam', mx + hx / hl * d + rand(-0.3, 0.3), my + 0.15 + d * (w.art === 'mortar' || w.id === 'mortar' ? 1.1 : 0.5), mz + hz / hl * d + rand(-0.3, 0.3), (1.4 + i * 0.4) * k); } fx('steam', mx, my + 0.6, mz, 2.6 * k); fx('flash', mx, my, mz, 1.2 * k);

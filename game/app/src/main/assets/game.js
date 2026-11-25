@@ -863,7 +863,7 @@ function unitGeo(d, team) {
   const hu = CH[d.ch].hue; const tn = (c, k) => new THREE.Color(c).lerp(new THREE.Color(hu), 0.65).multiplyScalar(k).getHex(); const tk = hu ? 1 : 1;
   const T = CH[d.ch].gold ? { ...TEAMC[team], body: 0xd4a832, dark: 0x5e4c1c } : hu ? { ...TEAMC[team], body: tn(TEAMC[team].body, 1), dark: tn(TEAMC[team].dark, 0.55) } : TEAMC[team], s = CH[d.ch].size, B = new Builder(), tb = new Builder(); B.uvScale = tb.uvScale = 1.1;
   if (d.pr === 'rotor' || d.pr === 'legs') return geoCache[key] = smallUnitGeo(d, T, s, B, tb);
-  const VT = d.pr === 'vtol'; const HULL_L = { omissile: 3.9, ballistic: 3.3, hhowitzer: 3.3, rbattery: 3.1, salvo: 3.0, smissile: 2.9, howitzer: 2.9, ihowitzer: 2.9, rhowitzer: 2.9, plasma: 2.8 }; const L = (VT ? 3.5 : d.pr === 'wheels' || d.pr === 'tracks' || d.pr === 'halftrack' || d.pr === 'hover' ? (HULL_L[d.wp] || 2.4) : 2.4) * s, W = (VT ? 1.0 : 1.65) * s, H = (d.pr === 'tracks' || d.pr === 'halftrack' ? 0.6 : 0.72) * s; const PI2 = Math.PI / 2;
+  const VT = d.pr === 'vtol'; const HULL_L = { omissile: 3.9, ballistic: 3.3, hhowitzer: 3.3, rbattery: 3.1, salvo: 3.0, smissile: 2.9, howitzer: 2.9, ihowitzer: 2.9, rhowitzer: 2.9, plasma: 2.8 }; const L = (VT ? 3.5 : d.pr === 'wheels' || d.pr === 'tracks' || d.pr === 'halftrack' || d.pr === 'hover' ? (HULL_L[d.wp] || 2.4) : 2.4) * s * (d.pr === 'hover' ? 1.2 : 1), W = (VT ? 1.0 : 1.65) * s, H = (d.pr === 'tracks' || d.pr === 'halftrack' ? 0.6 : 0.72) * s; const PI2 = Math.PI / 2;
   let by, msl = null;
   const wheel = (r, wd, x, y, z, sx) => { // chunky off-road tyre: tread rings, deep rim, coloured hub
     B.add(G.cyl16, r, wd, r, x, y, z, 0x1b1a18, 0, 0, PI2);
@@ -912,7 +912,11 @@ function unitGeo(d, team) {
     B.box(W * 0.5, 0.25 * s, L * 0.22, 0, by + H * 0.55, L * 0.26, 0x9fd3e6); // cockpit canopy
     B.add(G.cone, W * 0.42, L * 0.2, H * 0.42, 0, by, L * 0.59, T.body, Math.PI / 2, 0, 0); // pointed nose
   } else {
-    by = 0.6 + H / 2; B.add(G.cyl16, W * 0.78, 0.4, L * 0.6, 0, 0.32, 0, T.dark); B.add(G.cyl16, W * 0.82, 0.12, L * 0.63, 0, 0.14, 0, 0x2a2622);
+    by = 0.6 + H / 2;   // long hover skirt: straight sides with rounded bow and stern, dark rubber skirt below, side air vents
+    const sw = W * 1.12, sl = L * 1.02;
+    B.box(sw, 0.36, sl - sw * 0.5, 0, 0.34, 0, T.dark); for (const sz of [-1, 1]) B.add(G.cyl16, sw * 0.5, 0.36, sw * 0.32, 0, 0.34, sz * (sl - sw * 0.5) / 2, T.dark);
+    B.box(sw * 1.04, 0.14, sl - sw * 0.5, 0, 0.12, 0, 0x2a2622); for (const sz of [-1, 1]) B.add(G.cyl16, sw * 0.52, 0.14, sw * 0.34, 0, 0.12, sz * (sl - sw * 0.5) / 2, 0x2a2622);
+    for (const sx of [-1, 1]) for (let k = 0; k < 3; k++) B.box(0.04 * s, 0.16, 0.22 * s, sx * sw * 0.5, 0.36, -L * 0.2 + k * L * 0.2, 0x1a1a18);
   }
   // modern angular hull: sloped glacis, flat deck, angled rear
   B.add(G.hull, W * 0.98, H, L, 0, by, 0, T.body);
@@ -1404,7 +1408,13 @@ function bldGeo(type, team) {
     case 'radartower':
       B.box(3.6, 1.2, 3.6, 0, -0.3, 0, conc); B.box(2.4, 1.6, 2.4, 0, 0.9, 0, T.body); B.box(2.5, 0.25, 2.5, 0, 1.75, 0, T.acc);
       B.add(G.cyl16, 0.35, 0.5, 0.35, 0, 2.1, 0, 0x6a6a64); B.box(1.2, 0.2, 1.2, 0, 2.35, 0, T.dark);   // short pedestal for the rotating antenna
-      { const d = new Builder(); d.box(2.6, 1.2, 0.15, 0, 0.6, 0, 0x2f4a2a, -0.25, 0, 0); d.box(2.4, 1.0, 0.06, 0, 0.6, 0.08, 0x5fd04a, -0.25, 0, 0); for (let k = -3; k <= 3; k++) d.box(0.04, 1.0, 0.08, k * 0.32, 0.6, 0.1, 0x1f3a1c, -0.25, 0, 0); d.box(0.3, 0.4, 0.3, 0, 0.1, -0.2, 0x333333); d.add(G.sph, 0.1, 0.1, 0.1, 1.3, 1.3, 0, 0xff3020); anim.dish = d.build(); }
+      { const d = new Builder();   // steel lattice radar reflector (curved), yoke and feed horn; no lights
+        d.box(0.36, 0.34, 0.36, 0, 0.17, 0, 0x3c3e3a); d.box(0.9, 0.12, 0.2, 0, 0.36, 0, 0x4a4d50);
+        for (let k = -2; k <= 2; k++) { const x = k * 0.47, z = -0.07 * k * k; d.box(0.48, 1.0, 0.05, x, 0.92, z, 0x9aa0a4, -0.18, -k * 0.15, 0); }
+        for (const y of [0.5, 0.92, 1.34]) for (let k = -2; k <= 2; k++) d.box(0.5, 0.05, 0.08, k * 0.47, y, -0.07 * k * k + 0.04, 0x34383c, -0.18, -k * 0.15, 0);
+        for (const sx of [-1, 1]) d.box(0.06, 1.05, 0.1, sx * 1.18, 0.92, -0.3, 0x34383c, -0.18, sx * 0.3, 0);
+        d.add(G.cyl6, 0.04, 0.9, 0.04, 0, 0.62, 0.42, 0x34383c, 1.2, 0, 0); d.box(0.16, 0.14, 0.18, 0, 0.82, 0.82, 0x2a2c2e);
+        anim.dish = d.build(); }
       break;
     case 'ptrap': czech(B, -0.6, -0.4, 0, 0.3); czech(B, 0.7, -0.4, 0.4, 1.1); B.box(2.2, 0.2, 2.2, 0, -0.3, 0, 0x6a6458); break;
     case 'pwall': return bldGeo('wall', team);
@@ -1481,7 +1491,7 @@ function createUnit(team, d, x, z, tier, pal) {
   const grp = new THREE.Group(); grp.rotation.order = 'YXZ';
   const body = new THREE.Mesh(g.body, matUnit); body.castShadow = true; grp.add(body);
   const tur = new THREE.Mesh(g.tur, matUnit); tur.position.y = g.turY; tur.castShadow = true; grp.add(tur); const mslMesh = attachMissile(tur, g);
-  if (d.pr === 'hover') { const gl = new THREE.Mesh(glowDisc, glowMat[pal]); gl.scale.set(CH[d.ch].size * 1.3, 1, CH[d.ch].size * 1.7); gl.position.y = 0.05; grp.add(gl); }
+  if (d.pr === 'hover') { const gl = new THREE.Mesh(glowDisc, glowMat[pal]); gl.scale.set(CH[d.ch].size * 1.1, 1, CH[d.ch].size * 1.9); gl.position.y = 0.05; grp.add(gl); }
   scene.add(grp);
   const u = { kind: 'unit', team, d, st, x, z, y: heightAt(x, z), hp: st.hp, maxHp: st.hp, r: 1.0 * CH[d.ch].size, h: g.turY + 0.6, heading: team === 0 ? Math.PI * 0.75 : -Math.PI * 0.25, vx: 0, vz: 0, mesh: grp, tur, mslMesh, turYaw: 0, state: 'idle', tx: x, tz: z, target: null, cd: srand(0, 0.5), acq: srand(0, 0.3), isTruck: d.wp === 'truck', bob: Math.random() * 6, smokeT: 0, alive: true, id: uid++, lastHit: -99, amove: false, lx: x, lz: z, tier, post: null, pal, fire: 0, mvo: 1, ret: 0, pat: null };
   u.air = PR[d.pr].air || null; u.alt = u.air === 'rotor' ? DRONE_ALT : 0; u.maxAmmo = u.air === 'vtol' ? (VAMMO[d.wp] || 4) : 0; u.ammo = u.maxAmmo;
@@ -1494,13 +1504,13 @@ function bldY(x, z, size) { const r = size * 0.4; let s = 0; const pts = [[0, 0]
 function attachMissile(turMesh, g) { if (!g.msl) return null; const m = new THREE.Mesh(missileGeo(g.msl.kind), matVC); m.position.set(g.msl.x, g.msl.y, g.msl.z); m.rotation.x = -g.msl.a; m.scale.setScalar(g.msl.len); m.castShadow = true; turMesh.add(m); return m; }
 function makeBldMesh(type, team) { // team = colour palette index
   const g = bldGeo(type, team); const grp = new THREE.Group(); const main = new THREE.Mesh(g.geo, matVC); main.castShadow = true; main.receiveShadow = true; grp.add(main); const parts = {};
-  if (type === 'hq') { const d = new THREE.Mesh(bldGeo('radartower', team).anim.dish, matVC); d.position.set(0, 7.0, 0.9); d.scale.setScalar(1.6); grp.add(d); parts.dish = d; }
+  if (type === 'hq') { const d = new THREE.Mesh(bldGeo('radartower', team).anim.dish, matVC); d.position.set(0, 7.0, 0.9); d.scale.setScalar(1.35); grp.add(d); parts.dish = d; }
   if (type === 'lab') { const d = new THREE.Mesh(g.anim.dish, matVC); d.position.set(-1.6, 4.05, 0.2); grp.add(d); parts.dish = d; }
   if (type === 'generator') { const f = new THREE.Mesh(g.anim.fan, matVC); f.position.set(-0.9, 3.15, 0.9); grp.add(f); parts.fan = f; const gl = new THREE.Mesh(g.anim.glow, matGlow); grp.add(gl); parts.glow = gl; }
   if (type === 'pump') { const b = new THREE.Mesh(g.anim.beam, matVC); b.position.set(0, 3.55, 0); grp.add(b); parts.beam = b; }
   if (type === 'silo') { for (const sd of [-1, 1]) { const l = new THREE.Mesh(g.anim.lid, matVC); l.position.set(sd * 1.45, 0.5, 0); l.scale.x = sd; l.castShadow = true; grp.add(l); parts[sd < 0 ? 'lidL' : 'lidR'] = l; }
     const L = 9; const m = new THREE.Mesh(missileGeo('icbm'), matVC); m.rotation.x = -Math.PI / 2; m.scale.setScalar(L); m.position.y = -L * 0.62; grp.add(m); parts.msl = m; parts.mslL = L; }
-  if (type === 'radartower') { const d = new THREE.Mesh(g.anim.dish, matVC); d.position.set(0, 2.4, 0); d.scale.setScalar(3); grp.add(d); parts.dish = d; }
+  if (type === 'radartower') { const d = new THREE.Mesh(g.anim.dish, matVC); d.position.set(0, 2.4, 0); d.scale.setScalar(1.9); grp.add(d); parts.dish = d; }
   if (type === 'tower' || BD[type].tw) {
     const t = new THREE.Group(); t.position.y = BD[type].ty || 3.3; t.scale.setScalar(BD[type].ts || 1); grp.add(t);
     parts.wl = BD[type].tw ? [BD[type].tw] : ['mg', 'cannon', 'rockets', 'laser'];

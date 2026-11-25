@@ -1236,9 +1236,8 @@ function bldGeo(type, team) {
       // phased-array radar faces on the deck roof
       for (const [a, x, z] of [[0, 0.4, 1.3], [Math.PI / 2, 1.3, 0.4], [Math.PI, 0.4, -0.5], [-Math.PI / 2, -0.5, 0.4]]) { B.box(1.3, 1.0, 0.12, x, 5.85, z, 0x2a2d30, -0.35, a, 0); B.box(1.1, 0.8, 0.02, x + Math.sin(a) * 0.07, 5.85, z + Math.cos(a) * 0.07, 0x4a5258, -0.35, a, 0); }
       B.box(1.1, 0.9, 1.1, 0.4, 5.85, 0.4, 0x2a2d30);
-      // communications mast with cross-arms and a red beacon
-      B.add(G.cyl6, 0.08, 4.2, 0.08, 0.4, 8.2, 0.4, 0x333333); for (let k = 0; k < 3; k++) B.box(1.2 - k * 0.3, 0.06, 0.06, 0.4, 7 + k * 0.9, 0.4, 0x333333);
-      B.box(0.18, 0.18, 0.18, 0.4, 10.35, 0.4, 0xff3020);
+      // rotating search radar on top of the deck
+      B.add(G.cyl16, 0.7, 0.5, 0.7, 0.4, 6.55, 0.4, 0x3c3e3a); B.add(G.cyl16, 0.5, 0.25, 0.5, 0.4, 6.9, 0.4, 0x2a2d30);   // radar turntable
       // rooftop helipad
       B.add(G.cyl16, 1.25, 0.08, 1.25, -1.45, 3.75, -1.45, 0x2c2e2b); B.add(G.cyl16, 1.28, 0.05, 1.28, -1.45, 3.74, -1.45, 0xe8c02a);
       B.box(0.14, 0.02, 1.0, -1.75, 3.8, -1.45, 0xf0f0f0); B.box(0.14, 0.02, 1.0, -1.15, 3.8, -1.45, 0xf0f0f0); B.box(0.6, 0.02, 0.14, -1.45, 3.8, -1.45, 0xf0f0f0);
@@ -1471,7 +1470,7 @@ function bldY(x, z, size) { const r = size * 0.4; let s = 0; const pts = [[0, 0]
 function attachMissile(turMesh, g) { if (!g.msl) return null; const m = new THREE.Mesh(missileGeo(g.msl.kind), matVC); m.position.set(g.msl.x, g.msl.y, g.msl.z); m.rotation.x = -g.msl.a; m.scale.setScalar(g.msl.len); m.castShadow = true; turMesh.add(m); return m; }
 function makeBldMesh(type, team) { // team = colour palette index
   const g = bldGeo(type, team); const grp = new THREE.Group(); const main = new THREE.Mesh(g.geo, matVC); main.castShadow = true; main.receiveShadow = true; grp.add(main); const parts = {};
-  if (type === 'hq') { const d = new THREE.Mesh(g.anim.dish, matVC); d.position.set(1.95, 4.1, -1.95); grp.add(d); parts.dish = d; }
+  if (type === 'hq') { const d = new THREE.Mesh(bldGeo('radartower', team).anim.dish, matVC); d.position.set(0.4, 7.0, 0.4); d.scale.setScalar(1.6); grp.add(d); parts.dish = d; }
   if (type === 'lab') { const d = new THREE.Mesh(g.anim.dish, matVC); d.position.set(-1.6, 4.05, 0.2); grp.add(d); parts.dish = d; }
   if (type === 'generator') { const f = new THREE.Mesh(g.anim.fan, matVC); f.position.set(-0.9, 3.15, 0.9); grp.add(f); parts.fan = f; const gl = new THREE.Mesh(g.anim.glow, matGlow); grp.add(gl); parts.glow = gl; }
   if (type === 'pump') { const b = new THREE.Mesh(g.anim.beam, matVC); b.position.set(0, 3.55, 0); grp.add(b); parts.beam = b; }
@@ -2124,7 +2123,7 @@ function updBld(b, dt) {
   if (!b.complete) { b.mesh.scale.y = 0.12 + 0.88 * b.built; return; }
   b.anim += dt; const T = TEAMS[b.team];
   if (b.parts.beam) { b.parts.beam.rotation.x = Math.sin(b.anim * 2.2) * 0.35; if (Math.random() < dt * 0.8) fx('smoke', b.x, b.y + 4, b.z, 0.4); }
-  if (b.parts.dish) b.parts.dish.rotation.y += dt * (b.type === 'radartower' ? 1.4 : 0.8);
+  if (b.parts.dish) b.parts.dish.rotation.y += dt * (b.type === 'radartower' || b.type === 'hq' ? 1.4 : 0.8);
   if (b.type === 'generator') {
     b.parts.fan.rotation.y += dt * 9; b.parts.glow.visible = Math.sin(b.anim * 6) > -0.6;
     if (Math.random() < dt * 3) { for (const [lx, lz] of [[1.6, -1.4], [-1.7, -1.7]]) { const [wx, wz] = localToWorld(b, lx, lz); fx('steam', wx, b.y + 4.8, wz, 1); } }

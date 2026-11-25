@@ -89,7 +89,7 @@ RINGS.forEach((R, ri) => {
   }
 });
 if (!MDEF || MDEF.obj === 'citadel') OUTPOSTS.push({ x: 0, z: 0, tier: 3, a: 0, prodT: 0, nextWave: 0, citadel: true });
-const FLAT = [{ x: PLAYER.x, z: PLAYER.z - 8, r: 44 }, ...GUEST_BASE.slice(1).map(b => ({ x: b.x, z: b.z, r: 24 })), { x: 0, z: 0, r: 34 }, ...OUTPOSTS.filter(o => !o.citadel).map(o => ({ x: o.x, z: o.z, r: 16 }))];
+const FLAT = [{ x: PLAYER.x, z: PLAYER.z - 8, r: 44 }, ...GUEST_BASE.slice(1).map(b => ({ x: b.x, z: b.z, r: 24 })), { x: 0, z: 0, r: 34 }, ...OUTPOSTS.filter(o => !o.citadel).map(o => ({ x: o.x, z: o.z, r: 23 }))];
 const WELL_POS = [[-14, PLAYER.z + 12], [16, PLAYER.z + 10], [0, PLAYER.z - 16], ...GUEST_BASE.slice(1).map(b => [b.x + (b.x < 0 ? -12 : 12), b.z + 9]), ...[[-40, 118], [42, 116], [-70, 95], [72, 92], [0, 70], [-95, 40], [96, 30], [-20, -96], [30, -120], [-110, -40], [110, -70], [-60, -130], [70, 60], [-60, 60]].map(([x, z]) => [x * SC, z * SC])];
 { let k = 0; const extra = Math.min(170, Math.round(16 * (SC * SC - 1) + (MC.custom ? 14 * Math.min(SC * SC, 11) * (MC.oil - 1) : 0))); for (let t = 0; k < extra && t < 9000; t++) { const x = (hash2(t, 7) - 0.5) * (MAP - 40), z = (hash2(t, 13) - 0.5) * (MAP - 40);
   if (Math.hypot(x, z) < 40 || Math.hypot(x - PLAYER.x, z - PLAYER.z) < 35 || GUEST_BASE.some(b => Math.hypot(x - b.x, z - b.z) < 30) || OUTPOSTS.some(o => Math.hypot(o.x - x, o.z - z) < 24) || WELL_POS.some(w => Math.hypot(w[0] - x, w[1] - z) < 30)) continue; WELL_POS.push([x, z]); k++; } }
@@ -2297,6 +2297,7 @@ function canPlace(type, x, z, team) {
 // ================= AI =================
 // Every outpost has a factory that builds units of its technology tier, keeps a garrison,
 // defends itself and, after a while, sends attack waves toward the player.
+const OWR = 15;   // half-size of the square enemy outpost compound
 const ENEMY_DEF = [['tower'], ['tower', 'd_bunker_flame', 'd_pit_mortar'], ['d_hard_cannon', 'd_pit_howitzer', 'd_hard_rockets', 'd_pit_salvo'], ['d_hard_laser']];
 const spick = a => a[(SR() * a.length) | 0];
 function tierDesign(t) { const T = TIERS[t]; return { ch: spick(T.ch), pr: spick(T.pr), wp: spick(T.wp) }; }
@@ -2361,18 +2362,20 @@ function fortDecor(o) {
       for (let t = -27; t <= 27; t += 3) { if (Math.abs(t) < 6) continue; const r = WR + 4.5; const xx = nx * r + tx * t, zz = nz * r + tz * t; czech(B, xx, gy(xx, zz), zz, g); } // anti-tank hedgehogs
     }
   } else {
-    const R = 15, n = 26, ang = Math.atan2(PLAYER.x - o.x, PLAYER.z - o.z);
-    for (let k = 0; k < n; k++) { // sandbag ring with an opening toward the centre
-      const a = k / n * TAU; if (Math.abs(angDiff(a, ang + Math.PI)) < 0.35) continue;
-      const x = o.x + Math.sin(a) * R, z = o.z + Math.cos(a) * R, y = gy(x, z);
-      for (let l = 0; l < 2 + (o.tier > 0 ? 1 : 0); l++) B.add(G.ico, 1.0, 0.38, 0.6, x + Math.cos(a) * (l % 2 ? 0.5 : 0), y + 0.3 + l * 0.42, z - Math.sin(a) * (l % 2 ? 0.5 : 0), l % 2 ? 0x8c7a56 : 0x7d6c4b, 0, a + Math.PI / 2, 0);
+    const ang = Math.atan2(PLAYER.x - o.x, PLAYER.z - o.z), g0 = o.g0 || 0;
+    for (const s of [0, 2]) { const gs = g0 + s * Math.PI / 2, nx = Math.sin(gs), nz = Math.cos(gs), tx = Math.cos(gs), tz = -Math.sin(gs);
+      const x = o.x + nx * OWR, z = o.z + nz * OWR, y = gy(x, z); // steel gate frame with hazard stripes
+      B.box(5.6, 0.6, 1.0, x, y + 3.6, z, 0x3c3e3a, 0, gs, 0); for (const sd of [-1, 1]) B.box(0.5, 3.6, 0.8, x + tx * sd * 2.6, y + 1.8, z + tz * sd * 2.6, 0x3c3e3a, 0, gs, 0);
+      for (let k = 0; k < 7; k++) { const o2 = -2.4 + k * 0.8; B.box(0.55, 0.3, 0.1, x + tx * o2 + nx * 0.52, y + 3.6, z + tz * o2 + nz * 0.52, k % 2 ? 0x1c1c1c : 0xe8c02a, 0, gs, 0.5); }
+      for (let k = 0; k < 4; k++) { const r = OWR + 2 + k * 1.2; const xx = o.x + nx * r, zz = o.z + nz * r; B.box(3.6, 0.08, 1, xx, gy(xx, zz) + 0.05, zz, 0x4a453e, 0, gs + Math.PI / 2, 0); } // road
     }
-    for (let k = 0; k < 7 + o.tier * 3; k++) { const a = ang + (k - (6 + o.tier * 3) / 2) * 0.22; const r = R + 4 + (k % 2) * 1.5; const x = o.x + Math.sin(a) * r, z = o.z + Math.cos(a) * r; czech(B, x, gy(x, z), z, a); }
+    { const gs = g0, nx = Math.sin(gs), nz = Math.cos(gs), tx = Math.cos(gs), tz = -Math.sin(gs); // hedgehogs in front of the front wall
+      for (let t = -16; t <= 16; t += 2.6) { if (Math.abs(t) < 4.5) continue; const r = OWR + 4 + (Math.round(t) % 2 ? 1.2 : 0); const xx = o.x + nx * r + tx * t, zz = o.z + nz * r + tz * t; czech(B, xx, gy(xx, zz), zz, gs); } }
     // watchtower with searchlight
-    const wa = ang + Math.PI * 0.75; const wx = o.x + Math.sin(wa) * 10, wz = o.z + Math.cos(wa) * 10, wy = gy(wx, wz);
-    for (const sx of [-1, 1]) for (const sz of [-1, 1]) B.add(G.cyl6, 0.12, 6, 0.12, wx + sx * 0.8, wy + 3, wz + sz * 0.8, 0x4a3a2a, sz * 0.06, 0, -sx * 0.06);
-    B.box(2.4, 0.2, 2.4, wx, wy + 6, wz, 0x5a4a36); B.box(2.4, 1, 0.1, wx, wy + 6.6, wz + 1.2, 0x5a4a36); B.box(2.4, 1, 0.1, wx, wy + 6.6, wz - 1.2, 0x5a4a36); B.box(0.1, 1, 2.4, wx + 1.2, wy + 6.6, wz, 0x5a4a36);
-    B.add(G.cone, 1.9, 1.2, 1.9, wx, wy + 7.9, wz, T.dark, 0, Math.PI / 4, 0); B.cyl(0.3, 0.4, wx, wy + 6.6, wz + 0.4, 0xfff4c0, Math.PI / 2, 0, 0);
+    const wa = g0 + Math.PI * 0.75; const wx = o.x + Math.sin(wa) * (OWR - 3.2) * 1.414, wz = o.z + Math.cos(wa) * (OWR - 3.2) * 1.414, wy = gy(wx, wz);
+    B.box(2.6, 6.2, 2.6, wx, wy + 3.1, wz, 0x8a857b, 0, g0, 0); B.box(3.0, 0.35, 3.0, wx, wy + 6.3, wz, 0x7a756b, 0, g0, 0);
+    B.box(2.66, 0.18, 0.4, wx, wy + 5.2, wz, 0x141414, 0, g0, 0); B.box(0.4, 0.18, 2.66, wx, wy + 5.2, wz, 0x141414, 0, g0, 0);
+    B.box(1.3, 0.7, 1.3, wx, wy + 6.85, wz, 0x3c3e3a, 0, g0, 0); B.cyl(0.3, 0.4, wx + Math.sin(ang) * 0.7, wy + 6.9, wz + Math.cos(ang) * 0.7, 0xfff4c0, Math.PI / 2, ang, 0);
     flag(o.x + Math.sin(ang + 0.5) * 7, o.z + Math.cos(ang + 0.5) * 7, 7 + o.tier);
     if (o.tier >= 1) for (let k = 0; k < 4; k++) { const a = ang + Math.PI + (k - 1.5) * 0.7; const x = o.x + Math.sin(a) * 6, z = o.z + Math.cos(a) * 6; B.box(2.5, 1.6, 2, x, gy(x, z) + 0.6, z, 0x6a645a, 0, a, 0); B.box(2.6, 0.25, 2.1, x, gy(x, z) + 1.5, z, T.dark, 0, a, 0); } // crates/bunkers
   }
@@ -2400,8 +2403,15 @@ function setupEnemy() {
       for (let i = 0; i < 4; i++) { const a = i / 4 * TAU; o.towers.push(createBuilding(1, 'd_bunker_laser', Math.sin(a) * 31, Math.cos(a) * 31, true, a, 3)); }
       for (const w of WELLS) if (Math.hypot(w.x, w.z) < 20) createBuilding(1, 'generator', w.x, w.z, true, null, 3);
     } else {
-      o.factories.push(createBuilding(1, 'factory', o.x, o.z, true, Math.round(ang / (Math.PI / 2)) * (Math.PI / 2), o.tier));
-      for (let i = 0; i < T.towers; i++) { const a = ang + (i - (T.towers - 1) / 2) * 0.9; o.towers.push(createBuilding(1, ENEMY_DEF[o.tier][i % ENEMY_DEF[o.tier].length], o.x + Math.sin(a) * 11, o.z + Math.cos(a) * 11, true, a, o.tier)); }
+      const g0 = Math.round(ang / (Math.PI / 2)) * (Math.PI / 2); o.g0 = g0;
+      o.factories.push(createBuilding(1, 'factory', o.x, o.z, true, g0, o.tier));
+      // square concrete compound: gates front (toward the player) and back, weapons built into the walls
+      const slots = [[0, -7.5], [0, 7.5], [1, 2.5], [3, -2.5], [2, -7.5], [2, 7.5]]; let ti = 0;
+      const tw = new Map(); for (let i = 0; i < T.towers; i++) tw.set(slots[i].join(), ENEMY_DEF[o.tier][i % ENEMY_DEF[o.tier].length]);
+      for (let s = 0; s < 4; s++) { const gs = g0 + s * Math.PI / 2, nx = Math.sin(gs), nz = Math.cos(gs), tx = Math.cos(gs), tz = -Math.sin(gs);
+        for (let t = -12.5; t <= 12.5; t += 5) { if ((s === 0 || s === 2) && Math.abs(t) < 5) continue; const x = o.x + nx * OWR + tx * t, z = o.z + nz * OWR + tz * t;
+          const k = tw.get(s + ',' + t); if (k) o.towers.push(createBuilding(1, k, x, z, true, gs, o.tier)); else createBuilding(1, 'wall', x, z, true, gs, o.tier); }
+        createBuilding(1, 'wall', o.x + nx * OWR + tx * OWR, o.z + nz * OWR + tz * OWR, true, gs, o.tier); }   // corner blocks
       const w = WELLS.find(w => Math.hypot(w.x - o.x, w.z - o.z) < 14); if (w) createBuilding(1, 'generator', w.x, w.z, true, null, o.tier);
     }
     fortDecor(o);

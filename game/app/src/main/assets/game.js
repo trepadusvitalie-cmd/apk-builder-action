@@ -802,7 +802,7 @@ function smallUnitGeo(d, T, s, B, tb) {
   return { body: B.build(), tur: tb.build(), turY: by - 0.22 * s, msl: null, rotors: rot, bladeGeo: bl.build() };
 }
 function unitGeo(d, team) {
-  const key = d.ch + d.pr + d.wp + team; if (geoCache[key]) return geoCache[key];
+  const key = d.ch + d.pr + d.wp + team + (d.bld ? 'b' : ''); if (geoCache[key]) return geoCache[key];
   const hu = CH[d.ch].hue; const tn = (c, k) => new THREE.Color(c).lerp(new THREE.Color(hu), 0.65).multiplyScalar(k).getHex(); const tk = hu ? 1 : 1;
   const T = CH[d.ch].gold ? { ...TEAMC[team], body: 0xd4a832, dark: 0x5e4c1c } : hu ? { ...TEAMC[team], body: tn(TEAMC[team].body, 1), dark: tn(TEAMC[team].dark, 0.55) } : TEAMC[team], s = CH[d.ch].size, B = new Builder(), tb = new Builder(); B.uvScale = tb.uvScale = 1.1;
   if (d.pr === 'rotor' || d.pr === 'legs') return geoCache[key] = smallUnitGeo(d, T, s, B, tb);
@@ -1078,8 +1078,8 @@ function unitGeo(d, team) {
     tb.add(G.cyl16, 0.09 * s, 1.0 * s, 0.09 * s, 0, 0.28 * s, 0.75 * s, 0x2e2e2a, Math.PI / 2, 0, 0);
     tb.add(G.cyl16, 0.14 * s, 0.25 * s, 0.14 * s, 0, 0.28 * s, 1.3 * s, 0x3a3a36, Math.PI / 2, 0, 0);
     tb.add(G.sph, 0.06 * s, 0.06 * s, 0.06 * s, 0, 0.2 * s, 1.45 * s, 0xff9a20);
-  } else if (d.wp === 'laser' && window.__laserVar) { // preview variants of the laser turret
-    const V = window.__laserVar, G2 = 0x3cff52;
+  } else if (d.wp === 'laser') { // laser: tanks get the sloped turret with a 7-lens cluster (A), defences get two side emitter drums (C)
+    const V = (window.__laserVar) || (d.bld ? 'C' : 'A'), G2 = 0x3cff52;
     tb.add(G.cyl16, 0.8 * s, 0.14 * s, 0.8 * s, 0, 0.07 * s, -0.1 * s, T.dark);
     if (V === 'A') { // sloped modern turret, round cluster of seven lenses
       tb.add(G.wedge, 1.6 * s, 0.75 * s, 2.0 * s, 0, 0.12 * s, -0.1 * s, T.body); tb.camo(1.62 * s, 0.5 * s, 1.6 * s, 0, 0.35 * s, -0.3 * s, 0, 8);
@@ -1088,7 +1088,7 @@ function unitGeo(d, team) {
       for (let k = 0; k < 7; k++) { const a = k / 6 * Math.PI * 2, rr = k === 6 ? 0 : 0.27 * s; const x = Math.cos(a) * rr, y = cy + Math.sin(a) * rr;
         tb.add(G.cyl16, 0.1 * s, 0.06 * s, 0.1 * s, x, y, cz + 0.04 * s, 0x8c8c84, Math.PI / 2, 0, 0); tb.add(G.cyl16, 0.07 * s, 0.07 * s, 0.07 * s, x, y, cz + 0.05 * s, G2, Math.PI / 2, 0, 0); }
       for (const sx of [-1, 1]) tb.box(0.25 * s, 0.2 * s, 0.4 * s, sx * 0.6 * s, 0.85 * s, -0.7 * s, T.dark);
-    } else if (V === 'B') { // low turret, long square emitter barrel with green muzzle
+    } else if (V === 'B') { // kept for previews only // low turret, long square emitter barrel with green muzzle
       tb.box(1.4 * s, 0.45 * s, 1.6 * s, 0, 0.32 * s, -0.2 * s, T.body); tb.camo(1.42 * s, 0.47 * s, 1.62 * s, 0, 0.32 * s, -0.2 * s, 0, 8);
       tb.box(1.1 * s, 0.08 * s, 1.2 * s, 0, 0.58 * s, -0.3 * s, T.dark);
       tb.box(0.4 * s, 0.34 * s, 2.6 * s, 0, 0.4 * s, 1.5 * s, 0x34362f); for (let k = 0; k < 4; k++) tb.box(0.46 * s, 0.4 * s, 0.06 * s, 0, 0.4 * s, 0.6 * s + k * 0.55 * s, T.dark);
@@ -1100,21 +1100,6 @@ function unitGeo(d, team) {
         tb.add(G.cyl16, 0.33 * s, 0.1 * s, 0.33 * s, x, y, 0.95 * s, 0x2a2a2c, Math.PI / 2, 0, 0); tb.add(G.cyl16, 0.22 * s, 0.05 * s, 0.22 * s, x, y, 1.0 * s, G2, Math.PI / 2, 0, 0); }
       tb.box(0.3 * s, 0.25 * s, 0.3 * s, 0, 0.82 * s, -0.4 * s, T.dark);
     }
-  } else if (d.wp === 'laser') { // laser tank: big camouflaged box turret, a grid of round emitter lenses high on its front
-    tb.add(G.cyl16, 0.8 * s, 0.14 * s, 0.8 * s, 0, 0.07 * s, -0.1 * s, T.dark);
-    const bw = 1.7 * s, bh = 1.05 * s, bd = 2.0 * s, by = 0.14 * s + bh / 2, bz = -0.2 * s;
-    tb.box(bw, bh, bd, 0, by, bz, T.body); tb.camo(bw + 0.02 * s, bh + 0.02 * s, bd + 0.02 * s, 0, by, bz, 0, 12);    // turret box
-    tb.box(bw * 0.92, 0.12 * s, bd * 0.85, 0, by + bh / 2 + 0.06 * s, bz - 0.1 * s, T.dark);                          // roof plate
-    tb.box(bw + 0.06 * s, 0.06 * s, bd + 0.04 * s, 0, 0.2 * s, bz, T.acc);                                           // team band low on the box
-    const fz = bz + bd / 2 + 0.03 * s, ly = by + 0.18 * s;
-    tb.box(bw * 0.9, 0.62 * s, 0.06 * s, 0, ly, fz, 0x3a3c36);                                                        // lens panel
-    for (let r = 0; r < 2; r++) for (let i = 0; i < 6; i++) { const x = (i - 2.5) * 0.25 * s, y = ly + (r ? -0.15 : 0.15) * s;
-      tb.add(G.cyl16, 0.1 * s, 0.07 * s, 0.1 * s, x, y, fz + 0.04 * s, 0x8c8c84, Math.PI / 2, 0, 0);
-      tb.add(G.cyl16, 0.07 * s, 0.08 * s, 0.07 * s, x, y, fz + 0.05 * s, 0x3cff52, Math.PI / 2, 0, 0); }
-    tb.box(0.5 * s, 0.25 * s, 0.08 * s, 0, by - 0.33 * s, fz, 0x2a2c26);                                              // lower sensor port
-    tb.box(0.3 * s, 0.2 * s, 0.35 * s, 0.5 * s, by + bh / 2 + 0.2 * s, bz - 0.3 * s, T.dark);                          // commander's hatch block
-    tb.add(G.cyl10, 0.03 * s, 0.4 * s, 0.03 * s, 0.5 * s, by + bh / 2 + 0.5 * s, bz - 0.25 * s, 0x222222, Math.PI / 2, 0, 0); // roof machine gun
-    tb.add(G.cyl10, 0.02 * s, 0.8 * s, 0.02 * s, -0.6 * s, by + bh / 2 + 0.45 * s, bz - 0.8 * s, 0x222222);            // antenna
   } else if (WP[d.wp].aa) { // anti-aircraft mounts: everything points up at the sky
     const e = 0.8, ce = Math.cos(e), se = Math.sin(e), up = (L, x, y, z) => [x, y + se * L / 2, z + ce * L / 2];
     tb.add(G.cyl16, 0.62 * s, 0.18 * s, 0.62 * s, 0, 0.09 * s, 0, T.dark); tb.add(G.cyl16, 0.64 * s, 0.05 * s, 0.64 * s, 0, 0.2 * s, 0, T.acc);
@@ -1435,7 +1420,7 @@ function makeBldMesh(type, team) { // team = colour palette index
   if (type === 'tower' || BD[type].tw) {
     const t = new THREE.Group(); t.position.y = BD[type].ty || 3.3; t.scale.setScalar(BD[type].ts || 1); grp.add(t);
     parts.wl = BD[type].tw ? [BD[type].tw] : ['mg', 'cannon', 'rockets', 'laser'];
-    for (const w of parts.wl) { const ug = unitGeo({ ch: 'heavy', pr: 'wheels', wp: w }, team); const m = new THREE.Mesh(ug.tur, matUnit); m.castShadow = true; m.visible = false; t.add(m); parts[w] = m; const ms = attachMissile(m, ug); if (ms) parts.msl = ms; }
+    for (const w of parts.wl) { const ug = unitGeo({ ch: 'heavy', pr: 'wheels', wp: w, bld: 1 }, team); const m = new THREE.Mesh(ug.tur, matUnit); m.castShadow = true; m.visible = false; t.add(m); parts[w] = m; const ms = attachMissile(m, ug); if (ms) parts.msl = ms; }
     parts.tur = t;
   }
   return { grp, parts };

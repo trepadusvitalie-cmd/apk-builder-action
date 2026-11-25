@@ -1238,7 +1238,7 @@ function bldGeo(type, team) {
       for (const sx of [-1, 1]) for (const sz of [-1, 1]) B.box(0.18, 5.2, 0.18, sx * 0.8, 4.3, sz * 0.8, 0x6a6a64, sz * 0.08, 0, -sx * 0.08);
       for (let k = 0; k < 5; k++) { const y = 2.2 + k * 1.0, w = 1.6 - k * 0.12; B.box(w, 0.08, 0.08, 0, y, 0.8 - k * 0.04, 0x6a6a64); B.box(w, 0.08, 0.08, 0, y, -0.8 + k * 0.04, 0x6a6a64); B.box(0.08, 0.08, w, 0.8 - k * 0.04, y, 0, 0x6a6a64); B.box(0.08, 0.08, w, -0.8 + k * 0.04, y, 0, 0x6a6a64); }
       B.box(1.4, 0.3, 1.4, 0, 6.9, 0, T.dark);
-      { const d = new Builder(); d.box(2.6, 1.2, 0.15, 0, 0.6, 0, 0x3d4a52, -0.25, 0, 0); d.box(2.4, 1.0, 0.06, 0, 0.6, 0.08, 0x6fa8c8, -0.25, 0, 0); for (let k = -3; k <= 3; k++) d.box(0.04, 1.0, 0.08, k * 0.32, 0.6, 0.1, 0x2a3a44, -0.25, 0, 0); d.box(0.3, 0.4, 0.3, 0, 0.1, -0.2, 0x333333); d.add(G.sph, 0.1, 0.1, 0.1, 1.3, 1.3, 0, 0xff3020); anim.dish = d.build(); }
+      { const d = new Builder(); d.box(2.6, 1.2, 0.15, 0, 0.6, 0, 0x2f4a2a, -0.25, 0, 0); d.box(2.4, 1.0, 0.06, 0, 0.6, 0.08, 0x5fd04a, -0.25, 0, 0); for (let k = -3; k <= 3; k++) d.box(0.04, 1.0, 0.08, k * 0.32, 0.6, 0.1, 0x1f3a1c, -0.25, 0, 0); d.box(0.3, 0.4, 0.3, 0, 0.1, -0.2, 0x333333); d.add(G.sph, 0.1, 0.1, 0.1, 1.3, 1.3, 0, 0xff3020); anim.dish = d.build(); }
       break;
     case 'ptrap': czech(B, -0.6, -0.4, 0, 0.3); czech(B, 0.7, -0.4, 0.4, 1.1); B.box(2.2, 0.2, 2.2, 0, -0.3, 0, 0x6a6458); break;
     case 'pwall': return bldGeo('wall', team);

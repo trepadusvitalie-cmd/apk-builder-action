@@ -798,7 +798,7 @@ function unitGeo(d, team) {
   const hu = CH[d.ch].hue; const tn = (c, k) => new THREE.Color(c).lerp(new THREE.Color(hu), 0.65).multiplyScalar(k).getHex(); const tk = hu ? 1 : 1;
   const T = CH[d.ch].gold ? { ...TEAMC[team], body: 0xd4a832, dark: 0x5e4c1c } : hu ? { ...TEAMC[team], body: tn(TEAMC[team].body, 1), dark: tn(TEAMC[team].dark, 0.55) } : TEAMC[team], s = CH[d.ch].size, B = new Builder(), tb = new Builder(); B.uvScale = tb.uvScale = 1.1;
   if (d.pr === 'rotor' || d.pr === 'legs') return geoCache[key] = smallUnitGeo(d, T, s, B, tb);
-  const L = 2.4 * s, W = 1.65 * s, H = (d.pr === 'tracks' || d.pr === 'halftrack' ? 0.6 : 0.72) * s; const PI2 = Math.PI / 2;
+  const VT = d.pr === 'vtol'; const L = (VT ? 3.5 : 2.4) * s, W = (VT ? 1.0 : 1.65) * s, H = (d.pr === 'tracks' || d.pr === 'halftrack' ? 0.6 : 0.72) * s; const PI2 = Math.PI / 2;
   let by, msl = null;
   const wheel = (r, wd, x, y, z, sx) => { // chunky off-road tyre: tread rings, deep rim, coloured hub
     B.add(G.cyl16, r, wd, r, x, y, z, 0x1b1a18, 0, 0, PI2);
@@ -844,7 +844,8 @@ function unitGeo(d, team) {
       B.box(0.1 * s, 0.05 * s, 0.4 * s, sx * W * 0.34, by + H * 0.9, -L * 0.44, T.acc, 0, 0, sx * 0.3);
       B.add(G.cyl6, 0.04 * s, 0.7 * s, 0.04 * s, sx * W * 0.35, by - H / 2 - 0.3 * s, L * 0.2, 0x333333); B.add(G.cyl6, 0.04 * s, 0.7 * s, 0.04 * s, sx * W * 0.35, by - H / 2 - 0.3 * s, -L * 0.25, 0x333333);
       B.box(0.08 * s, 0.05 * s, L * 0.6, sx * W * 0.35, by - H / 2 - 0.62 * s, 0, 0x2a2a2a); }
-    B.box(W * 0.5, 0.25 * s, L * 0.25, 0, by + H * 0.55, L * 0.22, 0x9fd3e6); // cockpit canopy
+    B.box(W * 0.5, 0.25 * s, L * 0.22, 0, by + H * 0.55, L * 0.26, 0x9fd3e6); // cockpit canopy
+    B.add(G.cone, W * 0.42, L * 0.2, H * 0.42, 0, by, L * 0.59, T.body, Math.PI / 2, 0, 0); // pointed nose
   } else {
     by = 0.6 + H / 2; B.add(G.cyl16, W * 0.78, 0.4, L * 0.6, 0, 0.32, 0, T.dark); B.add(G.cyl16, W * 0.82, 0.12, L * 0.63, 0, 0.14, 0, 0x2a2622);
   }

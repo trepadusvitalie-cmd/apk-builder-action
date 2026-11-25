@@ -1847,9 +1847,18 @@ function updSpot(dt) { spotT -= dt; if (spotT > 0) return; spotT = 0.5;
 const spotted = (team, e) => SPOTSET[team] && SPOTSET[team].has(e);
 const effRange = (u, t) => u.st.w.long && t && spotted(u.team, t) ? LONG_R : u.st.range * (u.rb || 1);
 function nearestSpotted(team, x, z, range) { let best = null, bd = 1e9; for (const e of SPOT[team] || []) { if (!e.alive || flying(e)) continue; const d = Math.hypot(e.x - x, e.z - z) - e.r; if (d < range && d < bd) { bd = d; best = e; } } return best; }
-function nearestEnemy(team, x, z, range, w) {
-  let best = null, bd = 1e9; const na = w && !canHitAir(w), ao = w && w.aa;
-  for (const e of ents) { if (!e.alive || e.team === team || (na && flying(e)) || (ao && !flying(e))) continue; const d = Math.hypot(e.x - x, e.z - z) - e.r; if (d > range) continue; const s = d + (e.kind === 'bld' ? 5 : 0); if (s < bd) { bd = s; best = e; } }
+// direct-fire weapons (laser, cannon, machine gun, rockets, flamer) need a clear line of sight: no shooting through hills
+const directW = w => w && w.dmg > 0 && !w.art && w.kind !== 'bomb' && w.kind !== 'salvo' && w.kind !== 'mortar';
+function losClear(ax, ay, az, t) {
+  const bx = t.x, bz = t.z, by = t.y + Math.max(0.6, (t.h || 2) * 0.55), d = Math.hypot(bx - ax, bz - az); if (d < 6) return true;
+  const n = Math.min(60, Math.ceil(d / 2.5));
+  for (let i = 1; i < n; i++) { const k = i / n; if (k * d < 3 || (1 - k) * d < (t.r || 1) + 1) continue; if (heightAt(ax + (bx - ax) * k, az + (bz - az) * k) > ay + (by - ay) * k - 0.25) return false; }
+  return true;
+}
+const eyeY = e => e.y + (e.kind === 'bld' ? (e.def.ty || 3.3) : Math.max(1.2, (e.h || 2) * 0.8));
+function nearestEnemy(team, x, z, range, w, eye) {
+  let best = null, bd = 1e9; const na = w && !canHitAir(w), ao = w && w.aa, dw = directW(w) ? (eye !== undefined ? eye : heightAt(x, z) + 2) : null;
+  for (const e of ents) { if (!e.alive || e.team === team || (na && flying(e)) || (ao && !flying(e))) continue; const d = Math.hypot(e.x - x, e.z - z) - e.r; if (d > range) continue; const s = d + (e.kind === 'bld' ? 5 : 0); if (s < bd && (dw === null || flying(e) || losClear(x, dw, z, e))) { bd = s; best = e; } }
   return best;
 }
 function inRange(u, t, extra) { return Math.hypot(t.x - u.x, t.z - u.z) - t.r <= effRange(u, t) + (extra || 0); }
@@ -2032,7 +2041,7 @@ function updUnit(u, dt) {
     u.acq = 0.35 + SR() * 0.15;
     const passive = u.state === 'move'; const vis = (w.art ? w.sight : u.st.range) + (passive || u.mvo === 2 ? 0 : 9);
     if (!u.target || !inRange(u, u.target)) {
-      const t = nearestEnemy(u.team, u.x, u.z, vis, w) || (w.art && !passive ? nearestSpotted(u.team, u.x, u.z, w.long ? LONG_R : u.st.range) : null);
+      const t = nearestEnemy(u.team, u.x, u.z, vis, w, eyeY(u)) || (w.art && !passive ? nearestSpotted(u.team, u.x, u.z, w.long ? LONG_R : u.st.range) : null);
       if (t) { u.target = t; if (u.state === 'idle' || u.state === 'amove' || u.state === 'patrol') { if (u.state === 'idle') { u.lx = u.x; u.lz = u.z; } u.state = 'engage'; } }
       else if (passive && u.target && !inRange(u, u.target, 4)) u.target = null;
     }
@@ -2059,7 +2068,9 @@ function updUnit(u, dt) {
         const over = u.mvo === 0 ? 45 : 14, leash = u.mvo === 0 ? 80 : 24;
         if (d > R + over || (!u.amove && !u.pat && Math.hypot(u.x - u.lx, u.z - u.lz) > leash)) { u.target = null; if (u.amove || u.pat) u.state = resume(u); else { u.state = 'move'; u.tx = u.lx; u.tz = u.lz; } break; }
       }
-      if (d > R * 0.9 && !(u.mvo === 2 && u.state === 'engage')) { mx = t.x; mz = t.z; arrive = 0; }
+      if (directW(w) && !flying(t)) { u.losT = (u.losT || 0) - dt; if (u.losT <= 0 || u.losFor !== t) { u.losT = 0.3; u.losFor = t; u.losOk = losClear(u.x, eyeY(u), u.z, t); } } else u.losOk = true;
+      if (!u.losOk && u.state === 'engage' && (u.mvo === 2 || d > R * 0.9)) { u.target = null; u.state = resume(u); break; }   // hidden behind terrain: look for another target
+      if ((d > R * 0.9 || !u.losOk) && !(u.mvo === 2 && u.state === 'engage')) { mx = t.x; mz = t.z; arrive = 0; }
       break;
     }
     case 'build': {
@@ -2087,7 +2098,7 @@ function updUnit(u, dt) {
     const a = Math.atan2(t.x - u.x, t.z - u.z); const local = angDiff(u.heading, a);
     u.turYaw += clamp(angDiff(u.turYaw, local), -5 * dt, 5 * dt);
     u.cd -= dt;
-    if (inRange(u, t, 0.5) && Math.abs(angDiff(u.turYaw, local)) < 0.25 && u.cd <= 0) {
+    if (inRange(u, t, 0.5) && Math.abs(angDiff(u.turYaw, local)) < 0.25 && u.cd <= 0 && (u.losOk !== false || u.losFor !== t || !directW(w))) {
       const wy = u.heading + u.turYaw; const s = CH[u.d.ch].size;
       const ml = (w.kind === 'shell' ? 2.2 : w.kind === 'laser' ? 0.9 : w.kind === 'flame' ? 1.5 : w.kind === 'mortar' ? (w.art === 'how' ? 2.2 : 1.2) : 1.6) * s; fireWeapon(u, t, w, u.x + Math.sin(wy) * ml, u.y + u.h - 0.3, u.z + Math.cos(wy) * ml, u.rb > 1.3 ? 1.25 : u.rb > 1 ? 1.15 : 1);
       u.cd = u.cdMax = w.rof * srand(0.9, 1.1) * (TEAMS[u.team].rof[wfam(w)] || 1);
@@ -2174,7 +2185,7 @@ function updBld(b, dt) {
     const wk = b.def.tw || (b.tier !== undefined ? TIERS[b.tier].tower : (T.tech.has('tower2') ? 'cannon' : 'mg'));
     for (const k of b.parts.wl) b.parts[k].visible = k === wk; const w = WP[wk]; const range = w.range + (b.def.rb !== undefined ? b.def.rb : 2);
     {
-    b.acq -= dt; if (b.acq <= 0) { b.acq = 0.4; if (!b.target || !b.target.alive || Math.hypot(b.target.x - b.x, b.target.z - b.z) - b.target.r > (b.tgtR || range) || (b.tgtR > range && !spotted(b.team, b.target))) { const own = w.art ? w.sight + (b.def.rb || 0) : range; b.target = nearestEnemy(b.team, b.x, b.z, own, w); b.tgtR = own;
+    b.acq -= dt; if (b.acq <= 0) { b.acq = 0.4; if (!b.target || !b.target.alive || Math.hypot(b.target.x - b.x, b.target.z - b.z) - b.target.r > (b.tgtR || range) || (b.tgtR > range && !spotted(b.team, b.target)) || (directW(w) && !flying(b.target) && !losClear(b.x, eyeY(b), b.z, b.target))) { const own = w.art ? w.sight + (b.def.rb || 0) : range; b.target = nearestEnemy(b.team, b.x, b.z, own, w, eyeY(b)); b.tgtR = own;
       if (!b.target && w.art) { const er = w.long ? LONG_R : range; b.target = nearestSpotted(b.team, b.x, b.z, er); if (b.target) b.tgtR = er; } } }
     b.cd -= dt;
     if (b.target && b.target.alive) {
@@ -3574,7 +3585,7 @@ window.onBack = () => {
   if (S.paused || !$('pause').classList.contains('hidden')) return false;
   S.paused = !NET.on; $('pause').classList.remove('hidden'); return true;
 };
-window.__game = { RS_DEPTH, RICON, RS, LS, worldHash, bombFx, fireball3D, kill, wrecks, FBALLS, updFireballs, SPOT, nearestSpotted, WP, impactFx, XST, heightAt,  killNear: () => { for (const e of ents) if (e.alive && e.team === 1 && Math.hypot(e.x - PLAYER2.x, e.z - PLAYER2.z) < 25) kill(e); }, NET, execCmd, doCmd, byId, PLAYER, PLAYER2, S, TEAMS, ents, cam, setSel, sel: () => sel, createUnit, createBuilding, sfx, AU, SB, buildSfx, projs: () => projs, BD, WP };
+window.__game = { losClear, RS_DEPTH, RICON, RS, LS, worldHash, bombFx, fireball3D, kill, wrecks, FBALLS, updFireballs, SPOT, nearestSpotted, WP, impactFx, XST, heightAt,  killNear: () => { for (const e of ents) if (e.alive && e.team === 1 && Math.hypot(e.x - PLAYER2.x, e.z - PLAYER2.z) < 25) kill(e); }, NET, execCmd, doCmd, byId, PLAYER, PLAYER2, S, TEAMS, ents, cam, setSel, sel: () => sel, createUnit, createBuilding, sfx, AU, SB, buildSfx, projs: () => projs, BD, WP };
 
 resize(); updateCamera(0); requestAnimationFrame(loop);
 // background scene behind the intro

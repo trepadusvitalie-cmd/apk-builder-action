@@ -980,7 +980,7 @@ function unitGeo(d, team) {
         for (const ox of [-0.24, 0.24]) for (const oy of [-0.2, 0.2]) { const [x, y, z] = P(ox * s, oy * s, 1.02 * s); tb.add(G.cyl16, 0.15 * s, 0.05 * s, 0.15 * s, x, y, z, 0x111111, Math.PI / 2 - a, 0, 0);
           const [x2, y2, z2] = P(ox * s, oy * s, 1.0 * s); tb.add(G.cone, 0.09 * s, 0.22 * s, 0.09 * s, x2, y2, z2, 0x3f9fe0, Math.PI / 2 - a, 0, 0); }
       } else if (d.wp === 'omissile') { // one huge missile sealed in a camouflaged canister on an erector
-        const a = 0.95, L = 3.6 * s, ca = Math.cos(a), sa = Math.sin(a);
+        const a = 0.62, L = 3.6 * s, ca = Math.cos(a), sa = Math.sin(a);
         tb.box(1.3 * s, 0.4 * s, 1.3 * s, 0, 0.25 * s, 0, 0x5f6a48); tb.camo(1.3 * s, 0.42 * s, 1.3 * s, 0, 0.25 * s, 0, 0, 6); tb.hazard(1.3 * s, 0.14 * s, 0, 0.25 * s, 0.655 * s, 'z', 1);
         for (const sx of [-1, 1]) { tb.box(0.16 * s, 0.9 * s, 0.5 * s, sx * 0.62 * s, 0.75 * s, -0.35 * s, 0x3a3a36); tb.add(G.cyl10, 0.06 * s, 1.4 * s, 0.06 * s, sx * 0.3 * s, 0.9 * s, -0.1 * s, 0xb8b8b0, 0.7, 0, 0); }
         const c0 = [0, 0.75 * s + sa * L * 0.42, -0.35 * s + ca * L * 0.42];

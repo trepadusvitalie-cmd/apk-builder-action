@@ -519,7 +519,7 @@ const BD = {
 // defensive structures: class x weapon (generated)
 const DCLASS = {
   tower: { name: 'Turn', hp: 750, cost: 90, size: 3, time: 18, h: 6.2, ty: 5.25, ts: 1, rb: 2, dm: 1.3, req: null, wps: ['mg', 'cannon', 'flame', 'rockets', 'laser'] },
-  bunker: { name: 'Buncăr', hp: 1300, cost: 110, size: 3.4, time: 22, h: 2, ty: 1.35, ts: 1, rb: -1, dm: 1.25, req: 'bunker', wps: ['mg', 'cannon', 'flame', 'laser'] },
+  bunker: { name: 'Buncăr', hp: 1300, cost: 110, size: 3.4, time: 22, h: 2, ty: 0.72, ts: 1.15, rb: -1, dm: 1.25, req: 'bunker', wps: ['mg', 'cannon', 'flame', 'laser'] },
   hard: { name: 'Fortificație', hp: 1700, cost: 170, size: 3.8, time: 28, h: 3.8, ty: 3.5, ts: 1.15, rb: 3, dm: 1.6, req: 'hardpoint', wps: ['mg', 'cannon', 'flame', 'rockets', 'laser'] },
   fort: { name: 'Fortăreață', hp: 5200, cost: 560, size: 8, time: 70, h: 6, ty: 5.6, ts: 1.9, rb: 6, dm: 3.6, req: 'fortress', wps: ['cannon', 'rockets', 'laser'] },
   pit: { name: 'Amplasament', hp: 700, cost: 80, size: 3.6, time: 18, h: 1.5, ty: 0.75, ts: 1.1, rb: 0, dm: 1.4, req: null, wps: ['mortar', 'imortar', 'empmortar', 'salvo', 'howitzer', 'ihowitzer', 'rhowitzer', 'hhowitzer', 'plasma', 'ballistic', 'rbattery', 'smissile', 'omissile'] },
@@ -1243,8 +1243,16 @@ function bldGeo(type, team) {
     case 'ptrap': czech(B, -0.6, -0.4, 0, 0.3); czech(B, 0.7, -0.4, 0.4, 1.1); B.box(2.2, 0.2, 2.2, 0, -0.3, 0, 0x6a6458); break;
     case 'pwall': return bldGeo('wall', team);
     case 'cls_bunker':
-      B.add(G.dome, 2.0, 1.6, 2.0, 0, 0, 0, conc); B.add(G.cyl16, 2.1, 0.4, 2.1, 0, 0.0, 0, conc2); B.box(2.6, 0.32, 0.6, 0, 0.75, 1.7, 0x1c1c1c, 0, 0, 0); B.box(0.6, 0.32, 2.6, 1.7, 0.75, 0, 0x1c1c1c); B.box(0.6, 0.32, 2.6, -1.7, 0.75, 0, 0x1c1c1c);
-      B.add(G.cyl16, 0.9, 0.2, 0.9, 0, 1.45, 0, T.acc); for (let k = 0; k < 8; k++) B.add(G.sph, 0.45, 0.3, 0.3, Math.sin(k * 0.8) * 2.3, -0.1, Math.cos(k * 0.8) * 2.3, 0x9a8a62, 0, k * 0.8, 0);
+      // round concrete pillbox: thick wall, a dark firing slit all the way round, overhanging roof slab, rear door
+      B.add(G.cyl16, 2.25, 0.3, 2.25, 0, 0.05, 0, conc2);                  // footing
+      B.add(G.cyl16, 2.0, 0.85, 2.0, 0, 0.6, 0, conc);                     // lower wall
+      B.add(G.cyl16, 2.02, 0.3, 2.02, 0, 1.17, 0, 0x161616);               // firing slit
+      B.add(G.cyl16, 2.04, 0.28, 2.04, 0, 1.46, 0, conc);                  // lintel
+      B.add(G.cyl16, 2.4, 0.32, 2.4, 0, 1.75, 0, conc2);                   // roof slab
+      B.add(G.cyl16, 2.42, 0.06, 2.42, 0, 1.6, 0, T.acc);                  // team stripe under the slab edge
+      B.add(G.dome, 2.1, 0.4, 2.1, 0, 1.9, 0, conc);                       // shallow roof
+      B.box(0.9, 1.0, 0.3, 0, 0.6, -2.0, 0x2a2a28); B.box(1.1, 0.12, 0.35, 0, 1.15, -2.0, conc2);   // rear door
+      for (let k = 0; k < 6; k++) { const a = k * 1.05 + 0.3; B.box(0.5, 0.35, 0.05, Math.sin(a) * 2.01, 0.35 + (k % 2) * 0.3, Math.cos(a) * 2.01, 0x7a756b, 0, a, 0); } // weathered patches
       break;
     case 'cls_hard':
       B.box(3.6, 3.3, 3.6, 0, 1.0, 0, conc); B.box(3.8, 0.6, 3.8, 0, -0.5, 0, conc2); B.box(3.7, 0.35, 3.7, 0, 2.7, 0, T.acc); B.box(3.9, 0.45, 3.9, 0, 3.1, 0, T.dark);
@@ -2585,7 +2593,7 @@ const ICON3D = {
   halftrack: { ch: 'medium', pr: 'halftrack', wp: 'mg' }, tracks: { ch: 'medium', pr: 'tracks', wp: 'mg' }, hover: { ch: 'medium', pr: 'hover', wp: 'mg' },
   cyborg: { ch: 'cyborg', pr: 'legs', wp: 'mg' }, hcyborg: { ch: 'hcyborg', pr: 'legs', wp: 'cannon' }, drone: { ch: 'drone', pr: 'rotor', wp: 'mg' },
   vtol: { ch: 'medium', pr: 'vtol', wp: 'rockets' }, bomb: { ch: 'medium', pr: 'vtol', wp: 'bomb' }, fbomb: { ch: 'medium', pr: 'vtol', wp: 'fbomb' }, hbomb: { ch: 'heavy', pr: 'vtol', wp: 'hbomb' },
-  mg: { ch: 'light', pr: 'wheels', wp: 'mg' }, tower2: 'tower', bunker: 'd_bunker_flame', hardpoint: 'd_hard_cannon', fortress: 'd_fort_laser', traps: 'ptrap', icbm: 'silo', radar2: 'radartower', repair2: 'repairbay', prod: 'factory', armor: { ch: 'heavy', pr: 'tracks', wp: 'mg' }
+  mg: { ch: 'light', pr: 'wheels', wp: 'mg' }, truck: { ch: 'light', pr: 'wheels', wp: 'truck' }, engine: { ch: 'scout', pr: 'hover', wp: 'mg' }, _gen: 'generator', _lab: 'lab', wheels: { ch: 'medium', pr: 'wheels', wp: 'mg' }, light: { ch: 'light', pr: 'wheels', wp: 'cannon' }, tower2: 'tower', bunker: 'd_bunker_cannon', hardpoint: 'd_hard_cannon', fortress: 'd_fort_laser', traps: 'ptrap', icbm: 'silo', radar2: 'radartower', repair2: 'repairbay', prod: 'factory', armor: { ch: 'heavy', pr: 'tracks', wp: 'mg' }
 };
 for (const w of ['cannon', 'rockets', 'mortar', 'imortar', 'empmortar', 'salvo', 'howitzer', 'ihowitzer', 'rhowitzer', 'hhowitzer', 'plasma', 'ballistic', 'flame', 'laser', 'rbattery', 'smissile', 'omissile', 'viper', 'radar', 'repair']) if (!ICON3D[w]) ICON3D[w] = { ch: 'medium', pr: 'tracks', wp: w };
 function unitModel(d, pal) {
@@ -2608,7 +2616,7 @@ function make3DIcons() {
     const rim = new THREE.DirectionalLight(0x9fdcff, 1.4); rim.position.set(6, 3, -5); sc.add(rim);
     const cam = new THREE.PerspectiveCamera(28, 1, 0.05, 400), box = new THREE.Box3(), c = new THREE.Vector3(), sz = new THREE.Vector3();
     const dir = new THREE.Vector3(1, 0.8, 1.25).normalize();
-    const BASE3 = { mg: 'mg', cannon: 'cannon', flame: 'flame', rockets: 'rockets', laser: 'laser', art: 'howitzer', armor: 'armor', hardpoint: 'hardpoint', prod: 'prod' }, redBase = new Set(Object.values(BASE3));
+    const BASE3 = { mg: 'mg', cannon: 'cannon', flame: 'flame', rockets: 'rockets', laser: 'laser', art: 'howitzer', armor: 'armor', hardpoint: 'hardpoint', prod: 'prod', engine: 'engine', power: '_gen', rspeed: '_lab' }, redBase = new Set(Object.values(BASE3));
     const jobs = []; for (const [id, spec] of Object.entries(ICON3D)) { const adv = (RS_DEPTH[id] || 0) >= 4; jobs.push([id, spec, adv]); if (!adv && redBase.has(id)) jobs.push([id + '#r', spec, true]); }
     for (const [id, spec, adv] of jobs) {
       try {
@@ -2618,14 +2626,14 @@ function make3DIcons() {
         grp.rotation.y = -0.35; sc.add(grp); grp.updateMatrixWorld(true);
         box.setFromObject(grp); box.getCenter(c); box.getSize(sz); const rad = sz.length() * 0.5;
         cam.position.copy(c).addScaledVector(dir, rad / Math.sin(cam.fov * Math.PI / 360) * 0.92); cam.lookAt(c);
-        r.render(sc, cam); const url = cv.toDataURL('image/png'); D[id] = url; if (!id.endsWith('#r')) RICON[id] = `<img class="ric r3d${adv ? ' adv' : ''}" alt="" src="${url}">`;
+        r.render(sc, cam); const url = cv.toDataURL('image/png'); D[id] = url; if (!id.endsWith('#r') && id[0] !== '_') RICON[id] = `<img class="ric r3d${adv ? ' adv' : ''}" alt="" src="${url}">`;
         sc.remove(grp);
       } catch (e) { }
     }
   } catch (e) { }
   if (r) { r.dispose(); try { r.forceContextLoss(); } catch (e) { } }
   // upgrade lines (Mk I-IV) reuse the rendered picture of what they improve, with the same badge as before
-  const BASE3 = { mg: 'mg', cannon: 'cannon', flame: 'flame', rockets: 'rockets', laser: 'laser', art: 'howitzer', armor: 'armor', hardpoint: 'hardpoint', prod: 'prod' };
+  const BASE3 = { mg: 'mg', cannon: 'cannon', flame: 'flame', rockets: 'rockets', laser: 'laser', art: 'howitzer', armor: 'armor', hardpoint: 'hardpoint', prod: 'prod', engine: 'engine', power: '_gen', rspeed: '_lab' };
   for (const [id, u] of Object.entries(UPG)) { const lvl = +id.match(/(\d)$/)[1], b3 = BASE3[u.base]; const src = lvl >= 3 ? (D[b3 + '#r'] || D[b3]) : D[b3]; if (!src) continue;
     const badge = u.kind === 'dmg' ? '#e0402a' : u.kind === 'rof' ? '#3f9fe0' : '#7fb84a';
     RICON[id] = SV(`<image href="${src}" x="0" y="3" width="42" height="42"/><circle cx="38" cy="10" r="9" fill="${badge}" stroke="#fff" stroke-width="1.5"/><text x="38" y="14" font-size="${u.kind === 'up' ? 9 : 10}" text-anchor="middle" fill="#fff" font-family="sans-serif" font-weight="bold">${u.kind === 'dmg' ? '+' : u.kind === 'rof' ? '»' : '▲'}</text><text x="38" y="45" font-size="9" text-anchor="middle" fill="#f0b44a" font-family="sans-serif" font-weight="bold" stroke="#000" stroke-width="2" paint-order="stroke">${ROM[lvl - 1] || ''}</text>`).replace('class="ric"', 'class="ric r3d"'); }

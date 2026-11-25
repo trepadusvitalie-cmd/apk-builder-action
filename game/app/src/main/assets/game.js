@@ -656,7 +656,9 @@ const PACKS = {
   pack_artillery: { name: 'Artilerie cu bătaie lungă', ids: ['hhowitzer', 'plasma', 'ballistic'] },
   pack_missiles: { name: 'Rachete cu bătaie lungă', ids: ['smissile', 'omissile', 'icbm'] },
 };
-const PAID = {}; for (const [k, p] of Object.entries(PACKS)) for (const id of p.ids) PAID[id] = k;
+// payments are switched off while the game is in testing: every pack is researched like any other technology. Set to true to sell them again.
+const PAY_ENABLED = false;
+const PAID = {}; if (PAY_ENABLED) for (const [k, p] of Object.entries(PACKS)) for (const id of p.ids) PAID[id] = k;
 const OWNED = new Set(), PRICES = {}; let billSig = 0;
 try { for (const k of JSON.parse(localStorage.getItem('ironfall.owned') || '[]')) if (PACKS[k]) OWNED.add(k); } catch (e) {}
 const paidLocked = id => PAID[id] && !OWNED.has(PAID[id]);

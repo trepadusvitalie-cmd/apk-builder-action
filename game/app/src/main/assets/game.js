@@ -438,8 +438,10 @@ const TEAMC = [
   { body: 0x6a5a48, dark: 0x352d24, acc: 0xb0d8f0, mini: '#b8e0f8', name: 'Aliat (maro-argintiu)' },
   { body: 0x8e949b, dark: 0x3c4046, acc: 0xf0b44a, mini: '#c8ccd0', name: 'Iconițe (oțel)' },   // only for the research pictures
   { body: 0x9c3528, dark: 0x4a1812, acc: 0xf0b44a, mini: '#e06050', name: 'Iconițe (roșu avansat)' },
+  { body: 0x66704a, dark: 0x30361f, acc: 0xd8c070, mini: '#8a9a60', name: 'Iconițe (oliv)' },
+  { body: 0x2e3135, dark: 0x16171a, acc: 0xe0b040, mini: '#505458', name: 'Iconițe (negru-auriu)' },
 ];
-const ICON_PAL = TEAMC.length - 2, ICON_RED = TEAMC.length - 1;
+const ICON_PAL = TEAMC.length - 4, ICON_RED = TEAMC.length - 3, ICON_OLV = TEAMC.length - 2, ICON_BLK = TEAMC.length - 1;
 if (window.__palOverride) { const o = window.__palOverride; TEAMC[0].body = o.body; TEAMC[0].dark = o.dark; TEAMC[0].acc = o.acc; }   // test hook for colour previews
 const CH = {
   scout: { name: 'Cercetaș', hp: 80, cost: 25, spd: 1.25, size: 0.8, hue: 0xb8a868 },
@@ -2692,10 +2694,35 @@ function make3DIcons() {
       grp.rotation.y = -0.35; sc3.add(grp); grp.updateMatrixWorld(true); box3.setFromObject(grp); box3.getCenter(c3); box3.getSize(sz3);
       cam3.position.copy(c3).addScaledVector(dir3, sz3.length() * 0.5 / Math.sin(cam3.fov * Math.PI / 360) * 0.92); cam3.lookAt(c3);
       r.render(sc3, cam3); UIC[k] = `<img class="ui r3d" alt="" src="${r.domElement.toDataURL('image/png')}">`; sc3.remove(grp); } } catch (e) { }
+  // every upgrade gets its own picture: level = colour scheme, chassis and angle; kind = what lies next to it
+  const UPGP = {}; try { if (r) {
+    const BASE = { mg: 'mg', cannon: 'cannon', flame: 'flame', rockets: 'rockets', laser: 'laser', art: 'howitzer', armor: 'armor', hardpoint: 'hardpoint', prod: 'prod', engine: 'engine', power: '_gen', rspeed: '_lab' };
+    const PALS = [ICON_PAL, ICON_OLV, ICON_RED, ICON_BLK], CHS = ['light', 'medium', 'heavy', 'assault'];
+    const M = c => new THREE.MeshLambertMaterial({ color: c }), mesh = (g, c, x, y, z, sx, sy, sz, rx = 0, rz = 0) => { const m = new THREE.Mesh(g, M(c)); m.position.set(x, y, z); m.scale.set(sx, sy, sz); m.rotation.x = rx; m.rotation.z = rz; return m; };
+    const cyl = new THREE.CylinderGeometry(1, 1, 1, 14), cone = new THREE.ConeGeometry(1, 1, 14), bx = new THREE.BoxGeometry(1, 1, 1);
+    const prop = (kind, base, lvl) => { const g = new THREE.Group(); const n = 1 + lvl;
+      if (kind === 'dmg') for (let i = 0; i < n; i++) { const x = (i - (n - 1) / 2) * 0.42; g.add(mesh(cyl, 0xc8a040, x, 0.45, 0, 0.16, 0.9, 0.16)); g.add(mesh(cone, i % 2 ? 0x9a3024 : 0x5a5e56, x, 1.05, 0, 0.16, 0.32, 0.16)); g.add(mesh(cyl, 0x7a5a20, x, 0.06, 0, 0.18, 0.1, 0.18)); }
+      else if (kind === 'rof') { g.add(mesh(bx, 0x4f5f34, 0, 0.35, 0, 1.0, 0.7, 0.6)); g.add(mesh(bx, 0x3a4626, 0, 0.72, 0, 1.04, 0.06, 0.64)); for (let i = 0; i < n * 2; i++) g.add(mesh(cyl, 0xc8a040, -0.45 + i * (0.9 / Math.max(1, n * 2 - 1)), 0.85, 0.2, 0.05, 0.3, 0.05, 0, Math.PI / 2)); g.add(mesh(cyl, 0x2e3128, 0.75, 0.5, 0, 0.35, 0.25 + lvl * 0.05, 0.35, Math.PI / 2)); }
+      else if (base === 'armor' || base === 'hardpoint') for (let i = 0; i < n; i++) g.add(mesh(bx, [0x7a7a72, 0x6b7550, 0x8a3a2e, 0x2e3135][lvl - 1], 0, 0.12 + i * 0.22, 0, 1.2 - i * 0.12, 0.18, 0.9 - i * 0.08));
+      else if (base === 'engine') for (let i = 0; i < n; i++) { g.add(mesh(cyl, [0x6b7550, 0x8a3a2e, 0x3a4a6a, 0x2e3135][i % 4], (i - (n - 1) / 2) * 0.55, 0.45, 0, 0.24, 0.9, 0.24)); g.add(mesh(cyl, 0x222222, (i - (n - 1) / 2) * 0.55, 0.92, 0, 0.08, 0.06, 0.08)); }
+      else if (base === 'power') for (let i = 0; i < n; i++) { g.add(mesh(cyl, 0x3a3c40, (i - (n - 1) / 2) * 0.42, 0.45, 0, 0.17, 0.9, 0.17)); g.add(mesh(cyl, 0x40e8ff, (i - (n - 1) / 2) * 0.42, 0.45, 0, 0.18, 0.2, 0.18)); }
+      else if (base === 'rspeed') { g.add(mesh(bx, 0x3a3c40, 0, 0.45, 0, 0.9, 0.9, 0.5)); for (let i = 0; i < n; i++) g.add(mesh(bx, [0x40e8ff, 0x60ff70, 0xffc040, 0xff5040][i], 0, 0.2 + i * 0.18, 0.26, 0.7, 0.12, 0.02)); }
+      else for (let i = 0; i < n; i++) g.add(mesh(bx, 0x8a7a50, (i % 2) * 0.6 - 0.3, 0.3 + ((i / 2) | 0) * 0.6, 0, 0.55, 0.55, 0.55));
+      return g; };
+    for (const [id, u] of Object.entries(UPG)) { const lvl = Math.min(4, +id.match(/(\d)$/)[1]), b3 = BASE[u.base], spec = ICON3D[b3]; if (!spec) continue;
+      const pal = PALS[lvl - 1]; let grp;
+      if (typeof spec === 'string') { const m = makeBldMesh(spec, pal); grp = m.grp; if (m.parts.wl) { const wk = BD[spec].tw || 'cannon'; for (const w of m.parts.wl) m.parts[w].visible = w === wk; } }
+      else { const d = { ...spec }; if (d.pr !== 'legs' && d.pr !== 'rotor' && CH[CHS[lvl - 1]]) d.ch = CHS[lvl - 1]; grp = unitModel(validDesign(d) ? d : spec, pal); }
+      const all = new THREE.Group(); grp.rotation.y = -0.35 - (lvl - 1) * 0.3; all.add(grp);
+      const pr = prop(u.kind, u.base, lvl); box3.setFromObject(grp); pr.scale.setScalar(Math.max(0.8, (box3.max.y - box3.min.y) * 0.55)); pr.position.set(box3.max.x + 0.6, box3.min.y, box3.max.z * 0.3); all.add(pr);
+      sc3.add(all); all.updateMatrixWorld(true); box3.setFromObject(all); box3.getCenter(c3); box3.getSize(sz3);
+      cam3.position.copy(c3).addScaledVector(dir3, sz3.length() * 0.5 / Math.sin(cam3.fov * Math.PI / 360) * 0.9); cam3.lookAt(c3);
+      r.render(sc3, cam3); UPGP[id] = r.domElement.toDataURL('image/png'); sc3.remove(all); }
+  } } catch (e) { }
   if (r) { r.dispose(); try { r.forceContextLoss(); } catch (e) { } }
   // upgrade lines (Mk I-IV) reuse the rendered picture of what they improve, with the same badge as before
   const BASE3 = { mg: 'mg', cannon: 'cannon', flame: 'flame', rockets: 'rockets', laser: 'laser', art: 'howitzer', armor: 'armor', hardpoint: 'hardpoint', prod: 'prod', engine: 'engine', power: '_gen', rspeed: '_lab' };
-  for (const [id, u] of Object.entries(UPG)) { const lvl = +id.match(/(\d)$/)[1], b3 = BASE3[u.base]; const src = lvl >= 3 ? (D[b3 + '#r'] || D[b3]) : D[b3]; if (!src) continue;
+  for (const [id, u] of Object.entries(UPG)) { const lvl = +id.match(/(\d)$/)[1], b3 = BASE3[u.base]; const src = UPGP[id] || (lvl >= 3 ? (D[b3 + '#r'] || D[b3]) : D[b3]); if (!src) continue;
     const badge = u.kind === 'dmg' ? '#e0402a' : u.kind === 'rof' ? '#3f9fe0' : '#7fb84a';
     RICON[id] = SV(`<image href="${src}" x="0" y="3" width="42" height="42"/><circle cx="38" cy="10" r="9" fill="${badge}" stroke="#fff" stroke-width="1.5"/><text x="38" y="14" font-size="${u.kind === 'up' ? 9 : 10}" text-anchor="middle" fill="#fff" font-family="sans-serif" font-weight="bold">${u.kind === 'dmg' ? '+' : u.kind === 'rof' ? '»' : '▲'}</text><text x="38" y="45" font-size="9" text-anchor="middle" fill="#f0b44a" font-family="sans-serif" font-weight="bold" stroke="#000" stroke-width="2" paint-order="stroke">${ROM[lvl - 1] || ''}</text>`).replace('class="ric"', 'class="ric r3d"'); }
   panelSig = '';

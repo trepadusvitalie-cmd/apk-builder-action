@@ -1018,9 +1018,11 @@ function unitGeo(d, team) {
   } else if (d.wp === 'rockets') {
     tb.add(G.dome, 0.42 * s, 0.35 * s, 0.42 * s, 0, 0.02, 0, T.dark);
     for (const sx of [-1, 1]) {
-      tb.add(G.cyl16, 0.33 * s, 1.1 * s, 0.33 * s, sx * 0.42 * s, 0.5 * s, 0.1 * s, T.body, PI2 - 0.25, 0, 0);
-      tb.add(G.cyl16, 0.35 * s, 0.1 * s, 0.35 * s, sx * 0.42 * s, 0.37 * s, 0.6 * s, T.acc, PI2 - 0.25, 0, 0);
-      for (const ox of [-0.12, 0.12]) for (const oy of [-0.12, 0.12]) tb.add(G.cyl6, 0.08 * s, 0.1, 0.08 * s, sx * 0.42 * s + ox * s, 0.5 * s + oy * s + 0.15 * s, 0.67 * s, 0x111111, PI2 - 0.25, 0, 0);
+      // camouflaged launch pod: olive box with splinter camo, dark front frame and 2x2 tube mouths
+      const x = sx * 0.44 * s, a = 0.25, fy = 0.5 * s + Math.sin(a) * 0.56 * s, fz = 0.1 * s + Math.cos(a) * 0.56 * s;
+      tb.box(0.6 * s, 0.56 * s, 1.1 * s, x, 0.5 * s, 0.1 * s, 0x6f7a52, -a, 0, 0); tb.camo(0.62 * s, 0.58 * s, 1.1 * s, x, 0.5 * s, 0.1 * s, -a, 5);
+      tb.box(0.64 * s, 0.6 * s, 0.06 * s, x, fy, fz, 0x3a3d30, -a, 0, 0);
+      for (const ox of [-0.13, 0.13]) for (const oy of [-0.13, 0.13]) tb.add(G.cyl16, 0.1 * s, 0.04 * s, 0.1 * s, x + ox * s, fy + oy * s * Math.cos(a), fz + 0.03 * s - oy * s * Math.sin(a), 0x111111, PI2 - a, 0, 0);
     }
   } else if (WP[d.wp].art && d.wp !== 'mortar') {
     const w = WP[d.wp], A = w.art; const tint = w.fire ? 0xb8432c : w.emp ? 0x3f9fe0 : w.plasma ? 0x2eaa4a : T.body;
@@ -1416,12 +1418,13 @@ function bldGeo(type, team) {
       for (let i = 0; i < 3; i++) { const a = i / 3 * TAU + 0.5 + Math.PI / 3; B.box(0.12, 0.12, 1.35, Math.cos(a) * 0.62, 1.7, -Math.sin(a) * 0.62, 0x4a4d50, 0, a + Math.PI / 2, 0); }   // steel cross-bracing
       B.add(G.cyl16, 1.0, 0.45, 1.0, 0, 3.35, 0, conc); B.add(G.cyl16, 1.06, 0.1, 1.06, 0, 3.6, 0, 0x7a756b); B.add(G.cyl16, 1.02, 0.06, 1.02, 0, 3.2, 0, T.acc);
       B.add(G.cyl16, 0.35, 0.4, 0.35, 0, 3.8, 0, 0x6a6a64);   // pedestal for the rotating antenna
-      { const d = new Builder();   // steel lattice radar reflector (curved), yoke and feed horn; no lights
-        d.box(0.36, 0.34, 0.36, 0, 0.17, 0, 0x3c3e3a); d.box(0.9, 0.12, 0.2, 0, 0.36, 0, 0x4a4d50);
-        for (let k = -2; k <= 2; k++) { const x = k * 0.47, z = -0.07 * k * k; d.box(0.48, 1.0, 0.05, x, 0.92, z, 0x9aa0a4, -0.18, -k * 0.15, 0); }
-        for (const y of [0.5, 0.92, 1.34]) for (let k = -2; k <= 2; k++) d.box(0.5, 0.05, 0.08, k * 0.47, y, -0.07 * k * k + 0.04, 0x34383c, -0.18, -k * 0.15, 0);
-        for (const sx of [-1, 1]) d.box(0.06, 1.05, 0.1, sx * 1.18, 0.92, -0.3, 0x34383c, -0.18, sx * 0.3, 0);
-        d.add(G.cyl6, 0.04, 0.9, 0.04, 0, 0.62, 0.42, 0x34383c, 1.2, 0, 0); d.box(0.16, 0.14, 0.18, 0, 0.82, 0.82, 0x2a2c2e);
+      { const d = new Builder();   // radar head: one solid oval reflector (back shell + rim), sensor on the oval face, post joining it to the turntable
+        d.box(0.5, 0.3, 0.5, 0, 0.15, 0, 0x3c3e3a); d.box(0.22, 0.6, 0.22, 0, 0.55, -0.12, 0x4a4d50); d.box(0.5, 0.16, 0.42, 0, 0.82, -0.2, 0x4a4d50, -0.18, 0, 0);
+        d.add(G.dome, 1.25, 0.3, 0.62, 0, 0.92, -0.1, 0x6f757a, -Math.PI / 2 - 0.18, 0, 0);                       // back shell
+        d.add(G.cyl16, 1.3, 0.1, 0.67, 0, 0.92, -0.08, 0x34383c, Math.PI / 2 - 0.18, 0, 0);                        // rim
+        d.add(G.cyl16, 1.22, 0.1, 0.6, 0, 0.92, -0.04, 0xb4babd, Math.PI / 2 - 0.18, 0, 0);                        // oval reflector face
+        for (const k of [-0.6, 0, 0.6]) d.box(0.04, 1.1, 0.03, k, 0.92, 0.02 + Math.abs(k) * -0.02, 0x8a9094, -0.18, 0, 0);   // reflector ribs
+        d.add(G.cyl16, 0.16, 0.24, 0.16, 0, 0.94, 0.08, 0x2a2c2e, Math.PI / 2 - 0.18, 0, 0); d.add(G.cyl16, 0.1, 0.06, 0.1, 0, 0.96, 0.21, 0x9fe0ff, Math.PI / 2 - 0.18, 0, 0);   // sensor on the face
         anim.dish = d.build(); }
       break;
     case 'ptrap': czech(B, -0.6, -0.4, 0, 0.3); czech(B, 0.7, -0.4, 0.4, 1.1); B.box(2.2, 0.2, 2.2, 0, -0.3, 0, 0x6a6458); break;

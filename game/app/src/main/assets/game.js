@@ -529,7 +529,7 @@ const wfam = w => w.art ? 'art' : w.fam || w.id;
 const LONG_R = 2000; for (const k of ['hhowitzer', 'rbattery', 'smissile', 'ballistic', 'omissile']) if (WP[k]) WP[k].long = 1;
 const BASE_SPEED = 5.4;
 const BD = {
-  hq: { name: 'Cartier General', icon: '🏛', hp: 1600, cost: 300, size: 6.5, time: 40, h: 5.5 },
+  hq: { name: 'Cartier General', icon: '🏛', hp: 1600, cost: 300, size: 8.5, time: 40, h: 7 },
   factory: { name: 'Fabrică', icon: '🏭', hp: 1100, cost: 250, size: 7, time: 35, h: 5 },
   lab: { name: 'Laborator', icon: '🔬', hp: 700, cost: 150, size: 5, time: 25, h: 4.5 },
   pump: { name: 'Pompă petrol', icon: '🛢', hp: 450, cost: 50, size: 3.6, time: 12, h: 4 },
@@ -1241,7 +1241,8 @@ function bldGeo(type, team) {
   const key = type + team; if (bldCache[key]) return bldCache[key];
   const T = TEAMC[team]; const B = new Builder(); const conc = 0x8c867a, conc2 = 0x6f6a61; const anim = {};
   switch (type) {
-    case 'hq': { // modern armoured command centre
+    case 'hq': { // modern armoured command centre (built at 1.3x and scaled below)
+      const hq0 = B.parts.length;
       const glass = 0x1d3f52, glass2 = 0x2f6f8c, steel = 0x3c3e3a, conc3 = 0x9a948a;
       B.box(7.4, 1.4, 7.4, 0, -0.3, 0, conc2);                                                              // footing
       for (const sd of [-1, 1]) { B.box(7.2, 0.9, 1.2, 0, 0.45, sd * 3.25, conc, sd * 0.6, 0, 0); B.box(1.2, 0.9, 7.2, sd * 3.25, 0.45, 0, conc, 0, 0, -sd * 0.6); } // sloped glacis
@@ -1253,17 +1254,17 @@ function bldGeo(type, team) {
       B.box(5.5, 0.18, 5.5, 0, 3.35, 0, T.acc);                                                             // thin team line
       B.box(5.7, 0.3, 5.7, 0, 3.55, 0, conc2);                                                              // roof slab
       // command deck: chamfered tower with a panoramic window, leaning outward like a control room
-      B.box(3.4, 1.5, 3.4, 0.4, 4.45, 0.4, T.dark);
-      for (const sd of [-1, 1]) { B.box(3.5, 0.8, 0.12, 0.4, 4.6, 0.4 + sd * 1.72, glass2, sd * 0.25, 0, 0); B.box(0.12, 0.8, 3.5, 0.4 + sd * 1.72, 4.6, 0.4, glass2, 0, 0, -sd * 0.25); }
-      B.box(3.8, 0.22, 3.8, 0.4, 5.3, 0.4, steel);
+      B.box(3.0, 1.5, 3.0, 0.9, 4.45, 0.9, T.dark);
+      for (const sd of [-1, 1]) { B.box(3.1, 0.8, 0.12, 0.9, 4.6, 0.9 + sd * 1.52, glass2, sd * 0.25, 0, 0); B.box(0.12, 0.8, 3.1, 0.9 + sd * 1.52, 4.6, 0.9, glass2, 0, 0, -sd * 0.25); }
+      B.box(3.4, 0.22, 3.4, 0.9, 5.3, 0.9, steel);
       // phased-array radar faces on the deck roof
-      for (const [a, x, z] of [[0, 0.4, 1.3], [Math.PI / 2, 1.3, 0.4], [Math.PI, 0.4, -0.5], [-Math.PI / 2, -0.5, 0.4]]) { B.box(1.3, 1.0, 0.12, x, 5.85, z, 0x2a2d30, -0.35, a, 0); B.box(1.1, 0.8, 0.02, x + Math.sin(a) * 0.07, 5.85, z + Math.cos(a) * 0.07, 0x4a5258, -0.35, a, 0); }
-      B.box(1.1, 0.9, 1.1, 0.4, 5.85, 0.4, 0x2a2d30);
+      for (const [a, x, z] of [[0, 0.9, 1.75], [Math.PI / 2, 1.75, 0.9], [Math.PI, 0.9, 0.05], [-Math.PI / 2, 0.05, 0.9]]) { B.box(1.3, 1.0, 0.12, x, 5.85, z, 0x2a2d30, -0.35, a, 0); B.box(1.1, 0.8, 0.02, x + Math.sin(a) * 0.07, 5.85, z + Math.cos(a) * 0.07, 0x4a5258, -0.35, a, 0); }
+      B.box(1.1, 0.9, 1.1, 0.9, 5.85, 0.9, 0x2a2d30);
       // rotating search radar on top of the deck
-      B.add(G.cyl16, 0.7, 0.5, 0.7, 0.4, 6.55, 0.4, 0x3c3e3a); B.add(G.cyl16, 0.5, 0.25, 0.5, 0.4, 6.9, 0.4, 0x2a2d30);   // radar turntable
+      B.add(G.cyl16, 0.7, 0.5, 0.7, 0.9, 6.55, 0.9, 0x3c3e3a); B.add(G.cyl16, 0.5, 0.25, 0.5, 0.9, 6.9, 0.9, 0x2a2d30);   // radar turntable
       // rooftop helipad
-      B.add(G.cyl16, 1.25, 0.08, 1.25, -1.45, 3.75, -1.45, 0x2c2e2b); B.add(G.cyl16, 1.28, 0.05, 1.28, -1.45, 3.74, -1.45, 0xe8c02a);
-      B.box(0.14, 0.02, 1.0, -1.75, 3.8, -1.45, 0xf0f0f0); B.box(0.14, 0.02, 1.0, -1.15, 3.8, -1.45, 0xf0f0f0); B.box(0.6, 0.02, 0.14, -1.45, 3.8, -1.45, 0xf0f0f0);
+      B.add(G.cyl16, 1.1, 0.08, 1.1, -1.55, 3.75, -1.55, 0x2c2e2b); B.add(G.cyl16, 1.14, 0.05, 1.14, -1.55, 3.74, -1.55, 0xe8c02a);
+      B.box(0.14, 0.02, 0.9, -1.83, 3.8, -1.55, 0xf0f0f0); B.box(0.14, 0.02, 0.9, -1.27, 3.8, -1.55, 0xf0f0f0); B.box(0.56, 0.02, 0.14, -1.55, 3.8, -1.55, 0xf0f0f0);
       // armoured entrance with hazard frame and floodlights
       B.box(2.0, 1.8, 0.25, 0, 1.75, 2.85, steel); B.box(0.06, 1.7, 0.05, 0, 1.75, 2.99, 0x22241f);
       for (let k = 0; k < 8; k++) B.box(0.3, 0.18, 0.08, -1.05 + k * 0.3, 2.75, 2.98, k % 2 ? 0x1c1c1c : 0xe8c02a, 0, 0, 0.5);
@@ -1272,6 +1273,7 @@ function bldGeo(type, team) {
       // side plant: cooling units and a generator box
       for (const sz of [-1, 0, 1]) { B.box(0.9, 0.7, 0.9, 2.95, 1.25, sz * 1.15, 0x55584f); B.add(G.cyl10, 0.32, 0.05, 0.32, 2.95, 1.62, sz * 1.15, 0x1c1c1c); }
       { const d = new Builder(); d.add(G.dome, 1.1, 0.42, 1.1, 0, 0, 0, 0xd8d4c8, Math.PI * 0.75, 0, 0); d.add(G.cyl6, 0.06, 0.9, 0.06, 0, 0.3, 0.3, 0x333333, 0.6, 0, 0); anim.dish = d.build(); }
+      for (let i = hq0; i < B.parts.length; i++) { const q = B.parts[i]; for (const k of ['sx', 'sy', 'sz', 'x', 'y', 'z']) q[k] *= 1.3; }
       break; }
     case 'factory': {
       B.box(8.6, 2, 7.8, 0, -0.5, 0, conc); B.box(8.4, 0.12, 7.6, 0, 0.52, 0, 0x7a746a);
@@ -1493,7 +1495,7 @@ function bldY(x, z, size) { const r = size * 0.4; let s = 0; const pts = [[0, 0]
 function attachMissile(turMesh, g) { if (!g.msl) return null; const m = new THREE.Mesh(missileGeo(g.msl.kind), matVC); m.position.set(g.msl.x, g.msl.y, g.msl.z); m.rotation.x = -g.msl.a; m.scale.setScalar(g.msl.len); m.castShadow = true; turMesh.add(m); return m; }
 function makeBldMesh(type, team) { // team = colour palette index
   const g = bldGeo(type, team); const grp = new THREE.Group(); const main = new THREE.Mesh(g.geo, matVC); main.castShadow = true; main.receiveShadow = true; grp.add(main); const parts = {};
-  if (type === 'hq') { const d = new THREE.Mesh(bldGeo('radartower', team).anim.dish, matVC); d.position.set(0.4, 7.0, 0.4); d.scale.setScalar(1.6); grp.add(d); parts.dish = d; }
+  if (type === 'hq') { const d = new THREE.Mesh(bldGeo('radartower', team).anim.dish, matVC); d.position.set(0.9 * 1.3, 7.0 * 1.3, 0.9 * 1.3); d.scale.setScalar(1.6 * 1.3); grp.add(d); parts.dish = d; }
   if (type === 'lab') { const d = new THREE.Mesh(g.anim.dish, matVC); d.position.set(-1.6, 4.05, 0.2); grp.add(d); parts.dish = d; }
   if (type === 'generator') { const f = new THREE.Mesh(g.anim.fan, matVC); f.position.set(-0.9, 3.15, 0.9); grp.add(f); parts.fan = f; const gl = new THREE.Mesh(g.anim.glow, matGlow); grp.add(gl); parts.glow = gl; }
   if (type === 'pump') { const b = new THREE.Mesh(g.anim.beam, matVC); b.position.set(0, 3.55, 0); grp.add(b); parts.beam = b; }

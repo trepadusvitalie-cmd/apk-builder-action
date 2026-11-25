@@ -3007,19 +3007,20 @@ const PROG_B = [[50, 53, 57], [48, 52, 55], [46, 50, 53], [45, 49, 52]];
 const SCALE = [62, 64, 65, 67, 69, 70, 72, 74];
 function audioInit() {
   if (AU.ctx) { AU.ctx.resume(); return; } const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
-  const ctx = AU.ctx = new AC();
+  let ctx; try { ctx = new AC({ latencyHint: 'playback' }); } catch (e) { ctx = new AC(); } AU.ctx = ctx;   // larger audio buffer: no crackle when the phone is busy drawing
   const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 4; comp.connect(ctx.destination);
   AU.master = ctx.createGain(); AU.master.gain.value = 0.9; AU.master.connect(comp);
   AU.mus = ctx.createGain(); AU.mus.gain.value = 0.55; AU.mus.connect(AU.master);
   AU.sfxG = ctx.createGain(); AU.sfxG.gain.value = 0.7; AU.sfxG.connect(AU.master);
-  const len = ctx.sampleRate * 3, ir = ctx.createBuffer(2, len, ctx.sampleRate); for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.6); }
+  const len = Math.round(ctx.sampleRate * 1.1), ir = ctx.createBuffer(2, len, ctx.sampleRate); for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.2); }   // short reverb: a long one overloads phone audio
   AU.rev = ctx.createConvolver(); AU.rev.buffer = ir; const rg = ctx.createGain(); rg.gain.value = 0.5; AU.rev.connect(rg); rg.connect(AU.mus);
   AU.dly = ctx.createDelay(1); AU.dly.delayTime.value = STEP * 3; const fb = ctx.createGain(); fb.gain.value = 0.38; AU.dly.connect(fb); fb.connect(AU.dly); const dl = ctx.createGain(); dl.gain.value = 0.5; AU.dly.connect(dl); dl.connect(AU.mus);
   AU.noise = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate); const nd = AU.noise.getChannelData(0); for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
   const n = ctx.createBufferSource(); n.buffer = AU.noise; n.loop = true; const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 380; bp.Q.value = 0.7; const wg = ctx.createGain(); wg.gain.value = 0.05; const lfo = ctx.createOscillator(); lfo.frequency.value = 0.07; const lg = ctx.createGain(); lg.gain.value = 200; lfo.connect(lg); lg.connect(bp.frequency); n.connect(bp); bp.connect(wg); wg.connect(AU.mus); n.start(); lfo.start();
-  AU.nextT = ctx.currentTime + 0.1; setInterval(schedule, 50); setTimeout(() => { if (!SB.click) buildSfx(); }, 30);
+  AU.nextT = ctx.currentTime + 0.1; setInterval(schedule, 120); setTimeout(() => { if (!SB.click) buildSfx(); }, 30);
 }
-function schedule() { const ctx = AU.ctx; if (!ctx || ctx.state !== 'running') return; if (AU.nextT < ctx.currentTime) AU.nextT = ctx.currentTime + 0.05; while (AU.nextT < ctx.currentTime + 0.25) { if (AU.music && !S.paused) playStep(AU.step, AU.nextT); AU.nextT += STEP; AU.step++; } }
+function schedule() { const ctx = AU.ctx; if (!ctx || ctx.state !== 'running') return; if (AU.nextT < ctx.currentTime) AU.nextT = ctx.currentTime + 0.05; while (AU.nextT < ctx.currentTime + 1.0) {   // music is planned 1 s ahead so a slow frame never makes it stutter
+ if (AU.music && !S.paused) playStep(AU.step, AU.nextT); AU.nextT += STEP; AU.step++; } }
 function env(g, t, a, peak, dur, rel) { g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(peak, t + a); g.gain.setValueAtTime(peak, t + Math.max(a, dur)); g.gain.exponentialRampToValueAtTime(0.0001, t + Math.max(a, dur) + rel); }
 function playStep(s, t) {
   const ctx = AU.ctx; const bar = Math.floor(s / 16), st = s % 16, sec = Math.floor(bar / 8) % 4;
@@ -3134,7 +3135,7 @@ function buildSfx() {
   SB.done = [bell(784, 1.2)]; SB.done2 = [bell(1175, 1.4)];
   SB.alert = mk(1.1, t => { const on = (t % 0.5) < 0.38 ? 1 : 0; const f = 420 + 40 * Math.sin(TAU2 * 6 * t); let s = 0; for (let k = 1; k <= 7; k += 2) s += Math.sin(TAU2 * f * k * t) / k; return s * on * 0.7; }, 1.4);
   // short outdoor reverb for effects
-  const len = SR * 1.4, ir = ctx.createBuffer(2, len, SR); for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < len; i++) d[i] = W() * Math.pow(1 - i / len, 4) * (i < SR * 0.01 ? 0 : 1); }
+  const len = Math.round(SR * 0.6), ir = ctx.createBuffer(2, len, SR); for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < len; i++) d[i] = W() * Math.pow(1 - i / len, 4) * (i < SR * 0.01 ? 0 : 1); }
   AU.srev = ctx.createConvolver(); AU.srev.buffer = ir; const rg = ctx.createGain(); rg.gain.value = 0.35; AU.srev.connect(rg); rg.connect(AU.sfxG);
   // engine rumble loop (louder when units move near the camera)
   { const n = SR * 2, b = ctx.createBuffer(1, n, SR), d = b.getChannelData(0); const br = BR(); for (let i = 0; i < n; i++) { const t = i / SR; d[i] = br() * 0.5 * (0.75 + 0.25 * Math.sin(TAU2 * 21 * t)) + Math.sin(TAU2 * 42 * t) * 0.25 + Math.sin(TAU2 * 63 * t + 1) * 0.12; }
@@ -3152,7 +3153,7 @@ function sfx(type, x, z) {
   if (type === 'whistle') return;   // incoming-shell whistle removed
   const ctx = AU.ctx; if (!ctx || !AU.sfx || ctx.state !== 'running') return; if (!SB.click) buildSfx();
   // keep the mixer light on phones: at most 12 battle sounds at once (UI clicks always play)
-  const ui = ['click', 'ack', 'done', 'done2', 'alert'].includes(type); if (!ui && (AU.voices || 0) >= 12) return;
+  const ui = ['click', 'ack', 'done', 'done2', 'alert'].includes(type); if (!ui && (AU.voices || 0) >= 8) return;
   const t = ctx.currentTime;
   const thr = { weld: 0.55, flame: 0.12, laser: 0.06, mg: 0.07, shell: 0.05, rocket: 0.08, boom: 0.06, bigboom: 0.2, hit: 0.05, imp_shell: 0.05, imp_rocket: 0.06, imp_mortar: 0.07, imp_how: 0.12, imp_hhow: 0.2, imp_inc: 0.15, imp_plasma: 0.12, imp_salvo: 0.09, whistle: 0.15, ric: 0.12, debris: 0.1, collapse: 0.4, cookoff: 0.3, click: 0.03, ack: 0.25 }[type] || 0; if (lastS[type] && t - lastS[type] < thr) return; lastS[type] = t;
   let vol = 1, pan = 0;

@@ -1060,17 +1060,21 @@ function unitGeo(d, team) {
     tb.add(G.cyl16, 0.09 * s, 1.0 * s, 0.09 * s, 0, 0.28 * s, 0.75 * s, 0x2e2e2a, Math.PI / 2, 0, 0);
     tb.add(G.cyl16, 0.14 * s, 0.25 * s, 0.14 * s, 0, 0.28 * s, 1.3 * s, 0x3a3a36, Math.PI / 2, 0, 0);
     tb.add(G.sph, 0.06 * s, 0.06 * s, 0.06 * s, 0, 0.2 * s, 1.45 * s, 0xff9a20);
-  } else if (d.wp === 'laser') { // laser projector: big emitter cylinder held in a yoke on a round turret
-    tb.add(G.cyl16, 0.75 * s, 0.22 * s, 0.75 * s, 0, 0.11 * s, -0.05 * s, T.body); tb.add(G.cyl16, 0.77 * s, 0.05 * s, 0.77 * s, 0, 0.23 * s, -0.05 * s, T.acc);
-    tb.add(G.cyl16, 0.5 * s, 0.12 * s, 0.5 * s, 0, 0.3 * s, -0.05 * s, T.dark);
-    for (const sx of [-1, 1]) { tb.box(0.1 * s, 0.6 * s, 0.55 * s, sx * 0.44 * s, 0.62 * s, 0, T.body); tb.add(G.cyl16, 0.14 * s, 0.06 * s, 0.14 * s, sx * 0.5 * s, 0.72 * s, 0, T.dark, 0, 0, Math.PI / 2); } // yoke
-    const cy = 0.72 * s;
-    tb.add(G.cyl16, 0.32 * s, 1.5 * s, 0.32 * s, 0, cy, 0.15 * s, 0x3a3c40, Math.PI / 2, 0, 0);                 // emitter body
-    tb.add(G.cyl16, 0.335 * s, 0.3 * s, 0.335 * s, 0, cy, 0.0, 0x2f7fd0, Math.PI / 2, 0, 0);                    // blue coil band
-    tb.add(G.cyl16, 0.34 * s, 0.08 * s, 0.34 * s, 0, cy, 0.5 * s, 0x2a2a2c, Math.PI / 2, 0, 0);
-    tb.add(G.cyl16, 0.36 * s, 0.12 * s, 0.36 * s, 0, cy, 0.86 * s, 0x2a2a2c, Math.PI / 2, 0, 0);                 // front collar
-    tb.add(G.cyl16, 0.24 * s, 0.05 * s, 0.24 * s, 0, cy, 0.93 * s, 0x3cff52, Math.PI / 2, 0, 0);                 // green lens
-    tb.add(G.cyl16, 0.26 * s, 0.14 * s, 0.26 * s, 0, cy, -0.65 * s, 0x2a2a2c, Math.PI / 2, 0, 0);                // rear cap
+  } else if (d.wp === 'laser') { // laser tank: big camouflaged box turret, a grid of round emitter lenses high on its front
+    tb.add(G.cyl16, 0.8 * s, 0.14 * s, 0.8 * s, 0, 0.07 * s, -0.1 * s, T.dark);
+    const bw = 1.7 * s, bh = 1.05 * s, bd = 2.0 * s, by = 0.14 * s + bh / 2, bz = -0.2 * s;
+    tb.box(bw, bh, bd, 0, by, bz, T.body); tb.camo(bw + 0.02 * s, bh + 0.02 * s, bd + 0.02 * s, 0, by, bz, 0, 12);    // turret box
+    tb.box(bw * 0.92, 0.12 * s, bd * 0.85, 0, by + bh / 2 + 0.06 * s, bz - 0.1 * s, T.dark);                          // roof plate
+    tb.box(bw + 0.06 * s, 0.06 * s, bd + 0.04 * s, 0, 0.2 * s, bz, T.acc);                                           // team band low on the box
+    const fz = bz + bd / 2 + 0.03 * s, ly = by + 0.18 * s;
+    tb.box(bw * 0.9, 0.62 * s, 0.06 * s, 0, ly, fz, 0x3a3c36);                                                        // lens panel
+    for (let r = 0; r < 2; r++) for (let i = 0; i < 6; i++) { const x = (i - 2.5) * 0.25 * s, y = ly + (r ? -0.15 : 0.15) * s;
+      tb.add(G.cyl16, 0.1 * s, 0.07 * s, 0.1 * s, x, y, fz + 0.04 * s, 0x8c8c84, Math.PI / 2, 0, 0);
+      tb.add(G.cyl16, 0.07 * s, 0.08 * s, 0.07 * s, x, y, fz + 0.05 * s, 0x3cff52, Math.PI / 2, 0, 0); }
+    tb.box(0.5 * s, 0.25 * s, 0.08 * s, 0, by - 0.33 * s, fz, 0x2a2c26);                                              // lower sensor port
+    tb.box(0.3 * s, 0.2 * s, 0.35 * s, 0.5 * s, by + bh / 2 + 0.2 * s, bz - 0.3 * s, T.dark);                          // commander's hatch block
+    tb.add(G.cyl10, 0.03 * s, 0.4 * s, 0.03 * s, 0.5 * s, by + bh / 2 + 0.5 * s, bz - 0.25 * s, 0x222222, Math.PI / 2, 0, 0); // roof machine gun
+    tb.add(G.cyl10, 0.02 * s, 0.8 * s, 0.02 * s, -0.6 * s, by + bh / 2 + 0.45 * s, bz - 0.8 * s, 0x222222);            // antenna
   } else if (WP[d.wp].aa) { // anti-aircraft mounts: everything points up at the sky
     const e = 0.8, ce = Math.cos(e), se = Math.sin(e), up = (L, x, y, z) => [x, y + se * L / 2, z + ce * L / 2];
     tb.add(G.cyl16, 0.62 * s, 0.18 * s, 0.62 * s, 0, 0.09 * s, 0, T.dark); tb.add(G.cyl16, 0.64 * s, 0.05 * s, 0.64 * s, 0, 0.2 * s, 0, T.acc);
@@ -1955,7 +1959,7 @@ function updUnit(u, dt) {
     u.cd -= dt;
     if (inRange(u, t, 0.5) && Math.abs(angDiff(u.turYaw, local)) < 0.25 && u.cd <= 0) {
       const wy = u.heading + u.turYaw; const s = CH[u.d.ch].size;
-      const ml = (w.kind === 'shell' ? 2.2 : w.kind === 'laser' ? 1.0 : w.kind === 'flame' ? 1.5 : w.kind === 'mortar' ? (w.art === 'how' ? 2.2 : 1.2) : 1.6) * s; fireWeapon(u, t, w, u.x + Math.sin(wy) * ml, u.y + u.h - 0.3, u.z + Math.cos(wy) * ml, u.rb > 1.3 ? 1.25 : u.rb > 1 ? 1.15 : 1);
+      const ml = (w.kind === 'shell' ? 2.2 : w.kind === 'laser' ? 0.9 : w.kind === 'flame' ? 1.5 : w.kind === 'mortar' ? (w.art === 'how' ? 2.2 : 1.2) : 1.6) * s; fireWeapon(u, t, w, u.x + Math.sin(wy) * ml, u.y + u.h - 0.3, u.z + Math.cos(wy) * ml, u.rb > 1.3 ? 1.25 : u.rb > 1 ? 1.15 : 1);
       u.cd = u.cdMax = w.rof * srand(0.9, 1.1) * (TEAMS[u.team].rof[wfam(w)] || 1);
     }
   } else if ((!u.isTruck || u.state !== 'build') && w.kind !== 'radar' && !(w.kind === 'repair' && u.heal)) { u.cd = Math.max(0, u.cd - dt); u.turYaw += clamp(angDiff(u.turYaw, 0), -2 * dt, 2 * dt); }

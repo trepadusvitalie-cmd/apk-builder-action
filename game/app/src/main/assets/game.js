@@ -528,7 +528,7 @@ const DCLASS = {
   hard: { name: 'Fortificație', hp: 1700, cost: 170, size: 3.8, time: 28, h: 3.8, ty: 3.5, ts: 1.15, rb: 3, dm: 1.6, req: 'hardpoint', wps: ['mg', 'cannon', 'flame', 'rockets', 'laser'] },
   fort: { name: 'Fortăreață', hp: 5200, cost: 560, size: 8, time: 70, h: 6, ty: 5.6, ts: 1.9, rb: 6, dm: 3.6, req: 'fortress', wps: ['cannon', 'rockets', 'laser'] },
   aa: { name: 'Antiaeriană (PVO)', hp: 900, cost: 100, size: 3.4, time: 20, h: 2.6, ty: 1.05, ts: 1.2, rb: 2, dm: 1.3, req: null, wps: ['aamg', 'aacannon', 'sam', 'aalaser'] },
-  pit: { name: 'Amplasament', hp: 700, cost: 80, size: 3.6, time: 18, h: 1.5, ty: 0.75, ts: 1.1, rb: 0, dm: 1.4, req: null, wps: ['mortar', 'imortar', 'empmortar', 'salvo', 'howitzer', 'ihowitzer', 'rhowitzer', 'hhowitzer', 'plasma', 'ballistic', 'rbattery', 'smissile', 'omissile'] },
+  pit: { name: 'Amplasament', hp: 700, cost: 80, size: 4.0, time: 18, h: 1.5, ty: 0.85, ts: 1.1, rb: 0, dm: 1.4, req: null, wps: ['mortar', 'imortar', 'empmortar', 'salvo', 'howitzer', 'ihowitzer', 'rhowitzer', 'hhowitzer', 'plasma', 'ballistic', 'rbattery', 'smissile', 'omissile'] },
 };
 const IMP_SND = { mortar: 'imp_mortar', rmortar: 'imp_mortar', imortar: 'imp_inc', ihowitzer: 'imp_inc', empmortar: 'imp_salvo', salvo: 'imp_salvo', howitzer: 'imp_how', rhowitzer: 'imp_how', hhowitzer: 'imp_hhow', ballistic: 'imp_hhow', plasma: 'imp_plasma', rbattery: 'imp_salvo', smissile: 'imp_rocket', omissile: 'imp_hhow' };
 const ART_SND = { mortar: 'art_mortar', imortar: 'art_inc', empmortar: 'art_emp', rmortar: 'art_rmortar', salvo: 'art_salvo', howitzer: 'art_how', ihowitzer: 'art_inc', rhowitzer: 'art_rhow', hhowitzer: 'art_hhow', plasma: 'art_plasma', ballistic: 'art_ball', rbattery: 'art_salvo', smissile: 'art_salvo', omissile: 'art_ball' };
@@ -1312,12 +1312,14 @@ function bldGeo(type, team) {
       for (const sx of [-1, 1]) for (const sz of [-1, 1]) { B.add(G.cyl16, 1.3, 5.6, 1.3, sx * 4, 2.6, sz * 4, conc); B.add(G.cyl16, 1.45, 0.4, 1.45, sx * 4, 5.5, sz * 4, T.dark); for (let k = 0; k < 6; k++) B.box(0.4, 0.5, 0.3, sx * 4 + Math.sin(k) * 1.3, 5.9, sz * 4 + Math.cos(k) * 1.3, conc); B.add(G.cyl6, 0.06, 2, 0.06, sx * 4, 6.9, sz * 4, 0x333333); }
       for (let k = -2; k <= 2; k++) for (const sz of [-1, 1]) { B.box(0.8, 0.5, 0.1, k * 1.5, 2.6, sz * 4.02, 0xffd27a); B.box(0.1, 0.5, 0.8, sz * 4.02, 2.6, k * 1.5, 0xffd27a); }
       break;
-    case 'cls_pit': // stepped concrete cross with a turntable in the middle
-      for (const a of [Math.PI / 4, -Math.PI / 4]) { B.box(4.4, 0.32, 1.25, 0, 0.0, 0, conc2, 0, a, 0); B.box(3.6, 0.3, 1.0, 0, 0.3, 0, conc, 0, a, 0);
-        for (const e of [-1, 1]) { B.box(0.5, 0.2, 1.3, Math.cos(a) * e * 2.05, 0.06, -Math.sin(a) * e * 2.05, 0x7a7468, 0, a, 0); for (let k = -1; k <= 1; k++) B.box(0.05, 0.12, 0.12, Math.cos(a) * e * 1.6 - Math.sin(a) * k * 0.32, 0.47, -Math.sin(a) * e * 1.6 - Math.cos(a) * k * 0.32, 0x4a463f, 0, a, 0); } }
-      B.add(G.cyl16, 1.25, 0.34, 1.25, 0, 0.35, 0, conc2); B.add(G.cyl16, 1.05, 0.1, 1.05, 0, 0.55, 0, 0x4a4a46); B.add(G.cyl16, 1.1, 0.05, 1.1, 0, 0.52, 0, T.acc);
-      for (const sx of [-1, 1]) for (const sz of [-1, 1]) B.add(G.cyl10, 0.07, 0.5, 0.07, sx * 0.85, 0.6, sz * 0.85, 0x8a5a2a);
-      for (const sx of [-1, 1]) { B.box(0.42, 0.32, 0.36, sx * 1.55, 0.6, -0.15, 0x5a5a3a); B.box(0.38, 0.28, 0.32, sx * 1.55, 0.9, -0.15, 0x6a5a3a); }
+    case 'cls_pit': // solid reinforced-concrete foundation: wide footing, thick slab, chamfered edges, turntable ring
+      B.box(4.6, 0.35, 4.6, 0, -0.02, 0, conc2);                                                         // footing
+      B.box(4.2, 0.4, 4.2, 0, 0.32, 0, conc);                                                            // main slab
+      for (const sx of [-1, 1]) { B.box(0.3, 0.3, 4.2, sx * 2.2, 0.2, 0, conc2, 0, 0, sx * 0.6); B.box(4.2, 0.3, 0.3, 0, 0.2, sx * 2.2, conc2, sx * -0.6, 0, 0); } // chamfered edges
+      for (let k = -1; k <= 1; k++) { B.box(4.22, 0.02, 0.06, 0, 0.53, k * 1.4, 0x6e695f); B.box(0.06, 0.02, 4.22, k * 1.4, 0.53, 0, 0x6e695f); } // pour joints
+      B.add(G.cyl16, 1.35, 0.25, 1.35, 0, 0.62, 0, conc2); B.add(G.cyl16, 1.15, 0.1, 1.15, 0, 0.78, 0, 0x4a4a46); B.add(G.cyl16, 1.2, 0.05, 1.2, 0, 0.75, 0, T.acc); // turntable
+      for (let k = 0; k < 8; k++) { const a = k / 8 * TAU; B.add(G.cyl10, 0.06, 0.06, 0.06, Math.sin(a) * 1.25, 0.76, Math.cos(a) * 1.25, 0x2a2a28); } // anchor bolts
+      B.box(0.9, 0.35, 0.5, 1.6, 0.7, -1.6, 0x5a5a3a); B.box(0.8, 0.3, 0.45, 1.6, 1.0, -1.6, 0x6a5a3a);   // ammunition crates
       break;
     case 'tower':
       // tall concrete pillar with a gun platform on top
@@ -1368,6 +1370,10 @@ function bldGeo(type, team) {
       }
       break; }
   }
+  // foundation skirt reaching down into the ground, so nothing floats on a slope
+  if (type === 'cls_aa' || type === 'cls_bunker') B.add(G.cyl16, type === 'cls_aa' ? 2.25 : 2.2, 3.0, type === 'cls_aa' ? 2.25 : 2.2, 0, -1.55, 0, conc2);
+  else if (type === 'cls_pit') B.box(4.5, 3.0, 4.5, 0, -1.6, 0, conc2);
+  else if (type === 'cls_hard' || type === 'cls_fort' || type === 'tower') { const sz = BD[type] ? BD[type].size : (DCLASS[type.slice(4)] || { size: 3.6 }).size; B.box(sz * 1.05, 3.0, sz * 1.05, 0, -1.7, 0, conc2); }
   const res = { geo: B.build(), anim }; bldCache[key] = res; return res;
 }
 

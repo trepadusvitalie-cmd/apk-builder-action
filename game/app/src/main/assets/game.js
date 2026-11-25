@@ -1424,6 +1424,7 @@ const FB_TEX = (() => {
       d[o] = col[0]; d[o + 1] = col[1]; d[o + 2] = col[2]; d[o + 3] = Math.max(0, Math.min(255, al * al * (3 - 2 * al) * 255)); }
     g.putImageData(img, 0, 0); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; };
   return { hot: [0, 1, 2, 3].map(k => mk(k + 1, HOT, 0.5, 1.15)), cool: [0, 1, 2, 3].map(k => mk(k + 7, COOL, 0.32, 0.92)) }; })();
+const FB_OP = 0.6; // explosions are 40% see-through
 const FBALLS = []; for (let i = 0; i < 40; i++) {
   const g = new THREE.Group(); const sp = (tex, blend, order) => { const m = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, fog: false, toneMapped: false, blending: blend || THREE.NormalBlending })); m.renderOrder = order; g.add(m); return m; };
   const body = [0, 1, 2, 3, 4].map(j => ({ m: sp(FB_TEX.cool[(i + j) % 4], 0, 2), dx: 0, dy: 0, dz: 0, s: 1 }));
@@ -1466,11 +1467,11 @@ function updFireballs(dt, only) { for (const f of only ? [only] : FBALLS) { if (
   const grow = 1 - Math.pow(1 - Math.min(1, k / 0.28), 3), R = f.r * (0.3 + 0.75 * grow + 0.3 * k); f.m.position.y += dt * f.r * 0.5;
   // the cloud: grows fast, rises a little, cools from orange to red and smoke, then fades
   const bo = k < 0.6 ? 1 : 1 - (k - 0.6) / 0.4, dk = Math.max(0, (k - 0.35) / 0.65);
-  for (const q of f.body) { const sc = R * 1.5 * q.s * (1 + 0.25 * k); q.m.scale.set(sc, sc, 1); q.m.position.set(q.dx * R, q.dy * R + k * R * 0.25, q.dz * R); q.m.material.opacity = bo * 0.95;
+  for (const q of f.body) { const sc = R * 1.5 * q.s * (1 + 0.25 * k); q.m.scale.set(sc, sc, 1); q.m.position.set(q.dx * R, q.dy * R + k * R * 0.25, q.dz * R); q.m.material.opacity = bo * FB_OP;
     const c = 1 - dk * 0.62; q.m.material.color.setRGB(Math.min(1, f.tint[0]) * c, Math.min(1, 0.4 + 0.6 * f.tint[1]) * c * (1 - dk * 0.25), Math.min(1, 0.4 + 0.6 * f.tint[2]) * c * (1 - dk * 0.4)); }
   // the white-hot heart: biggest at the start, shrinks and fades as it burns out
   const co = k < 0.2 ? 1 : Math.max(0, 1 - (k - 0.2) / 0.35);
-  for (const q of f.core) { const sc = R * 1.25 * q.s * (1 - 0.35 * k); q.m.scale.set(sc, sc, 1); q.m.position.set(q.dx * R, q.dy * R, q.dz * R); q.m.material.opacity = co; q.m.visible = co > 0; }
+  for (const q of f.core) { const sc = R * 1.25 * q.s * (1 - 0.35 * k); q.m.scale.set(sc, sc, 1); q.m.position.set(q.dx * R, q.dy * R, q.dz * R); q.m.material.opacity = co * FB_OP; q.m.visible = co > 0; }
   const go = k < 0.1 ? 0.45 : Math.max(0, 0.45 * (1 - (k - 0.1) / 0.4)); f.glow.scale.setScalar(R * 2.4); f.glow.material.opacity = go; f.glow.visible = go > 0; } }
 const XST = { shell: { t: [1, 0.85, 0.55], str: 0.6 }, rocket: { t: [1, 0.6, 0.35], str: 1 }, mortar: { t: [1, 0.78, 0.42], str: 0.9, dirt: 1 }, how: { t: [1, 0.7, 0.35], str: 1.3, dirt: 1.5 },
   salvo: { t: [1, 0.62, 0.3], str: 0.8 }, fire: { t: [1, 0.32, 0.12], str: 1.4, flames: 1 }, emp: { t: [0.3, 0.65, 1], str: 0, sparks: 1 }, plasma: { t: [0.5, 0.78, 1], str: 0.6, sparks: 1 },

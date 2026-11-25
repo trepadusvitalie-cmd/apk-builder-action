@@ -1738,7 +1738,9 @@ function spawnProj(kind, src, tgt, dmg, splash, ox, oy, oz, w, realT, mlen, lift
   else { m = new THREE.Mesh(shellGeo, w && w.plasma ? plasmaMat : shellMat); if (kind === 'mortar') m.scale.setScalar(w && w.big ? 2.6 : w && w.plasma ? 2.4 : 1.6); }
   scene.add(m); if (lift) m.position.set(ox, oy, oz);
   const tx = tgt.x, tz = tgt.z, ty = tgt.y + (tgt.kind === 'bld' ? 1.5 : 0.8); const d = Math.hypot(tx - ox, tz - oz); const spd = (kind === 'shell' ? 26 : kind === 'mortar' ? 26 : 22) * (kind === 'mortar' ? Math.sqrt(RNG_A) : PROJ_SPD);
-  projs.push({ kind, m, team: src.team, src, tgt, ox, oy, oz, tx, ty, tz, t: 0, dur: w && w.kind === 'bomb' ? 0.75 : Math.max(0.12, kind === 'mortar' ? Math.min(d / spd, 3 + d / 120) : d / spd), arc: w && w.kind === 'bomb' ? 0 : kind === 'shell' ? d * 0.05 : kind === 'mortar' ? Math.min(d * 0.55, 60 + d * 0.1) : d * 0.13, dmg, splash, smokeT: 0, w, realT, lift: !!lift, big: !!(w && w.big) });
+  // artillery firing at a close target it can see itself shoots flat and fast (direct fire), not in a high arc
+  const flat = kind === 'mortar' && w && w.art && !lift && d <= (w.sight || 0) && losClear(ox, oy, oz, tgt);
+  projs.push({ kind, m, team: src.team, src, tgt, ox, oy, oz, tx, ty, tz, t: 0, dur: w && w.kind === 'bomb' ? 0.75 : flat ? Math.max(0.15, d / (spd * 2.4)) : Math.max(0.12, kind === 'mortar' ? Math.min(d / spd, 3 + d / 120) : d / spd), arc: w && w.kind === 'bomb' ? 0 : flat ? d * 0.035 : kind === 'shell' ? d * 0.05 : kind === 'mortar' ? Math.min(d * 0.55, 60 + d * 0.1) : d * 0.13, dmg, splash, smokeT: 0, w, realT, lift: !!lift, big: !!(w && w.big) });
 }
 const fireZones = [];
 function updFireZones(dt) {

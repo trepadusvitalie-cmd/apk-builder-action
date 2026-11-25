@@ -3,7 +3,10 @@ package ro.joc.ironfall;
 import android.app.Activity;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.view.DisplayCutout;
 import android.view.View;
+import android.view.WindowInsets;
+import android.widget.FrameLayout;
 import android.view.WindowManager;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
@@ -31,7 +34,24 @@ public class MainActivity extends Activity {
         web.setWebChromeClient(new WebChromeClient());
         web.setWebViewClient(new WebViewClient());
 
-        setContentView(web);
+        // Android 15+ draws apps edge to edge: keep the game clear of a camera notch by
+        // insetting the WebView inside a black frame by the display cutout.
+        FrameLayout root = new FrameLayout(this);
+        root.setBackgroundColor(Color.BLACK);
+        root.addView(web, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+        root.setOnApplyWindowInsetsListener((v, insets) -> {
+            int l = 0, t = 0, r = 0, b = 0;
+            if (android.os.Build.VERSION.SDK_INT >= 28) {
+                DisplayCutout c = insets.getDisplayCutout();
+                if (c != null) { l = c.getSafeInsetLeft(); t = c.getSafeInsetTop(); r = c.getSafeInsetRight(); b = c.getSafeInsetBottom(); }
+            }
+            FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) web.getLayoutParams();
+            if (lp.leftMargin != l || lp.topMargin != t || lp.rightMargin != r || lp.bottomMargin != b) {
+                lp.setMargins(l, t, r, b); web.setLayoutParams(lp);
+            }
+            return insets;
+        });
+        setContentView(root);
         hideSystemBars();
         web.loadUrl("file:///android_asset/index.html");
     }

@@ -3069,7 +3069,7 @@ async function rtcSignal(m, k) {
     } else if (m.t === 'ice' && p.pc) await p.pc.addIceCandidate(m.c);
   } catch (e) {}
 }
-// ================= LOCKSTEP (how Warzone-style RTS games play online) =================
+// ================= LOCKSTEP (how classic RTS games play online) =================
 // Every phone runs the whole battle itself. Only the players' orders travel over the network.
 // Time is cut into turns of 0.1 s (3 steps of 1/30 s). The host decides in which turn each order runs and
 // sends the list of turns; every phone executes the same orders in the same turn, with the same random

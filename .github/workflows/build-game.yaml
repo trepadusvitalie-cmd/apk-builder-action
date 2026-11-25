@@ -29,6 +29,33 @@ jobs:
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
           ./gradlew assembleDebug --stacktrace --no-daemon
 
+      - name: Build Google Play bundle (AAB)
+        working-directory: game
+        env:
+          KS_B64: ${{ secrets.IRONFALL_KEYSTORE_BASE64 }}
+          IRONFALL_KEYSTORE_PASSWORD: ${{ secrets.IRONFALL_KEYSTORE_PASSWORD }}
+          IRONFALL_KEY_ALIAS: upload
+          IRONFALL_VERSION_CODE: ${{ github.run_number }}
+          IRONFALL_VERSION_NAME: 1.0.${{ github.run_number }}
+        run: |
+          if [ -n "$KS_B64" ]; then
+            echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/upload.jks"
+            export IRONFALL_KEYSTORE="$RUNNER_TEMP/upload.jks"
+            echo "Signing the bundle with the upload key"
+          else
+            echo "::warning::IRONFALL_KEYSTORE_BASE64 secret not set - the AAB is unsigned and Google Play will refuse it"
+          fi
+          ./gradlew bundleRelease --stacktrace --no-daemon
+          rm -f "$RUNNER_TEMP/upload.jks"
+          cp app/build/outputs/bundle/release/app-release.aab ../Ironfall2200.aab
+
+      - name: Upload AAB (for Google Play)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ironfall2200-aab
+          path: Ironfall2200.aab
+          retention-days: 30
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
@@ -46,4 +73,6 @@ jobs:
           name: Ironfall 2200 (versiune de test)
           body: "Descarcă **Ironfall2200.apk** de mai jos și instalează-l pe telefon."
           prerelease: true
-          files: Ironfall2200.apk
+          files: |
+            Ironfall2200.apk
+            Ironfall2200.aab

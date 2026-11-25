@@ -552,8 +552,8 @@ const DCLASS = {
   bunker: { name: 'Buncăr', hp: 1300, cost: 110, size: 3.4, time: 22, h: 2, ty: 0.72, ts: 1.15, rb: -1, dm: 1.25, req: 'bunker', wps: ['mg', 'cannon', 'flame', 'laser'] },
   hard: { name: 'Fortificație', hp: 1700, cost: 170, size: 3.8, time: 28, h: 3.8, ty: 3.5, ts: 1.15, rb: 3, dm: 1.6, req: 'hardpoint', wps: ['mg', 'cannon', 'flame', 'rockets', 'laser'] },
   fort: { name: 'Fortăreață', hp: 5200, cost: 560, size: 8, time: 70, h: 6, ty: 5.6, ts: 1.9, rb: 6, dm: 3.6, req: 'fortress', wps: ['cannon', 'rockets', 'laser'] },
-  aa: { name: 'Antiaeriană (PVO)', hp: 900, cost: 100, size: 3.4, time: 20, h: 2.6, ty: 1.05, ts: 1.2, rb: 2, dm: 1.3, req: null, wps: ['aamg', 'aacannon', 'sam', 'aalaser'] },
-  pit: { name: 'Amplasament', hp: 700, cost: 80, size: 4.0, time: 18, h: 1.5, ty: 0.85, ts: 1.1, rb: 0, dm: 1.4, req: null, wps: ['mortar', 'imortar', 'empmortar', 'salvo', 'howitzer', 'ihowitzer', 'rhowitzer', 'hhowitzer', 'plasma', 'ballistic', 'rbattery', 'smissile', 'omissile'] },
+  aa: { name: 'Antiaeriană (PVO)', hp: 900, cost: 100, size: 3.4, time: 20, h: 3.6, ty: 2.85, ts: 1.2, rb: 2, dm: 1.3, req: null, wps: ['aamg', 'aacannon', 'sam', 'aalaser'] },
+  pit: { name: 'Amplasament', hp: 700, cost: 80, size: 4.0, time: 18, h: 3.4, ty: 2.65, ts: 1.1, rb: 0, dm: 1.4, req: null, wps: ['mortar', 'imortar', 'empmortar', 'salvo', 'howitzer', 'ihowitzer', 'rhowitzer', 'hhowitzer', 'plasma', 'ballistic', 'rbattery', 'smissile', 'omissile'] },
 };
 const IMP_SND = { mortar: 'imp_mortar', rmortar: 'imp_mortar', imortar: 'imp_inc', ihowitzer: 'imp_inc', empmortar: 'imp_salvo', salvo: 'imp_salvo', howitzer: 'imp_how', rhowitzer: 'imp_how', hhowitzer: 'imp_hhow', ballistic: 'imp_hhow', plasma: 'imp_plasma', rbattery: 'imp_salvo', smissile: 'imp_rocket', omissile: 'imp_hhow' };
 const ART_SND = { mortar: 'art_mortar', imortar: 'art_inc', empmortar: 'art_emp', rmortar: 'art_rmortar', salvo: 'art_salvo', howitzer: 'art_how', ihowitzer: 'art_inc', rhowitzer: 'art_rhow', hhowitzer: 'art_hhow', plasma: 'art_plasma', ballistic: 'art_ball', rbattery: 'art_salvo', smissile: 'art_salvo', omissile: 'art_ball' };
@@ -1212,6 +1212,18 @@ function unitGeo(d, team) {
 const bldCache = {};
 // square modern concrete fortress (player's fortress and the enemy citadel share this look, at different sizes)
 // k = scale, H = main wall height. Sloped armoured glacis, square corner bastions with gun turrets, firing slits, blast door.
+// concrete tripod foundation for defence guns: round footing, three tapered legs leaning in, steel bracing, a cast platform with a turntable on top
+function tripod(B, T, conc, conc2, H, R) {
+  B.add(G.cyl16, R, 0.5, R, 0, -0.05, 0, conc2); B.add(G.cyl16, R * 0.92, 0.1, R * 0.92, 0, 0.22, 0, 0x7a756b);
+  const rb = R * 0.72, rt = 0.72, tilt = Math.atan2(rb - rt, H), len = Math.hypot(H, rb - rt), mid = (rb + rt) / 2;
+  for (let i = 0; i < 3; i++) { const a = i / 3 * TAU + 0.5, ca = Math.cos(a), sa = Math.sin(a);
+    B.box(0.55, len, 0.55, ca * mid, H / 2 + 0.2, -sa * mid, conc, 0, a, tilt); B.box(0.9, 0.4, 0.9, ca * rb, 0.35, -sa * rb, conc2, 0, a, 0);
+    B.box(0.08, len * 0.85, 0.06, ca * (mid + 0.28), H / 2 + 0.2, -sa * (mid + 0.28), 0x6f6a61, 0, a, tilt); }
+  { const y = H * 0.45, r = rb - (rb - rt) * (y - 0.2) / H; for (let i = 0; i < 3; i++) { const a = i / 3 * TAU + 0.5 + Math.PI / 3; B.box(0.14, 0.14, r * 1.7, Math.cos(a) * r * 0.5, y, -Math.sin(a) * r * 0.5, 0x4a4d50, 0, a + Math.PI / 2, 0); } }
+  B.add(G.cyl16, 1.45, 0.5, 1.45, 0, H + 0.25, 0, conc); B.add(G.cyl16, 1.5, 0.1, 1.5, 0, H + 0.52, 0, 0x7a756b); B.add(G.cyl16, 1.48, 0.06, 1.48, 0, H + 0.05, 0, T.acc);
+  B.add(G.cyl16, 1.15, 0.12, 1.15, 0, H + 0.6, 0, 0x4a4a46);
+  for (let k = 0; k < 8; k++) { const a = k / 8 * TAU; B.add(G.cyl10, 0.06, 0.06, 0.06, Math.sin(a) * 1.3, H + 0.58, Math.cos(a) * 1.3, 0x2a2a28); }
+}
 function sqFort(B, T, conc, conc2, k, H, tiers) {
   const slit = 0x141414, steel = 0x3c3e3a, W = 8 * k, h2 = W / 2;
   B.box(W + 1.4 * k, 1.2, W + 1.4 * k, 0, -0.1, 0, conc2);                                              // footing
@@ -1429,10 +1441,7 @@ function bldGeo(type, team) {
       break;
     case 'ptrap': czech(B, -0.6, -0.4, 0, 0.3); czech(B, 0.7, -0.4, 0.4, 1.1); B.box(2.2, 0.2, 2.2, 0, -0.3, 0, 0x6a6458); break;
     case 'pwall': return bldGeo('wall', team);
-    case 'cls_aa':
-      B.add(G.cyl16, 2.3, 0.35, 2.3, 0, 0.0, 0, conc2); B.add(G.cyl16, 2.0, 0.6, 2.0, 0, 0.45, 0, conc); B.add(G.cyl16, 1.6, 0.62, 1.6, 0, 0.47, 0, 0x4a4a44);
-      B.add(G.cyl16, 2.03, 0.1, 2.03, 0, 0.5, 0, T.acc); for (let k = 0; k < 10; k++) { const a = k / 10 * TAU; B.add(G.sph, 0.45, 0.28, 0.3, Math.sin(a) * 2.25, 0.85, Math.cos(a) * 2.25, 0x9a8a62, 0, a, 0); }
-      B.box(0.6, 0.5, 0.35, 0, 0.3, -2.25, 0x2a2a28); break;
+    case 'cls_aa': tripod(B, T, conc, conc2, 2.2, 2.2); for (let k = 0; k < 6; k++) { const a = k / 6 * TAU + 0.2; B.add(G.sph, 0.45, 0.28, 0.3, Math.sin(a) * 2.0, 0.35, Math.cos(a) * 2.0, 0x9a8a62, 0, a, 0); } break;
     case 'cls_bunker':
       // round concrete pillbox: thick wall, a dark firing slit all the way round, overhanging roof slab, rear door
       B.add(G.cyl16, 2.25, 0.3, 2.25, 0, 0.05, 0, conc2);                  // footing
@@ -1451,24 +1460,12 @@ function bldGeo(type, team) {
       for (let k = -1; k <= 1; k++) for (const sz of [-1, 1]) B.box(0.9, 0.12, 0.08, k * 1.1, 1.6, sz * 1.82, 0x5a564f);
       break;
     case 'cls_fort': { const y = sqFort(B, T, conc, conc2, 0.85, 3.6, 0); B.box(3.2, 5.6 - y, 3.2, 0, (5.6 + y) / 2, 0, conc2); B.box(3.4, 0.2, 3.4, 0, 5.55, 0, 0x7a756b); break; }
-    case 'cls_pit': // solid reinforced-concrete foundation: wide footing, thick slab, chamfered edges, turntable ring
-      B.box(4.6, 0.35, 4.6, 0, -0.02, 0, conc2);                                                         // footing
-      B.box(4.2, 0.4, 4.2, 0, 0.32, 0, conc);                                                            // main slab
-      for (const sx of [-1, 1]) { B.box(0.3, 0.3, 4.2, sx * 2.2, 0.2, 0, conc2, 0, 0, sx * 0.6); B.box(4.2, 0.3, 0.3, 0, 0.2, sx * 2.2, conc2, sx * -0.6, 0, 0); } // chamfered edges
-      for (let k = -1; k <= 1; k++) { B.box(4.22, 0.02, 0.06, 0, 0.53, k * 1.4, 0x6e695f); B.box(0.06, 0.02, 4.22, k * 1.4, 0.53, 0, 0x6e695f); } // pour joints
-      B.add(G.cyl16, 1.35, 0.25, 1.35, 0, 0.62, 0, conc2); B.add(G.cyl16, 1.15, 0.1, 1.15, 0, 0.78, 0, 0x4a4a46); B.add(G.cyl16, 1.2, 0.05, 1.2, 0, 0.75, 0, T.acc); // turntable
-      for (let k = 0; k < 8; k++) { const a = k / 8 * TAU; B.add(G.cyl10, 0.06, 0.06, 0.06, Math.sin(a) * 1.25, 0.76, Math.cos(a) * 1.25, 0x2a2a28); } // anchor bolts
-      B.box(0.9, 0.35, 0.5, 1.6, 0.7, -1.6, 0x5a5a3a); B.box(0.8, 0.3, 0.45, 1.6, 1.0, -1.6, 0x6a5a3a);   // ammunition crates
-      break;
+    case 'cls_pit': tripod(B, T, conc, conc2, 2.0, 2.4); B.box(0.9, 0.35, 0.5, 1.7, 0.42, -1.2, 0x5a5a3a); B.box(0.8, 0.3, 0.45, 1.7, 0.74, -1.2, 0x6a5a3a); break;   // ammunition crates by the footing
     case 'tower':
       // tall concrete pillar with a gun platform on top
-      B.box(3.0, 0.9, 3.0, 0, -0.1, 0, conc2); B.box(2.5, 0.5, 2.5, 0, 0.55, 0, conc);
-      B.add(G.cyl10, 0.85, 3.6, 0.85, 0, 2.5, 0, conc); for (let k = 0; k < 3; k++) B.add(G.cyl10, 0.92, 0.14, 0.92, 0, 1.3 + k * 1.2, 0, conc2);
-      for (let k = 0; k < 4; k++) { const a = k * Math.PI / 2 + Math.PI / 4; B.box(0.3, 3.4, 0.45, Math.sin(a) * 0.82, 2.3, Math.cos(a) * 0.82, conc2, 0, a, 0); }
-      B.add(G.cyl10, 1.45, 0.45, 1.45, 0, 4.5, 0, T.dark); B.add(G.cyl10, 1.5, 0.12, 1.5, 0, 4.78, 0, T.acc); B.add(G.cone, 1.3, 0.6, 1.3, 0, 4.05, 0, conc2, Math.PI, 0, 0);
+      tripod(B, T, conc, conc2, 4.2, 2.1);
       for (let k = 0; k < 8; k++) { const a = k / 8 * TAU; B.box(0.35, 0.35, 0.18, Math.sin(a) * 1.35, 5.0, Math.cos(a) * 1.35, T.dark, 0, a, 0); }
-      B.box(0.06, 0.06, 0.06, 0.95, 4.75, 0.95, 0xff3020);
-      for (let k = 0; k < 4; k++) B.add(G.ico, 0.5, 0.3, 0.5, Math.sin(k * 1.6) * 2, 0.3, Math.cos(k * 1.6) * 2, 0x8a7d62, k, k, 0);
+      
       break;
     case 'wall': { // modern reinforced-concrete barrier wall: footing, sloped buttresses, precast panels, steel top rail
       const st = 0x8a857b, st2 = 0x6c675e;
@@ -1485,9 +1482,9 @@ function bldGeo(type, team) {
       break; }
   }
   // foundation skirt reaching down into the ground, so nothing floats on a slope
-  if (type === 'cls_aa' || type === 'cls_bunker') B.add(G.cyl16, type === 'cls_aa' ? 2.25 : 2.2, 3.0, type === 'cls_aa' ? 2.25 : 2.2, 0, -1.55, 0, conc2);
-  else if (type === 'cls_pit') B.box(4.5, 3.0, 4.5, 0, -1.6, 0, conc2);
-  else if (type === 'cls_hard' || type === 'cls_fort' || type === 'tower') { const sz = BD[type] ? BD[type].size : (DCLASS[type.slice(4)] || { size: 3.6 }).size; B.box(sz * 1.05, 3.0, sz * 1.05, 0, -1.7, 0, conc2); }
+  if (type === 'cls_aa' || type === 'cls_bunker' || type === 'cls_pit') { const r = type === 'cls_pit' ? 2.4 : type === 'cls_aa' ? 2.2 : 2.2; B.add(G.cyl16, r, 3.0, r, 0, -1.55, 0, conc2); }
+  else if (type === 'tower') B.add(G.cyl16, 2.1, 3.0, 2.1, 0, -1.55, 0, conc2);
+  else if (type === 'cls_hard' || type === 'cls_fort') { const sz = BD[type] ? BD[type].size : (DCLASS[type.slice(4)] || { size: 3.6 }).size; B.box(sz * 1.05, 3.0, sz * 1.05, 0, -1.7, 0, conc2); }
   const res = { geo: B.build(), anim }; bldCache[key] = res; return res;
 }
 
@@ -1733,7 +1730,7 @@ const tracerHaloGeo = new THREE.BoxGeometry(0.26, 0.26, 1.15); const tracerHaloM
 const tracers = []; for (let i = 0; i < 90; i++) { const m = new THREE.Mesh(tracerGeo, tracerMat); m.add(new THREE.Mesh(tracerHaloGeo, tracerHaloMat)); m.visible = false; m.renderOrder = 3; scene.add(m); tracers.push({ m, x: 0, y: 0, z: 0, dx: 0, dy: 0, dz: 0, d: 0, p: 0, L: 1 }); }
 let trIdx = 0;
 const beamGeo = new THREE.BoxGeometry(0.6, 0.6, 1), beamMat = new THREE.MeshBasicMaterial({ color: 0x36ff4a, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false });
-const beamCore = new THREE.MeshBasicMaterial({ color: 0xe2ffd8 }); const beamCoreGeo = new THREE.BoxGeometry(0.16, 0.16, 1);
+const beamCore = new THREE.MeshBasicMaterial({ color: 0x8dff7a }); const beamCoreGeo = new THREE.BoxGeometry(0.16, 0.16, 1);
 const beams = []; for (let i = 0; i < 24; i++) { const m = new THREE.Mesh(beamGeo, beamMat); m.add(new THREE.Mesh(beamCoreGeo, beamCore)); m.visible = false; scene.add(m); beams.push({ m, life: 0 }); }
 let bmIdx = 0;
 function beam(x1, y1, z1, x2, y2, z2) { const t = beams[bmIdx = (bmIdx + 1) % beams.length]; const d = Math.hypot(x2 - x1, y2 - y1, z2 - z1); t.m.position.set((x1 + x2) / 2, (y1 + y2) / 2, (z1 + z2) / 2); t.m.lookAt(x2, y2, z2); t.m.scale.set(1, 1, d); t.m.visible = true; t.life = 0.2; }

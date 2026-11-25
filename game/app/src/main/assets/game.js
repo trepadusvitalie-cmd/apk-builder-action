@@ -1063,7 +1063,6 @@ function unitGeo(d, team) {
   } else if (d.wp === 'laser') {
     tb.add(G.dome, 0.58 * s, 0.42 * s, 0.62 * s, 0, 0.02, -0.12 * s, T.body); tb.add(G.cyl16, 0.6 * s, 0.06 * s, 0.64 * s, 0, 0.05, -0.12 * s, T.acc);
     tb.add(G.cyl16, 0.1 * s, 2.0 * s, 0.1 * s, 0, 0.3 * s, 1.15 * s, 0x34343a, Math.PI / 2, 0, 0);
-    for (let k = 0; k < 3; k++) tb.add(G.cyl16, 0.16 * s, 0.08 * s, 0.16 * s, 0, 0.3 * s, 0.55 * s + k * 0.45 * s, 0x3cff52, Math.PI / 2, 0, 0);
     tb.add(G.sph, 0.13 * s, 0.13 * s, 0.13 * s, 0, 0.3 * s, 2.15 * s, 0xc8ffc0);
     for (const sx of [-1, 1]) { tb.box(0.18 * s, 0.24 * s, 0.5 * s, sx * 0.5 * s, 0.22 * s, -0.25 * s, T.dark); tb.box(0.04 * s, 0.16 * s, 0.4 * s, sx * 0.6 * s, 0.22 * s, -0.25 * s, 0x3cff52); }
   } else if (WP[d.wp].aa) { // anti-aircraft mounts: everything points up at the sky
@@ -1081,7 +1080,6 @@ function unitGeo(d, team) {
         const [a2, b3, c2] = up(3.06 * s, ox * s, 0.65 * s + oy * s, -0.3 * s); tb.add(G.cone, 0.08 * s, 0.12 * s, 0.08 * s, a2, b3, c2, 0xe8e8e8, Math.PI / 2 - e, 0, 0); } }
     else { const [x, y, z] = up(1.8 * s, 0, 0.6 * s, 0.05 * s); tb.add(G.cyl16, 0.09 * s, 1.8 * s, 0.09 * s, x, y, z, 0x34343a, Math.PI / 2 - e, 0, 0);
       tb.add(G.dome, 0.4 * s, 0.4 * s, 0.4 * s, 0, 0.45 * s, 0, T.body);
-      for (let k = 0; k < 3; k++) { const [a, b2, c] = up((0.6 + k * 0.5) * s, 0, 0.6 * s, 0.05 * s); tb.add(G.cyl16, 0.15 * s, 0.07 * s, 0.15 * s, a, b2, c, 0x3cff52, Math.PI / 2 - e, 0, 0); }
       const [a3, b4, c3] = up(3.6 * s, 0, 0.6 * s, 0.05 * s); tb.add(G.sph, 0.12 * s, 0.12 * s, 0.12 * s, a3, b4, c3, 0xc8ffc0); }
   } else if (d.wp === 'radar') {
     tb.add(G.cyl16, 0.42 * s, 0.22 * s, 0.42 * s, 0, 0.11 * s, 0, T.dark); tb.add(G.cyl16, 0.44 * s, 0.05 * s, 0.44 * s, 0, 0.22 * s, 0, T.acc);

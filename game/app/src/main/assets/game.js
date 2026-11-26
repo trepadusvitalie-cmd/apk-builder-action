@@ -206,6 +206,12 @@ const G = {
   dome: new THREE.SphereGeometry(1, 12, 6, 0, TAU, 0, Math.PI / 2).toNonIndexed(),
   ico: new THREE.IcosahedronGeometry(1, 0).toNonIndexed(),
   hull: prismX([[-0.5, -0.5], [0.36, -0.5], [0.5, -0.12], [0.5, 0.0], [0.18, 0.5], [-0.44, 0.5], [-0.5, 0.3]]),
+  // concrete foundation seen from above: a round centre (R 1) with three pointed arms at 120° (width 1.55, straight 0.9 + tip 0.9), one piece
+  trefoil: prismY((() => { const pts = [], w = 0.775, x0 = Math.sqrt(1 - w * w), a0 = Math.atan2(w, x0);
+    for (let i = 0; i < 3; i++) { const a = i * TAU / 3, ca = Math.cos(a), sa = Math.sin(a), P = (x, y) => pts.push([x * ca - y * sa, x * sa + y * ca]);
+      P(x0, -w); P(1.9, -w); P(2.8, 0); P(1.9, w); P(x0, w);
+      for (let k = 1; k < 6; k++) { const t = a + a0 + (TAU / 3 - 2 * a0) * k / 6; pts.push([Math.cos(t), Math.sin(t)]); } }
+    return pts; })()),
   wedge: prismY([[-0.5, -0.5], [0.5, -0.5], [0.5, 0.18], [0.24, 0.5], [-0.24, 0.5], [-0.5, 0.18]]),
 };
 // side profile (z forward, y up) extruded across x, centred, size 1
@@ -1221,16 +1227,12 @@ function tripod(B, T, conc, conc2, H, R) {
   for (let k = 0; k < 8; k++) { const a = k / 8 * TAU; B.add(G.cyl10, 0.06, 0.06, 0.06, Math.sin(a) * 1.3, H + 0.58, Math.cos(a) * 1.3, 0x2a2a28); }
 }
 // stepped concrete gun base: three tiers with sloped faces, pour joints, hazard stripe and a turntable on top (turret sits at y 2.0)
-function stepBase(B, T) {   // low stepped base of light-grey concrete: three shallow tiers with sloped faces, a turntable on top (turret sits at y 1.0)
-  const tiers = [[5.2, 0.32, 0.0, 0xb3b0a8], [4.2, 0.28, 0.3, 0xbdbab2], [3.2, 0.24, 0.56, 0xc6c3bb]];
-  for (const [w, h, y, c] of tiers) {
-    B.box(w - 0.5, h, w - 0.5, 0, y + h / 2, 0, c);
-    for (const sd of [-1, 1]) { const o = w / 2 - 0.3; B.box(w - 0.5, h * 1.15, 0.45, 0, y + h / 2 - 0.02, sd * o, c, -sd * 0.7, 0, 0); B.box(0.45, h * 1.15, w - 0.5, sd * o, y + h / 2 - 0.02, 0, c, 0, 0, sd * 0.7); }   // sloped faces
-    for (const sx of [-1, 1]) for (const sz of [-1, 1]) B.box(0.36, h * 1.05, 0.36, sx * (w / 2 - 0.32), y + h / 2 - 0.02, sz * (w / 2 - 0.32), 0xa29f97, 0, Math.PI / 4, 0);   // corner caps
-    B.box(w - 0.52, 0.02, 0.04, 0, y + h + 0.005, 0, 0x8f8c84); B.box(0.04, 0.02, w - 0.52, 0, y + h + 0.005, 0, 0x8f8c84); }   // pour joints
-  B.add(G.cyl16, 1.3, 0.16, 1.3, 0, 0.88, 0, 0xa29f97); B.add(G.cyl16, 1.15, 0.08, 1.15, 0, 0.98, 0, 0x4a4a46); B.add(G.cyl16, 1.2, 0.04, 1.2, 0, 0.95, 0, T.acc);
-  for (let k = 0; k < 8; k++) { const a = k / 8 * TAU; B.add(G.cyl10, 0.05, 0.05, 0.05, Math.sin(a) * 1.25, 0.97, Math.cos(a) * 1.25, 0x2a2a28); }
-  for (let k = 0; k < 7; k++) B.box(0.45, 0.03, 0.12, -1.0 + k * 0.33, 0.33, 2.35, k % 2 ? 0x1c1c1c : 0xe8c02a);   // hazard stripe on the front step
+// light-grey concrete foundation shaped as a round centre with three pointed arms (see G.trefoil); two shallow layers and a turntable (turret sits at y 1.0)
+function stepBase(B, T, k = 0.85) {
+  B.add(G.trefoil, k, 0.34, k, 0, 0, 0, 0xb3b0a8); B.add(G.trefoil, k * 0.8, 0.26, k * 0.8, 0, 0.34, 0, 0xc2bfb7);
+  B.add(G.cyl16, 1.35 * k, 0.3, 1.35 * k, 0, 0.75, 0, 0xc9c6be); B.add(G.cyl16, 1.15, 0.08, 1.15, 0, 0.94, 0, 0x4a4a46); B.add(G.cyl16, 1.2, 0.04, 1.2, 0, 0.91, 0, T.acc);
+  for (let i = 0; i < 8; i++) { const a = i / 8 * TAU; B.add(G.cyl10, 0.05, 0.05, 0.05, Math.sin(a) * 1.25, 0.94, Math.cos(a) * 1.25, 0x2a2a28); }
+  for (let i = 0; i < 3; i++) { const a = i * TAU / 3; B.box(0.06, 0.02, 1.6 * k, Math.cos(a) * 1.9 * k, 0.345, -Math.sin(a) * 1.9 * k, 0x8f8c84, 0, a + Math.PI / 2, 0); }   // pour joints along the arms
 }
 function sqFort(B, T, conc, conc2, k, H, tiers) {
   const slit = 0x141414, steel = 0x3c3e3a, W = 8 * k, h2 = W / 2;
@@ -1449,7 +1451,7 @@ function bldGeo(type, team) {
       break;
     case 'ptrap': czech(B, -0.6, -0.4, 0, 0.3); czech(B, 0.7, -0.4, 0.4, 1.1); B.box(2.2, 0.2, 2.2, 0, -0.3, 0, 0x6a6458); break;
     case 'pwall': return bldGeo('wall', team);
-    case 'cls_aa': stepBase(B, T); for (let k = 0; k < 4; k++) { const a = k / 4 * TAU + Math.PI / 4; B.add(G.sph, 0.4, 0.22, 0.26, Math.sin(a) * 3.1, 0.42, Math.cos(a) * 3.1, 0x9a8a62, 0, a, 0); } break;   // sandbags on the lowest step
+    case 'cls_aa': stepBase(B, T); for (let k = 0; k < 4; k++) { const a = k / 4 * TAU + Math.PI / 4; B.add(G.sph, 0.4, 0.22, 0.26, Math.sin(a) * 1.7, 0.42, Math.cos(a) * 1.7, 0x9a8a62, 0, a, 0); } break;   // sandbags on the lowest step
     case 'cls_bunker':
       // round concrete pillbox: thick wall, a dark firing slit all the way round, overhanging roof slab, rear door
       B.add(G.cyl16, 2.25, 0.3, 2.25, 0, 0.05, 0, conc2);                  // footing
@@ -1468,10 +1470,10 @@ function bldGeo(type, team) {
       for (let k = -1; k <= 1; k++) for (const sz of [-1, 1]) B.box(0.9, 0.12, 0.08, k * 1.1, 1.6, sz * 1.82, 0x5a564f);
       break;
     case 'cls_fort': { const y = sqFort(B, T, conc, conc2, 0.85, 3.6, 0); B.box(3.2, 5.6 - y, 3.2, 0, (5.6 + y) / 2, 0, conc2); B.box(3.4, 0.2, 3.4, 0, 5.55, 0, 0x7a756b); break; }
-    case 'cls_pit': stepBase(B, T); B.box(0.8, 0.3, 0.45, 2.2, 0.47, -1.9, 0x5a5a3a); B.box(0.7, 0.26, 0.4, 2.2, 0.75, -1.9, 0x6a5a3a); break;   // ammunition crates on the lowest step
+    case 'cls_pit': stepBase(B, T); B.box(0.7, 0.28, 0.42, 1.55, 0.48, 0.9, 0x5a5a3a, 0, 0.5, 0); B.box(0.6, 0.24, 0.38, 1.55, 0.74, 0.9, 0x6a5a3a, 0, 0.5, 0); break;   // ammunition crates on the lowest step
     case 'tower':
       // tall concrete pillar with a gun platform on top
-      tripod(B, T, conc, conc2, 4.2, 2.1);
+      B.add(G.trefoil, 0.85, 0.3, 0.85, 0, -0.1, 0, 0xb3b0a8); tripod(B, T, conc, conc2, 4.2, 2.1);
       for (let k = 0; k < 8; k++) { const a = k / 8 * TAU; B.box(0.35, 0.35, 0.18, Math.sin(a) * 1.35, 5.0, Math.cos(a) * 1.35, T.dark, 0, a, 0); }
       
       break;
@@ -1490,10 +1492,9 @@ function bldGeo(type, team) {
       break; }
   }
   // foundation skirt reaching down into the ground, so nothing floats on a slope
-  if (type === 'cls_pit' || type === 'cls_aa') B.box(5.1, 3.0, 5.1, 0, -1.5, 0, conc2);
+  if (type === 'cls_pit' || type === 'cls_aa' || type === 'tower') B.add(G.trefoil, 0.84, 0.9, 0.84, 0, -0.9, 0, 0xa29f97);   // short footing below ground for slopes
   else if (type === 'cls_bunker') { const r = 2.2; B.add(G.cyl16, r, 3.0, r, 0, -1.55, 0, conc2); }
-  else if (type === 'tower') B.add(G.cyl16, 2.1, 3.0, 2.1, 0, -1.55, 0, conc2);
-  else if (type === 'cls_hard' || type === 'cls_fort') { const sz = BD[type] ? BD[type].size : (DCLASS[type.slice(4)] || { size: 3.6 }).size; B.box(sz * 1.05, 3.0, sz * 1.05, 0, -1.7, 0, conc2); }
+    else if (type === 'cls_hard' || type === 'cls_fort') { const sz = BD[type] ? BD[type].size : (DCLASS[type.slice(4)] || { size: 3.6 }).size; B.box(sz * 1.05, 3.0, sz * 1.05, 0, -1.7, 0, conc2); }
   const res = { geo: B.build(), anim }; bldCache[key] = res; return res;
 }
 

@@ -1569,7 +1569,7 @@ function createBuilding(team, type, x, z, complete, rotOverride, tier, pal) {
   const b = { kind: 'bld', type, team, x, z, y, rot, def, hp: complete ? maxHp : maxHp * 0.1, maxHp, r: def.r || def.size * 0.55, h: def.h, tier, mesh: m.grp, parts: m.parts, complete: !!complete, built: complete ? 1 : 0, queue: [], prod: 0, rally: null, res: null, resProg: 0, cd: 0, acq: 0, target: null, turYaw: 0, alive: true, id: uid++, smokeT: 0, lastHit: -99, anim: Math.random() * 6, pal };
   if (!complete) m.grp.scale.y = 0.12;
   if (type === 'pump' || type === 'generator') { const w = wellAt(x, z); b.well = w; if (w) w.pump = b; }
-  ents.push(b); EID.set(b.id, b); return b;
+  ents.push(b); EID.set(b.id, b); bldVer++; return b;
 }
 function completeBld(b) {
   b.complete = true; b.built = 1; b.mesh.scale.y = 1;
@@ -1865,7 +1865,7 @@ function damage(e, amt, src) {
   if (e.hp <= 0) { if (src && src.kind === 'unit' && src.alive) { src.kills = (src.kills || 0) + 1; const rk = src.kills >= 15 ? 3 : src.kills >= 8 ? 2 : src.kills >= 3 ? 1 : 0; if (rk > (src.rank || 0)) { src.rank = rk; if (src.team === 0) fx('spark', src.x, src.y + 2, src.z, 1.4); } } kill(e); }
 }
 function kill(e) {
-  e.alive = false; e.hp = 0; scene.remove(e.mesh);
+  e.alive = false; e.hp = 0; scene.remove(e.mesh); if (e.kind === 'bld') bldVer++;
   if (e.kind === 'unit') { TEAMS[e.team].units--; explosion(e.x, e.y + 0.8, e.z, 1); addWreck(e); if (e.team === 0) S.stats.lost++; else S.stats.killed++; }
   else {
     explosion(e.x, e.y + 1.5, e.z, 2.4);
@@ -1955,6 +1955,68 @@ function fireWeapon(src, t, w, mx, my, mz, mul) {
   else if (w.kind === 'rocket') { for (let i = 0; i < 2; i++) later(i * 0.15, () => { if (src.alive && t.alive) { spawnProj('rocket', src, t, dmg, w.splash, mx, my, mz, w); if (w.heavy) { fx('fire', mx, my, mz, 0.7); fx('smoke', mx, my, mz, 1); } } }); sfx('rocket', mx, mz); }
 }
 
+// ================= PATHFINDING =================
+// ground units search a route on a 4 m grid: around mountains, rocks, steep slopes and buildings (enemy walls included, so they find the gates).
+// Gentle ground and roads are preferred. Paths are shared by units of the same group and computed a few per frame.
+const PC = 4, PN = Math.ceil(2 * EDGE / PC) + 1;
+let PSTAT = null, PCOST = null, PBLD = null, pBldVer = -1, bldVer = 0, pathBudget = 0;
+const PCACHE = new Map();
+const pcell = v => clamp(Math.round((v + EDGE) / PC), 0, PN - 1), pwx = i => i * PC - EDGE;
+function pathStatic() {
+  PSTAT = new Uint8Array(PN * PN); PCOST = new Float32Array(PN * PN);
+  for (const o of OBST) { const r = o.r + 1.6, i0 = pcell(o.x - r), i1 = pcell(o.x + r), j0 = pcell(o.z - r), j1 = pcell(o.z + r);
+    for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) if (Math.hypot(pwx(i) - o.x, pwx(j) - o.z) < r) PSTAT[j * PN + i] = 1; }
+  for (let j = 0; j < PN; j++) for (let i = 0; i < PN; i++) { const x = pwx(i), z = pwx(j), h = heightAt(x, z);
+    const dh = Math.max(Math.abs(heightAt(x + PC, z) - h), Math.abs(heightAt(x - PC, z) - h), Math.abs(heightAt(x, z + PC) - h), Math.abs(heightAt(x, z - PC) - h));
+    PCOST[j * PN + i] = 1 + dh * 0.6 + Math.max(0, h - 8) * 0.05; }   // slopes cost more but never block: tanks can climb them
+}
+function pathBlds() {
+  PBLD = new Uint8Array(PSTAT); pBldVer = bldVer;
+  for (const e of ents) { if (e.kind !== 'bld' || !e.alive || e.def.flat) continue; const r = e.r + 1.2, i0 = pcell(e.x - r), i1 = pcell(e.x + r), j0 = pcell(e.z - r), j1 = pcell(e.z + r);
+    for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) if (Math.hypot(pwx(i) - e.x, pwx(j) - e.z) < r) PBLD[j * PN + i] = 1; }
+}
+function freeNear(i, j, G) { if (!G[j * PN + i]) return [i, j];
+  for (let r = 1; r < 14; r++) { let best = null, bd = 1e9; for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) { if (Math.max(Math.abs(di), Math.abs(dj)) !== r) continue; const a = i + di, b = j + dj; if (a < 0 || b < 0 || a >= PN || b >= PN || G[b * PN + a]) continue; const d = di * di + dj * dj; if (d < bd) { bd = d; best = [a, b]; } } if (best) return best; }
+  return null; }
+function lineFree(G, x0, z0, x1, z1) { const n = Math.ceil(Math.hypot(x1 - x0, z1 - z0) / 1.5); for (let k = 1; k < n; k++) { const t = k / n; if (G[pcell(z0 + (z1 - z0) * t) * PN + pcell(x0 + (x1 - x0) * t)]) return false; } return true; }
+const PH = { g: null, f: null, from: null, seen: null, stamp: 0 };
+function findPath(sx, sz, gx, gz) {
+  if (!PSTAT) pathStatic(); if (pBldVer !== bldVer) pathBlds(); const G = PBLD;
+  const s = freeNear(pcell(sx), pcell(sz), G), g = freeNear(pcell(gx), pcell(gz), G); if (!s || !g) return null;
+  if (!PH.g) { PH.g = new Float32Array(PN * PN); PH.from = new Int32Array(PN * PN); PH.seen = new Uint32Array(PN * PN); }
+  const st = ++PH.stamp, S0 = s[1] * PN + s[0], GI = g[1] * PN + g[0]; const heap = [], hk = [];
+  const push = (k, f) => { heap.push(k); hk.push(f); let c = heap.length - 1; while (c > 0) { const p = (c - 1) >> 1; if (hk[p] <= hk[c]) break; [heap[p], heap[c]] = [heap[c], heap[p]]; [hk[p], hk[c]] = [hk[c], hk[p]]; c = p; } };
+  const pop = () => { const top = heap[0], lk = heap.pop(), lf = hk.pop(); if (heap.length) { heap[0] = lk; hk[0] = lf; let c = 0; for (;;) { const l = c * 2 + 1, r = l + 1; let m = c; if (l < heap.length && hk[l] < hk[m]) m = l; if (r < heap.length && hk[r] < hk[m]) m = r; if (m === c) break; [heap[m], heap[c]] = [heap[c], heap[m]]; [hk[m], hk[c]] = [hk[c], hk[m]]; c = m; } } return top; };
+  const hh = k => { const dx = Math.abs(k % PN - g[0]), dz = Math.abs(((k / PN) | 0) - g[1]); return (Math.max(dx, dz) + 0.414 * Math.min(dx, dz)) * 1.15; };
+  PH.seen[S0] = st; PH.g[S0] = 0; PH.from[S0] = -1; push(S0, hh(S0)); let found = false, it = 0;
+  const NB = [[1, 0, 1], [-1, 0, 1], [0, 1, 1], [0, -1, 1], [1, 1, 1.414], [1, -1, 1.414], [-1, 1, 1.414], [-1, -1, 1.414]];
+  if (!PH.closed) PH.closed = new Uint32Array(PN * PN);
+  while (heap.length && it++ < 250000) { const k = pop(); if (k === GI) { found = true; break; } if (PH.closed[k] === st) continue; PH.closed[k] = st; const i = k % PN, j = (k / PN) | 0, gk = PH.g[k];
+    for (const [di, dj, c] of NB) { const a = i + di, b = j + dj; if (a < 0 || b < 0 || a >= PN || b >= PN) continue; const n = b * PN + a; if (G[n]) continue;
+      if (di && dj && (G[j * PN + a] || G[b * PN + i])) continue;   // no squeezing diagonally between two blocked cells
+      const ng = gk + c * PCOST[n]; if (PH.closed[n] === st || (PH.seen[n] === st && PH.g[n] <= ng)) continue; PH.seen[n] = st; PH.g[n] = ng; PH.from[n] = k; push(n, ng + hh(n)); } }
+  PH.it = it; if (!found) return null;
+  const pts = []; for (let k = GI; k !== -1; k = PH.from[k]) pts.push([pwx(k % PN), pwx((k / PN) | 0)]); pts.reverse();
+  const out = []; let cx = sx, cz = sz, a = 0;   // string pulling: keep only the corners
+  while (a < pts.length - 1) { let b = pts.length - 1; while (b > a + 1 && !lineFree(G, cx, cz, pts[b][0], pts[b][1])) b--; out.push(pts[b]); cx = pts[b][0]; cz = pts[b][1]; a = b; }
+  return out;
+}
+// next point a ground unit should head for on its way to (gx, gz); null = go straight
+function routeStep(u, gx, gz, dt) {
+  if (u.air) return null;
+  const d = Math.hypot(gx - u.x, gz - u.z); if (d < 9) { u.path = null; return null; }
+  u.stkT = (u.stkT || 0) + dt;
+  const stuck = u.stkT > 1.5 && Math.hypot(u.x - (u.stkX || 0), u.z - (u.stkZ || 0)) < 0.8; if (u.stkT > 1.5) { u.stkT = 0; u.stkX = u.x; u.stkZ = u.z; }
+  const stale = !u.path || Math.hypot((u.pgx || 0) - gx, (u.pgz || 0) - gz) > Math.max(6, d * 0.2) || stuck;
+  if (stale && S.time >= (u.pthT || 0) && pathBudget > 0) {
+    const key = pcell(gx) * 4096 + pcell(gz) + '/' + Math.floor(u.x / 24) + ',' + Math.floor(u.z / 24) + '/' + bldVer; let c = stuck ? null : PCACHE.get(key);
+    if (!c || S.time - c.t > 6) { pathBudget--; c = { p: findPath(u.x, u.z, gx, gz), t: S.time }; PCACHE.set(key, c); if (PCACHE.size > 400) PCACHE.delete(PCACHE.keys().next().value); }
+    u.pthT = S.time + 0.6; u.pgx = gx; u.pgz = gz; u.path = c.p ? c.p.map(p => [p[0], p[1]]) : null; u.pi = 0;
+    if (u.path) { u.path[u.path.length - 1] = [gx, gz]; while (u.pi < u.path.length - 1 && Math.hypot(u.path[u.pi][0] - u.x, u.path[u.pi][1] - u.z) < 6) u.pi++; } }
+  if (!u.path) return null;
+  while (u.pi < u.path.length - 1 && Math.hypot(u.path[u.pi][0] - u.x, u.path[u.pi][1] - u.z) < 3.5) u.pi++;
+  return u.pi < u.path.length - 1 ? u.path[u.pi] : null;
+}
 // ================= MOVEMENT =================
 function steer(u, tx, tz, dt, arrive) {
   const dx = tx - u.x, dz = tz - u.z; const d = Math.hypot(dx, dz);
@@ -2156,6 +2218,7 @@ function updUnit(u, dt) {
       break;
     }
   }
+  if (mx !== null) { const wp = routeStep(u, mx, mz, dt); if (wp) { mx = wp[0]; mz = wp[1]; arrive = 0; } }
   if (mx !== null) steer(u, mx, mz, dt, arrive); else { const k = Math.max(0, 1 - dt * 8); u.vx *= k; u.vz *= k; }
   u.x += u.vx * dt; u.z += u.vz * dt; collide(u);
 
@@ -3547,7 +3610,7 @@ setInterval(() => { if (S.running && !S.paused) saveGame(true); }, 60000);   // 
 document.addEventListener('visibilitychange', () => { if (document.hidden) saveGame(true); });
 let ecoT = 0, aiT = 0, uiT = 0, winT = 0;
 function update(dt) {
-  S.time += dt;
+  S.time += dt; pathBudget = 2;
   for (let i = timers.length - 1; i >= 0; i--) if (S.time >= timers[i].t) { const f = timers[i].fn; timers.splice(i, 1); f(); }
   ecoT += dt; if (ecoT >= 1) { ecoT -= 1; for (const T of TEAMS) { const gens = ents.filter(e => e.alive && e.team === T.i && e.type === 'generator' && e.complete).length; const hq = ents.some(e => e.alive && e.team === T.i && e.type === 'hq'); T.inc = (hq ? 1.5 : 0.5) + 4 * gens * T.powMul; T.energy += T.inc; } }
   aiT += dt; if (aiT >= 1) { aiT = 0; aiTick(); }
@@ -3703,7 +3766,7 @@ window.onBack = () => {
   if (S.paused || !$('pause').classList.contains('hidden')) return false;
   S.paused = !NET.on; $('pause').classList.remove('hidden'); return true;
 };
-window.__game = { OBST, OUTPOSTS, EDGE, UIC, RICON, make3DIcons, losClear, nearestEnemy, eyeY, RS_DEPTH, RICON, RS, LS, worldHash, bombFx, fireball3D, kill, wrecks, FBALLS, updFireballs, SPOT, nearestSpotted, WP, impactFx, XST, heightAt,  killNear: () => { for (const e of ents) if (e.alive && e.team === 1 && Math.hypot(e.x - PLAYER2.x, e.z - PLAYER2.z) < 25) kill(e); }, NET, execCmd, doCmd, byId, PLAYER, PLAYER2, S, TEAMS, ents, cam, setSel, sel: () => sel, createUnit, createBuilding, sfx, AU, SB, buildSfx, projs: () => projs, BD, WP };
+window.__game = { PH, pgrid: (x, z, r) => { findPath(x, z, x + 1, z); const out = []; for (let j = pcell(z - r); j <= pcell(z + r); j++) { let l = ''; for (let i = pcell(x - r); i <= pcell(x + r); i++) l += PBLD[j * PN + i] ? '#' : PSTAT[j * PN + i] ? 'o' : '.'; out.push(l); } return out.join('\n'); }, findPath, routeStep, OBST, OUTPOSTS, EDGE, UIC, RICON, make3DIcons, losClear, nearestEnemy, eyeY, RS_DEPTH, RICON, RS, LS, worldHash, bombFx, fireball3D, kill, wrecks, FBALLS, updFireballs, SPOT, nearestSpotted, WP, impactFx, XST, heightAt,  killNear: () => { for (const e of ents) if (e.alive && e.team === 1 && Math.hypot(e.x - PLAYER2.x, e.z - PLAYER2.z) < 25) kill(e); }, NET, execCmd, doCmd, byId, PLAYER, PLAYER2, S, TEAMS, ents, cam, setSel, sel: () => sel, createUnit, createBuilding, sfx, AU, SB, buildSfx, projs: () => projs, BD, WP };
 
 resize(); updateCamera(0); requestAnimationFrame(loop);
 // background scene behind the intro

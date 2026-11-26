@@ -85,7 +85,7 @@
     ['⚡ · +25% rază aliați', '⚡ · +25% allied range', '⚡ · +25% дальности союзникам'], ['⚡ · repară', '⚡ · repairs', '⚡ · чинит'], ['⚡ · construiește', '⚡ · builds', '⚡ · строит'], ['⚡ · rază', '⚡ · range', '⚡ · дальность'],
     ['Reparare', 'Repair', 'Ремонт'], ['Construiește și repară clădiri.', 'Builds and repairs buildings.', 'Строит и чинит здания.'],
     ['1 · Șasiu — deplasare', '1 · Chassis — movement', '1 · Шасси — передвижение'], ['2 · Corp — blindaj', '2 · Body — armour', '2 · Корпус — броня'], ['3 · Modul de sus — armă, radar sau reparator', '3 · Top module — weapon, radar or repair', '3 · Верхний модуль — оружие, радар или ремонт'],
-    ['▶▶ Produ ×5', '▶▶ Build ×5', '▶▶ Создать ×5'], ['▶ Produ ×1', '▶ Build ×1', '▶ Создать ×1'], ['Închide', 'Close', 'Закрыть'],
+    ['▶▶ Produ ×5', '▶▶ Build ×5', '▶▶ Создать ×5'], ['▶▶ Produ ×10', '▶▶ Build ×10', '▶▶ Создать ×10'], ['▶▶ Produ ×20', '▶▶ Build ×20', '▶▶ Создать ×20'], ['▶ Produ ×1', '▶ Build ×1', '▶ Создать ×1'], ['Închide', 'Close', 'Закрыть'],
     // ---- multiplayer ----
     ['Conexiune slabă cu serverul… se reîncearcă', 'Weak connection to the server… retrying', 'Слабая связь с сервером… повтор'], ['❌ Partida a început fără tine. Cere-i gazdei o partidă nouă.', '❌ The match started without you. Ask the host for a new one.', '❌ Матч начался без вас. Попросите хоста начать новый.'],
     ['🔗 Legătură directă cu gazda', '🔗 Direct link to the host', '🔗 Прямая связь с хостом'], ['🔗 Legătură directă cu', '🔗 Direct link with', '🔗 Прямая связь с'], ['↺ Legătura directă s-a pierdut — continuăm prin server', '↺ Direct link lost — continuing via the server', '↺ Прямая связь потеряна — продолжаем через сервер'],

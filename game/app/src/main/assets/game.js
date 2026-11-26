@@ -2403,7 +2403,7 @@ function execCmd(c, pal) {
       const b = createBuilding(0, type, wl ? wl.x : x, wl ? wl.z : z, false, wl ? wl.rot : undefined, undefined, pal | 0); for (const u of U(ids)) if (u.isTruck) { u.state = 'build'; u.buildTarget = b; u.target = null; } break; }
     case 'ra': { const f = byId(c[1]); if (f && f.team === 0) f.rally = { x: c[2], z: c[3] }; break; }
     case 'q': { const f = byId(c[1]); if (!f || !f.alive || f.team !== 0 || !FACT_TYPES.has(f.type)) break; const d = c[2]; if (!validDesign(d) || facFor(d) !== f.type) break;
-      let k = 0; for (let i = 0; i < Math.min(5, c[3] | 0); i++) { const cost = unitStats(d, 0).cost; if (T.energy < cost || f.queue.length >= 8) break; T.energy -= cost; f.queue.push({ ch: d.ch, pr: d.pr, wp: d.wp }); k++; }
+      let k = 0; for (let i = 0; i < Math.min(QMAX, c[3] | 0); i++) { const cost = unitStats(d, 0).cost; if (T.energy < cost || f.queue.length >= QMAX) break; T.energy -= cost; f.queue.push({ ch: d.ch, pr: d.pr, wp: d.wp }); k++; }
       if (!k) say('Energie insuficientă sau coadă plină'); panelSig = ''; break; }
     case 'uq': { const f = byId(c[1]); if (!f || f.team !== 0 || !f.queue) break; const i = c[2] | 0; const d = f.queue[i]; if (d) { T.energy += unitStats(d, 0).cost; f.queue.splice(i, 1); if (i === 0) f.prod = 0; panelSig = ''; } break; }
     case 'rs': { let l = byId(c[1]); const r = RS.find(x => x.id === c[2]); if (!r) break;
@@ -2752,10 +2752,10 @@ function renderPanel() {
     else if (FACT_TYPES.has(b.type)) {
       h += `<div class="lbl">Producție</div><div class="queue">${b.queue.map((d, i) => `<button data-act="unq" data-v="${i}">${d.wp === 'truck' ? UIC.truck : UIC.tank}${i === 0 ? '<span id="pProdT"></span>' : ''} ✖</button>`).join('') || '<span class="hint">Coada e goală</span>'}</div><div class="bar o"><i id="pProd"></i></div>`;
       const truck = { ch: 'light', pr: 'wheels', wp: 'truck' };
-      h += `<div class="grid">` + (b.type === 'factory' ? `<button data-act="produce" data-v='${JSON.stringify(truck)}' ${T.energy < unitStats(truck, 0).cost || b.queue.length >= 8 ? 'disabled' : ''}>${UIC.truck}<span class="bn">Constructor</span><small>${unitStats(truck, 0).cost}<i class="eu">⚡</i></small></button>` : '');
+      h += `<div class="grid">` + (b.type === 'factory' ? `<button data-act="produce" data-v='${JSON.stringify(truck)}' ${T.energy < unitStats(truck, 0).cost || b.queue.length >= QMAX ? 'disabled' : ''}>${UIC.truck}<span class="bn">Constructor</span><small>${unitStats(truck, 0).cost}<i class="eu">⚡</i></small></button>` : '');
       const mine = lastDesigns.filter(d => facFor(d) === b.type); const quick = mine.length ? mine : [defDesign(b.type)];
       if (b.type === 'airfactory') { const pads = ents.filter(e => e.alive && e.team === 0 && e.type === 'vpad').length, vt = ents.filter(e => e.alive && e.team === 0 && e.air === 'vtol').length; h += `<div class="hint" style="grid-column:1/-1">Platforme de realimentare: <b>${pads}</b> · aeronave VTOL: <b>${vt}</b>. Fiecare VTOL are muniție pentru câteva atacuri, apoi se întoarce singur pe platformă.</div>`; }
-      for (const d of quick) { const c = unitStats(d, 0).cost; h += `<button data-act="produce" data-v='${JSON.stringify(d)}' ${T.energy < c || b.queue.length >= 8 || !validDesign(d) || !T.tech.has(d.ch) || !T.tech.has(d.pr) ? 'disabled' : ''}>${d.wp === 'radar' || d.wp === 'repair' || d.wp === 'truck' ? RICON[d.wp].replace('class="ric"', 'class="ui"') : d.pr === 'legs' ? RICON.cyborg.replace('class="ric"', 'class="ui"') : d.pr === 'rotor' ? RICON.drone.replace('class="ric"', 'class="ui"') : d.pr === 'vtol' ? RICON.vtol.replace('class="ric"', 'class="ui"') : UIC.tank}<span class="bn">${designName(d)}</span><small>${c}<i class="eu">⚡</i></small></button>`; }
+      for (const d of quick) { const c = unitStats(d, 0).cost; h += `<button data-act="produce" data-v='${JSON.stringify(d)}' ${T.energy < c || b.queue.length >= QMAX || !validDesign(d) || !T.tech.has(d.ch) || !T.tech.has(d.pr) ? 'disabled' : ''}>${d.wp === 'radar' || d.wp === 'repair' || d.wp === 'truck' ? RICON[d.wp].replace('class="ric"', 'class="ui"') : d.pr === 'legs' ? RICON.cyborg.replace('class="ric"', 'class="ui"') : d.pr === 'rotor' ? RICON.drone.replace('class="ric"', 'class="ui"') : d.pr === 'vtol' ? RICON.vtol.replace('class="ric"', 'class="ui"') : UIC.tank}<span class="bn">${designName(d)}</span><small>${c}<i class="eu">⚡</i></small></button>`; }
       h += `<button data-act="designer" class="ok">${UIC.design}<span class="bn">Proiectant</span></button></div><div class="hint">Atinge harta pentru punctul de adunare.</div>`;
     } else if (b.type === 'lab') {
       h += `<div class="lbl">Cercetare</div>`;
@@ -2859,9 +2859,10 @@ panel.addEventListener('click', ev => {
   else if (act === 'research') { const r = RS.find(x => x.id === v); const l = !e.res && e.complete ? e : ents.find(x => x.alive && x.team === 0 && x.type === 'lab' && x.complete && !x.res);
     if (!l) toast('Toate laboratoarele sunt ocupate'); else if (T.energy >= r.cost) { doCmd(['rs', l.id, r.id]); panelSig = ''; } }
 });
+const QMAX = 20;   // factory queue: up to 20 units
 function queueUnit(f, d, n) {
   const T = TEAMS[0];
-  if (T.energy < unitStats(d, 0).cost || f.queue.length >= 8) toast('Energie insuficientă sau coadă plină'); else doCmd(['q', f.id, { ch: d.ch, pr: d.pr, wp: d.wp }, n]);
+  if (T.energy < unitStats(d, 0).cost || f.queue.length >= QMAX) toast('Energie insuficientă sau coadă plină'); else doCmd(['q', f.id, { ch: d.ch, pr: d.pr, wp: d.wp }, n]);
   panelSig = '';
   if (!(d.wp === 'truck' && d.ch === 'light' && d.pr === 'wheels')) { lastDesigns = [d, ...lastDesigns.filter(x => designName(x) !== designName(d))].slice(0, 3); }
 }
@@ -2917,7 +2918,7 @@ $('designer').addEventListener('click', ev => {
   const b = ev.target.closest('button'); if (!b || b.disabled) return; sfx('click');
   if (b.dataset.f) { dsg[b.dataset.f] = b.dataset.k; fixDesign(dsgFactory ? dsgFactory.type : 'factory', b.dataset.f); renderDesigner(); return; }
   const a = b.dataset.d; if (a === 'close') $('designer').classList.add('hidden');
-  if ((a === 'q1' || a === 'q5') && dsgFactory && dsgFactory.alive) { queueUnit(dsgFactory, { ...dsg }, a === 'q1' ? 1 : 5); $('designer').classList.add('hidden'); }
+  if (/^q\d+$/.test(a) && dsgFactory && dsgFactory.alive) { queueUnit(dsgFactory, { ...dsg }, +a.slice(1)); $('designer').classList.add('hidden'); }
 });
 // research icons rendered from the game's own 3D models, lit by a low sun (done once, replaces the flat drawings)
 const ICON3D = {

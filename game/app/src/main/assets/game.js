@@ -552,8 +552,8 @@ const DCLASS = {
   bunker: { name: 'Buncăr', hp: 1300, cost: 110, size: 3.4, time: 22, h: 2, ty: 0.72, ts: 1.15, rb: -1, dm: 1.25, req: 'bunker', wps: ['mg', 'cannon', 'flame', 'laser'] },
   hard: { name: 'Fortificație', hp: 1700, cost: 170, size: 3.8, time: 28, h: 3.8, ty: 3.5, ts: 1.15, rb: 3, dm: 1.6, req: 'hardpoint', wps: ['mg', 'cannon', 'flame', 'rockets', 'laser'] },
   fort: { name: 'Fortăreață', hp: 5200, cost: 560, size: 8, time: 70, h: 6, ty: 5.6, ts: 1.9, rb: 6, dm: 3.6, req: 'fortress', wps: ['cannon', 'rockets', 'laser'] },
-  aa: { name: 'Antiaeriană (PVO)', hp: 900, cost: 100, size: 4.6, time: 20, h: 2.8, ty: 2.0, ts: 1.2, rb: 2, dm: 1.3, req: null, wps: ['aamg', 'aacannon', 'sam', 'aalaser'] },
-  pit: { name: 'Amplasament', hp: 700, cost: 80, size: 4.6, time: 18, h: 2.8, ty: 2.0, ts: 1.1, rb: 0, dm: 1.4, req: null, wps: ['mortar', 'imortar', 'empmortar', 'salvo', 'howitzer', 'ihowitzer', 'rhowitzer', 'hhowitzer', 'plasma', 'ballistic', 'rbattery', 'smissile', 'omissile'] },
+  aa: { name: 'Antiaeriană (PVO)', hp: 900, cost: 100, size: 4.6, time: 20, h: 1.9, ty: 1.0, ts: 1.2, rb: 2, dm: 1.3, req: null, wps: ['aamg', 'aacannon', 'sam', 'aalaser'] },
+  pit: { name: 'Amplasament', hp: 700, cost: 80, size: 4.6, time: 18, h: 1.9, ty: 1.0, ts: 1.1, rb: 0, dm: 1.4, req: null, wps: ['mortar', 'imortar', 'empmortar', 'salvo', 'howitzer', 'ihowitzer', 'rhowitzer', 'hhowitzer', 'plasma', 'ballistic', 'rbattery', 'smissile', 'omissile'] },
 };
 const IMP_SND = { mortar: 'imp_mortar', rmortar: 'imp_mortar', imortar: 'imp_inc', ihowitzer: 'imp_inc', empmortar: 'imp_salvo', salvo: 'imp_salvo', howitzer: 'imp_how', rhowitzer: 'imp_how', hhowitzer: 'imp_hhow', ballistic: 'imp_hhow', plasma: 'imp_plasma', rbattery: 'imp_salvo', smissile: 'imp_rocket', omissile: 'imp_hhow' };
 const ART_SND = { mortar: 'art_mortar', imortar: 'art_inc', empmortar: 'art_emp', rmortar: 'art_rmortar', salvo: 'art_salvo', howitzer: 'art_how', ihowitzer: 'art_inc', rhowitzer: 'art_rhow', hhowitzer: 'art_hhow', plasma: 'art_plasma', ballistic: 'art_ball', rbattery: 'art_salvo', smissile: 'art_salvo', omissile: 'art_ball' };
@@ -1221,16 +1221,17 @@ function tripod(B, T, conc, conc2, H, R) {
   for (let k = 0; k < 8; k++) { const a = k / 8 * TAU; B.add(G.cyl10, 0.06, 0.06, 0.06, Math.sin(a) * 1.3, H + 0.58, Math.cos(a) * 1.3, 0x2a2a28); }
 }
 // stepped concrete gun base: three tiers with sloped faces, pour joints, hazard stripe and a turntable on top (turret sits at y 2.0)
-function stepBase(B, T, conc, conc2) {      const tiers = [[5.2, 0.7, 0.0], [4.0, 0.6, 0.65], [2.9, 0.5, 1.2]];
-      for (const [w, h, y] of tiers) { const c = y > 1 ? conc : conc2;
-        B.box(w - 0.6, h, w - 0.6, 0, y + h / 2, 0, c);
-        for (const sd of [-1, 1]) { const o = w / 2 - 0.36; B.box(w - 0.6, h * 1.12, 0.5, 0, y + h / 2 - 0.02, sd * o, c, -sd * 0.5, 0, 0); B.box(0.5, h * 1.12, w - 0.6, sd * o, y + h / 2 - 0.02, 0, c, 0, 0, sd * 0.5); }   // sloped faces leaning in
-        for (const sx of [-1, 1]) for (const sz of [-1, 1]) B.box(0.42, h * 1.05, 0.42, sx * (w / 2 - 0.38), y + h / 2 - 0.02, sz * (w / 2 - 0.38), 0x7a756b, 0, Math.PI / 4, 0);   // corner caps
-        B.box(w - 0.62, 0.03, 0.05, 0, y + h + 0.005, 0, 0x6e695f); B.box(0.05, 0.03, w - 0.62, 0, y + h + 0.005, 0, 0x6e695f); }   // pour joints
-      B.add(G.cyl16, 1.3, 0.22, 1.3, 0, 1.8, 0, conc2); B.add(G.cyl16, 1.15, 0.1, 1.15, 0, 1.94, 0, 0x4a4a46); B.add(G.cyl16, 1.2, 0.05, 1.2, 0, 1.9, 0, T.acc);
-      for (let k = 0; k < 8; k++) { const a = k / 8 * TAU; B.add(G.cyl10, 0.06, 0.06, 0.06, Math.sin(a) * 1.25, 1.93, Math.cos(a) * 1.25, 0x2a2a28); }
-      for (let k = 0; k < 7; k++) B.box(0.5, 0.04, 0.14, -1.0 + k * 0.33, 0.66, 2.05, k % 2 ? 0x1c1c1c : 0xe8c02a);   // hazard stripe on the front step
-       }
+function stepBase(B, T) {   // low stepped base of light-grey concrete: three shallow tiers with sloped faces, a turntable on top (turret sits at y 1.0)
+  const tiers = [[5.2, 0.32, 0.0, 0xb3b0a8], [4.2, 0.28, 0.3, 0xbdbab2], [3.2, 0.24, 0.56, 0xc6c3bb]];
+  for (const [w, h, y, c] of tiers) {
+    B.box(w - 0.5, h, w - 0.5, 0, y + h / 2, 0, c);
+    for (const sd of [-1, 1]) { const o = w / 2 - 0.3; B.box(w - 0.5, h * 1.15, 0.45, 0, y + h / 2 - 0.02, sd * o, c, -sd * 0.7, 0, 0); B.box(0.45, h * 1.15, w - 0.5, sd * o, y + h / 2 - 0.02, 0, c, 0, 0, sd * 0.7); }   // sloped faces
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) B.box(0.36, h * 1.05, 0.36, sx * (w / 2 - 0.32), y + h / 2 - 0.02, sz * (w / 2 - 0.32), 0xa29f97, 0, Math.PI / 4, 0);   // corner caps
+    B.box(w - 0.52, 0.02, 0.04, 0, y + h + 0.005, 0, 0x8f8c84); B.box(0.04, 0.02, w - 0.52, 0, y + h + 0.005, 0, 0x8f8c84); }   // pour joints
+  B.add(G.cyl16, 1.3, 0.16, 1.3, 0, 0.88, 0, 0xa29f97); B.add(G.cyl16, 1.15, 0.08, 1.15, 0, 0.98, 0, 0x4a4a46); B.add(G.cyl16, 1.2, 0.04, 1.2, 0, 0.95, 0, T.acc);
+  for (let k = 0; k < 8; k++) { const a = k / 8 * TAU; B.add(G.cyl10, 0.05, 0.05, 0.05, Math.sin(a) * 1.25, 0.97, Math.cos(a) * 1.25, 0x2a2a28); }
+  for (let k = 0; k < 7; k++) B.box(0.45, 0.03, 0.12, -1.0 + k * 0.33, 0.33, 2.35, k % 2 ? 0x1c1c1c : 0xe8c02a);   // hazard stripe on the front step
+}
 function sqFort(B, T, conc, conc2, k, H, tiers) {
   const slit = 0x141414, steel = 0x3c3e3a, W = 8 * k, h2 = W / 2;
   B.box(W + 1.4 * k, 1.2, W + 1.4 * k, 0, -0.1, 0, conc2);                                              // footing
@@ -1448,7 +1449,7 @@ function bldGeo(type, team) {
       break;
     case 'ptrap': czech(B, -0.6, -0.4, 0, 0.3); czech(B, 0.7, -0.4, 0.4, 1.1); B.box(2.2, 0.2, 2.2, 0, -0.3, 0, 0x6a6458); break;
     case 'pwall': return bldGeo('wall', team);
-    case 'cls_aa': stepBase(B, T, conc, conc2); for (let k = 0; k < 4; k++) { const a = k / 4 * TAU + Math.PI / 4; B.add(G.sph, 0.45, 0.28, 0.3, Math.sin(a) * 2.2, 0.85, Math.cos(a) * 2.2, 0x9a8a62, 0, a, 0); } break;   // sandbags on the lowest step
+    case 'cls_aa': stepBase(B, T); for (let k = 0; k < 4; k++) { const a = k / 4 * TAU + Math.PI / 4; B.add(G.sph, 0.4, 0.22, 0.26, Math.sin(a) * 3.1, 0.42, Math.cos(a) * 3.1, 0x9a8a62, 0, a, 0); } break;   // sandbags on the lowest step
     case 'cls_bunker':
       // round concrete pillbox: thick wall, a dark firing slit all the way round, overhanging roof slab, rear door
       B.add(G.cyl16, 2.25, 0.3, 2.25, 0, 0.05, 0, conc2);                  // footing
@@ -1467,7 +1468,7 @@ function bldGeo(type, team) {
       for (let k = -1; k <= 1; k++) for (const sz of [-1, 1]) B.box(0.9, 0.12, 0.08, k * 1.1, 1.6, sz * 1.82, 0x5a564f);
       break;
     case 'cls_fort': { const y = sqFort(B, T, conc, conc2, 0.85, 3.6, 0); B.box(3.2, 5.6 - y, 3.2, 0, (5.6 + y) / 2, 0, conc2); B.box(3.4, 0.2, 3.4, 0, 5.55, 0, 0x7a756b); break; }
-    case 'cls_pit': stepBase(B, T, conc, conc2); B.box(0.9, 0.35, 0.5, 1.85, 0.88, -1.85, 0x5a5a3a); B.box(0.8, 0.3, 0.45, 1.85, 1.2, -1.85, 0x6a5a3a); break;   // ammunition crates on the lowest step
+    case 'cls_pit': stepBase(B, T); B.box(0.8, 0.3, 0.45, 2.2, 0.47, -1.9, 0x5a5a3a); B.box(0.7, 0.26, 0.4, 2.2, 0.75, -1.9, 0x6a5a3a); break;   // ammunition crates on the lowest step
     case 'tower':
       // tall concrete pillar with a gun platform on top
       tripod(B, T, conc, conc2, 4.2, 2.1);

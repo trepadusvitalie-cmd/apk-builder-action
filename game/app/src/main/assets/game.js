@@ -840,7 +840,8 @@ function missileGeo(kind) {
     salvo: [0.06, 0xb8bcc0, 0xc8321e, 0x3a3a36, 0x5a5e60], orizont: [0.065, 0x5f6a48, 0xc8321e, 0x2e3328, 0xcdbf92], ballistic: [0.08, 0xe8e8e8, 0xb8432c, 0xb8432c, 0x3a3a36], icbm: [0.075, 0xdfe3e6, 0x2e3236, 0x3a3a36, 0xc8321e] }[kind] || [0.05, 0xeeeeee, 0xc8321e, 0x333333, 0xc8321e];
   const [r, body, nose, fin, band] = K, B = new Builder(), bl = 0.78;
   B.add(G.cyl16, r, bl, r, 0, -0.5 + bl / 2, 0, body);                                     // body (built along +y)
-  B.add(G.cone, r, 1 - bl, r, 0, -0.5 + bl + (1 - bl) / 2, 0, nose);                         // nose
+  if (kind === 'icbm') B.add(G.sph, r, (1 - bl) * 0.9, r, 0, -0.5 + bl, 0, body);              // rounded oval nose, same colour as the body
+  else B.add(G.cone, r, 1 - bl, r, 0, -0.5 + bl + (1 - bl) / 2, 0, nose);                    // nose
   for (const k of kind === 'orizont' ? [0.22, 0.42, 0.62] : [0.55]) B.add(G.cyl16, r * 1.04, 0.035, r * 1.04, 0, -0.5 + bl * k, 0, band);
   B.add(G.cyl16, r * 0.8, 0.04, r * 0.8, 0, -0.5 - 0.01, 0, 0x222222);                       // nozzle
   for (let f = 0; f < 4; f++) { const a = f * Math.PI / 2 + Math.PI / 4; B.box(0.012, 0.16, r * 2.6, Math.sin(a) * r * 1.6, -0.42, Math.cos(a) * r * 1.6, fin, 0, a, 0); }

@@ -1,0 +1,52 @@
+plugins {
+    id 'com.android.application'
+}
+
+// Release signing comes from environment variables (GitHub Actions secrets), never from the repository.
+def ksFile = System.getenv('IRONFALL_KEYSTORE') ?: ''
+def hasKey = ksFile && file(ksFile).exists()
+
+android {
+    namespace 'ro.joc.ironfall'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId 'ro.joc.ironfall'
+        minSdk 26
+        targetSdk 36
+        // every CI build gets a higher number, which Google Play requires for each new upload
+        versionCode((System.getenv('IRONFALL_VERSION_CODE') ?: '1') as int)
+        versionName System.getenv('IRONFALL_VERSION_NAME') ?: '1.0'
+    }
+
+    signingConfigs {
+        if (hasKey) {
+            upload {
+                storeFile file(ksFile)
+                storePassword System.getenv('IRONFALL_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('IRONFALL_KEY_ALIAS') ?: 'upload'
+                keyPassword System.getenv('IRONFALL_KEY_PASSWORD') ?: System.getenv('IRONFALL_KEYSTORE_PASSWORD')
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (hasKey) signingConfig signingConfigs.upload
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    androidResources {
+        noCompress 'js'
+    }
+}
+
+dependencies {
+    implementation 'com.android.billingclient:billing:7.1.1'
+}

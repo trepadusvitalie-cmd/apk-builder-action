@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Ironfall 2200</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <filter id="gloss" x="-15%" y="-15%" width="130%" height="130%" color-interpolation-filters="sRGB">
+    <feGaussianBlur in="SourceAlpha" stdDeviation="1.1" result="b"/>
+    <feSpecularLighting in="b" surfaceScale="3.2" specularConstant="1.15" specularExponent="24" lighting-color="#fff6dc" result="s"><feDistantLight azimuth="225" elevation="50"/></feSpecularLighting>
+    <feComposite in="s" in2="SourceAlpha" operator="in" result="s2"/>
+    <feComposite in="SourceGraphic" in2="s2" operator="arithmetic" k1="0" k2="1" k3="0.9" k4="0"/>
+  </filter>
+</defs></svg>
+<canvas id="c"></canvas>
+<canvas id="ov"></canvas>
+<div id="vig"></div>
+
+<div id="hud" class="hidden">
+  <div id="top">
+    <span class="res"><i class="ri" data-i="energy"></i><b id="en">0</b> <small id="inc">+0/s</small></span>
+    <span class="res"><i class="ri" data-i="units"></i><b id="uc">0</b><small>/500</small></span>
+    <span class="res"><i class="ri" data-i="clock"></i><b id="clk">0:00</b></span>
+    <button id="bPause" class="ib" aria-label="Pauză">⏸</button>
+  </div>
+  <div id="side">
+    <button id="bAll">⚔ Armata</button>
+    <button id="bTrucks">🚜 Constr.</button>
+    <button id="bBox">⬚ Selecție</button>
+    <button id="bBase">🏠 Baza</button>
+  </div>
+  <canvas id="mini" width="120" height="120"></canvas>
+  <div id="panel"></div>
+  <div id="labCol" class="hidden"></div>
+  <div id="toast"></div>
+  <div id="techPop"></div>
+</div>
+
+<div id="designer" class="modal hidden">
+  <div class="mbox wide">
+    <div class="mh">🛠 Proiectant de unități</div>
+    <div class="dgrid">
+      <div class="dopts">
+        <div class="lbl">1 · Șasiu — deplasare</div><div id="dPr" class="opts dmods"></div>
+        <div class="lbl">2 · Corp — blindaj</div><div id="dCh" class="opts dmods"></div>
+        <div class="lbl">3 · Modul de sus — armă, radar sau reparator</div><div id="dWp" class="opts dmods"></div>
+      </div>
+      <div class="dprev">
+        <div id="dName"></div>
+        <div class="dpv"><canvas id="prev" width="260" height="150"></canvas><canvas id="dRadar" width="150" height="130"></canvas></div>
+        <div id="dStats"></div>
+      </div>
+    </div>
+    <div class="row">
+      <button data-d="q1" class="ok">▶ Produ ×1</button>
+      <button data-d="q5" class="ok">▶▶ Produ ×5</button>
+      <button data-d="q10" class="ok">▶▶ Produ ×10</button>
+      <button data-d="q20" class="ok">▶▶ Produ ×20</button>
+      <button data-d="close">Închide</button>
+    </div>
+  </div>
+</div>
+
+<div id="pause" class="modal hidden">
+  <div class="mbox">
+    <div class="mh">⏸ Pauză</div>
+    <div class="col">
+      <button id="pResume" class="ok big">▶ Continuă</button>
+      <button id="pMusic">🎵 Muzică: DA</button>
+      <button id="pSfx">🔊 Sunete: DA</button>
+      <button id="pHelp">❔ Cum se joacă</button>
+      <button id="pRestart">↻ Joc nou</button>
+    </div>
+  </div>
+</div>
+
+<div id="help" class="modal hidden">
+  <div class="mbox wide scroll">
+    <div class="mh">❔ Cum se joacă</div>
+    <ul class="help">
+      <li><b>Un deget trage</b> = muți camera. <b>Două degete</b> = zoom (ciupire) și rotire.</li>
+      <li><b>Atinge</b> o unitate = o selectezi. <b>Atinge de două ori</b> = toate unitățile de același tip.</li>
+      <li><b>Ține apăsat apoi trage</b> (sau butonul ⬚) = selecție multiplă cu dreptunghi.</li>
+      <li>Cu unități selectate: <b>atinge terenul</b> = deplasare, <b>atinge un inamic</b> = atac.</li>
+      <li><b>⚔ Atac-deplasare</b>: unitățile atacă tot ce întâlnesc pe drum.</li>
+      <li><b>📋 Ordine</b> (cu unități selectate): <b>Foc</b> liber / doar ripostă / nu trage; <b>Poziție</b> urmărește inamicul / păzește locul / stă pe loc; <b>Retragere</b> automată la reparații la 50% sau 25% viață. Plus <b>Patrulare</b> (atinge harta: merg încolo și înapoi), <b>La bază</b>, <b>La reparații</b> și <b>Reciclează</b> (întoarce o parte din energie).</li>
+      <li><b>Constructorii 🚜</b> ridică clădiri. Construiește <b>Generatoare</b> pe sondele de petrol (pete negre care ard) — fiecare dă +4 energie ⚡/s.</li>
+      <li><b>Constructorii</b> au două file: <b>Bază</b> (generator, fabrică, laborator, atelier de reparații, turn radar) și <b>Apărare</b>: Turn, Buncăr, Fortificație, Fortăreață, Amplasament de artilerie — fiecare cu armele pe care le-ai cercetat — plus arici antitanc și ziduri.</li>
+      <li><b>Fabrica</b> produce unități. În <b>Proiectant</b> alegi 3 module: <b>șasiu</b> (roți, șenile, hover), <b>corp</b> (Cercetaș, Ușor, Mediu, Asalt, Greu, Titan sau Nova cel auriu) și <b>modulul de sus</b>: armă (mitralieră, tun, rachete, <b>laser</b>), <b>radar</b> (+25% rază și +15% atac pentru aliații din jur) sau <b>reparator</b> (repară automat unitățile și clădirile avariate).</li>
+      <li><b>Laboratorul</b> are 6 ramuri de cercetare: Mobilitate, Corp și blindaj, Armament, <b>Sprijin</b> (radar, reparator), <b>Apărare</b> (arici, buncăre, fortificații, fortărețe) și Industrie.</li>
+      <li>Selectează fabrica și atinge harta pentru a stabili <b>punctul de adunare</b>.</li>
+      <li>Constructorii pot <b>repara</b> clădirile: selectează-i și atinge clădirea avariată.</li>
+      <li><b>Victorie:</b> distruge Cartierul General și toate fabricile inamice.</li>
+    </ul>
+    <div class="row"><button id="hClose" class="ok">Am înțeles</button></div>
+  </div>
+</div>
+
+<div id="mapEd" class="modal hidden">
+  <div class="mbox">
+    <h2>🗺️ Hartă nouă</h2>
+    <div class="me">
+      <div class="mef">
+        <label>Nume <input id="meName" maxlength="18" value="Harta mea"></label>
+        <label>Mărime: <b id="meSizeV"></b><input id="meSize" type="range" min="240" max="2000" step="40" value="360"></label>
+        <label>Inele de forturi: <b id="meRingV"></b><input id="meRing" type="range" min="1" max="5" step="1" value="3"></label>
+        <div><div class="lbl">Forturi pe inel</div>
+        <div class="opts" id="meDens"><button data-v="0.6">Puține</button><button data-v="1" class="on">Normal</button><button data-v="1.4">Multe</button></div></div>
+        <div><div class="lbl">Petrol</div>
+        <div class="opts" id="meOil"><button data-v="0.6">Puțin</button><button data-v="1" class="on">Normal</button><button data-v="1.6">Mult</button></div></div>
+        <div class="mew"><div class="lbl">Teren</div>
+        <div class="opts" id="meSeedM"><button data-v="r" class="on">Nou la fiecare joc</button><button data-v="f">Mereu același</button></div></div>
+        <label id="meSeedL" class="hidden">Cod teren <input id="meSeed" inputmode="numeric" maxlength="6"></label>
+      </div>
+      <canvas id="mePrev" width="220" height="220"></canvas>
+    </div>
+    <div class="lbl">Sau lipește codul unei hărți primite de la un prieten</div>
+    <div class="mpb"><input id="meCode" placeholder="IF1-…" autocomplete="off"><button data-me="imp">Importă</button></div>
+    <div class="row"><button class="ok big" data-me="save">💾 Salvează harta</button><button data-me="close">Anulează</button></div>
+  </div>
+</div>
+
+<div id="intro" class="modal">
+  <div class="mbox title">
+    <div class="logo">IRONFALL <span>2200</span></div>
+    <div class="sub">Strategie în timp real · Pustiul de după cădere</div>
+    <div class="lbl">Dificultate</div>
+    <div class="opts" id="diff">
+      <button data-v="0">Ușor</button>
+      <button data-v="1" class="on">Normal</button>
+      <button data-v="2">Greu</button>
+    </div>
+    <div class="lbl">Nivel de tehnologie la start</div>
+    <div class="opts" id="tlSel">
+      <button data-v="0" class="on">T1</button>
+      <button data-v="1">T2</button>
+      <button data-v="2">T3</button>
+      <button data-v="3">T4</button>
+    </div>
+    <div class="tiny" id="tlInfo"></div>
+    <div class="lbl">Hartă</div>
+    <div class="opts" id="mapSel"></div>
+    <div class="row">
+      <button id="bPlay" class="ok big">▶ JOACĂ</button>
+      <button id="bMp" class="ok big">👥 MULTIPLAYER</button>
+      <button id="bHelp">❔ Ajutor</button>
+    </div>
+    <div class="tiny">Construiește generatoare pe sondele de petrol, proiectează-ți tancurile și distruge baza inamică.</div>
+  </div>
+</div>
+
+<div id="mp" class="modal hidden">
+  <div class="mbox title">
+    <div class="logo">MULTIPLAYER <span>CO-OP</span></div>
+    <div id="mpBody"></div>
+  </div>
+</div>
+<div id="netSt" class="hidden"></div>
+
+<div id="end" class="modal hidden">
+  <div class="mbox title">
+    <div class="logo" id="endT">VICTORIE</div>
+    <div class="sub" id="endS"></div>
+    <div class="row"><button id="bAgain" class="ok big">↻ Joc nou</button></div>
+  </div>
+</div>
+
+<script src="three.min.js"></script>
+<script src="i18n.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

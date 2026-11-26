@@ -60,6 +60,7 @@ const MISSIONS = [
 ];
 const MSCALE = 3; for (const m of MISSIONS) m.size *= MSCALE;   // mission maps are three times larger than the base layouts
 const MDEPTH = [0, ...MISSIONS.map(m => m.depth)];
+let LOAD_SAVE = false; try { LOAD_SAVE = localStorage.getItem('ironfall.loadSave') === '1'; localStorage.removeItem('ironfall.loadSave'); } catch (e) {}
 let MISSION = 0, CAMP = 0; try { MISSION = clamp(+localStorage.getItem('ironfall.mission') | 0, 0, MISSIONS.length); CAMP = clamp(+localStorage.getItem('ironfall.camp') | 0, 0, MISSIONS.length); } catch (e) {}
 if (NETCFG) MISSION = 0;
 const MDEF = MISSION ? MISSIONS[MISSION - 1] : null;
@@ -3506,7 +3507,44 @@ function setupForces() {   // the same on every phone of a multiplayer game: sam
   if (MDEF) { const prev = MDEPTH[MISSION - 1]; for (const r of [...RS].sort((a, b) => RS_DEPTH[a.id] - RS_DEPTH[b.id])) if (RS_DEPTH[r.id] <= prev && !PAID[r.id]) finishResearch(0, r.id);
     TEAMS[0].energy = 500 + 350 * (MISSION - 1); }
   else applyTechLevel(S.tl);
+  if (MDEF && LOAD_SAVE) { const d = savedGame(); if (d && d.mission === MISSION) { S.diff = d.diff; loadSaved(d); setTimeout(() => toast('💾 Joc încărcat'), 1300); } }
 }
+// ================= CAMPAIGN SAVE =================
+// one save slot for the campaign: the map is rebuilt from the mission seed, then the saved buildings, units, research and energy replace the starting ones
+const SAVE_KEY = 'ironfall.save';
+function saveData() {
+  const OI = new Map(OUTPOSTS.map((o, i) => [o, i]));
+  const blds = [], units = [];
+  for (const e of ents) { if (!e.alive) continue;
+    if (e.kind === 'bld') blds.push([e.id, e.type, e.team, +e.x.toFixed(2), +e.z.toFixed(2), +e.rot.toFixed(4), Math.round(e.hp), e.maxHp, e.complete ? 1 : 0, +e.built.toFixed(3), e.tier === undefined ? -1 : e.tier, e.pal, e.queue, +(e.prod || 0).toFixed(2), e.res || null, +(e.resProg || 0).toFixed(2), e.rally ? [Math.round(e.rally.x), Math.round(e.rally.z)] : null]);
+    else units.push([e.id, e.team, e.d, +e.x.toFixed(2), +e.z.toFixed(2), +e.heading.toFixed(3), Math.round(e.hp), e.maxHp, e.tier === undefined ? -1 : e.tier, e.pal, e.kills || 0, e.rank || 0, e.post ? OI.get(e.post) : -1, e.state === 'move' || e.state === 'amove' ? [e.state, Math.round(e.tx), Math.round(e.tz)] : null, e.ammo || 0]); }
+  return { v: 1, mission: MISSION, diff: S.diff, time: +S.time.toFixed(1), stats: S.stats, uid, srs: SRS,
+    teams: TEAMS.map(T => ({ energy: Math.round(T.energy), tech: [...T.tech] })),
+    outposts: OUTPOSTS.map(o => [o.alive ? 1 : 0, +o.nextWave.toFixed(1), +o.prodT.toFixed(1), o.factories.map(f => f.id), o.towers.map(t => t.id)]), blds, units, at: Date.now() };
+}
+function saveGame(quiet) {
+  if (!MDEF || NET.on || S.over || !S.running) return false;
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(saveData())); if (!quiet) toast('💾 Joc salvat'); return true; } catch (e) { if (!quiet) toast('Salvarea a eșuat'); return false; }
+}
+function savedGame() { try { const d = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); return d && d.v === 1 && MISSIONS[d.mission - 1] ? d : null; } catch (e) { return null; } }
+function loadSaved(d) {   // called right after setupForces() for the same mission
+  for (const e of ents) { scene.remove(e.mesh); if (e.well && e.well.pump === e) e.well.pump = null; }
+  ents.length = 0; EID.clear();
+  for (let i = 0; i < TEAMS.length; i++) { const T = mkTeam(i); Object.assign(TEAMS[i], T); for (const id of (d.teams[i] || {}).tech || []) finishResearch(i, id); TEAMS[i].energy = (d.teams[i] || {}).energy || 0; TEAMS[i].units = 0; }
+  const relabel = (e, id) => { EID.delete(e.id); e.id = id; EID.set(id, e); };
+  for (const b of d.blds) { const [id, type, team, x, z, rot, hp, maxHp, comp, built, tier, pal, queue, prod, res, resProg, rally] = b; if (!BD[type]) continue;
+    const e = createBuilding(team, type, x, z, !!comp, rot, tier < 0 ? undefined : tier, pal); relabel(e, id);
+    e.hp = hp; e.maxHp = maxHp; e.built = built; if (!comp) e.mesh.scale.y = 0.12 + 0.88 * built; e.queue = queue || []; e.prod = prod || 0; e.rally = rally ? { x: rally[0], z: rally[1] } : null;
+    if (res) { e.res = res; e.resProg = resProg || 0; TEAMS[team].researching.add(res); } }
+  for (const u of d.units) { const [id, team, des, x, z, heading, hp, maxHp, tier, pal, kills, rank, post, mv, ammo] = u;
+    const e = createUnit(team, des, x, z, tier < 0 ? undefined : tier, pal); relabel(e, id);
+    e.heading = heading; e.hp = hp; e.maxHp = maxHp; e.kills = kills; e.rank = rank; if (post >= 0) e.post = OUTPOSTS[post]; if (e.maxAmmo) e.ammo = ammo;
+    if (mv) { e.state = mv[0]; e.amove = mv[0] === 'amove'; e.tx = mv[1]; e.tz = mv[2]; } }
+  OUTPOSTS.forEach((o, i) => { const s = d.outposts[i]; if (!s) return; o.alive = !!s[0]; o.nextWave = s[1]; o.prodT = s[2]; o.factories = s[3].map(byId).filter(Boolean); o.towers = s[4].map(byId).filter(Boolean); });
+  uid = d.uid; SRS = d.srs; S.time = d.time; S.stats = d.stats || S.stats; panelSig = '';
+}
+setInterval(() => { if (S.running && !S.paused) saveGame(true); }, 60000);   // autosave every minute
+document.addEventListener('visibilitychange', () => { if (document.hidden) saveGame(true); });
 let ecoT = 0, aiT = 0, uiT = 0, winT = 0;
 function update(dt) {
   S.time += dt;
@@ -3527,7 +3565,7 @@ function checkEnd() {
   if (MDEF && MDEF.obj === 'outposts' ? OUTPOSTS.every(o => !o.alive) : !has(1, ['citadel'])) endGame(true);
   else if (!has(0, ['hq', 'factory']) && !ents.some(e => e.alive && e.team === 0 && e.isTruck)) endGame(false);
 }
-function endGame(win) {
+function endGame(win) { if (MDEF) try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
   S.over = true; $('end').classList.remove('hidden'); $('endT').textContent = win ? 'VICTORIE' : 'ÎNFRÂNGERE';
   $('endS').innerHTML = `Timp: ${fmtTime(S.time)} · Unități produse: ${S.stats.built} · Inamici distruși: ${S.stats.killed} · Pierderi: ${S.stats.lost}`;
   sfx(win ? 'done' : 'alert');
@@ -3564,15 +3602,16 @@ addEventListener('resize', resize);
 // buttons
 try { const d0 = localStorage.getItem('ironfall.diff'); if (d0 !== null) { S.diff = +d0; document.querySelectorAll('#diff button').forEach(x => x.classList.toggle('on', +x.dataset.v === S.diff)); } } catch (e) {}
 document.querySelectorAll('#diff button').forEach(b => b.addEventListener('click', () => { document.querySelectorAll('#diff button').forEach(x => x.classList.remove('on')); b.classList.add('on'); S.diff = +b.dataset.v; }));
-function startGame() { audioInit(); $('intro').classList.add('hidden'); $('hud').classList.remove('hidden'); setupGame(); S.running = true; toast('Construiește generatoare pe sondele de petrol! ⚡'); setTimeout(make3DIcons, 400); }
+function startGame() { if (MDEF && LOAD_SAVE) { const d = savedGame(); if (d && d.mission === MISSION) S.diff = d.diff; } audioInit(); $('intro').classList.add('hidden'); $('hud').classList.remove('hidden'); setupGame(); S.running = true; toast('Construiește generatoare pe sondele de petrol! ⚡'); setTimeout(make3DIcons, 400); }
 $('bPlay').addEventListener('click', () => { if (MISSION) { try { localStorage.removeItem('ironfall.mission'); localStorage.setItem('ironfall.autostart', '1'); } catch (e) {} location.reload(); return; } startGame(); });
 function missionGo(k) { try { localStorage.setItem('ironfall.mission', k); localStorage.setItem('ironfall.autostart', '1'); } catch (e) {} location.reload(); }
 function campOpen() {   // campaign screen: the story so far and the 5 missions
-  let m = $('camp'); if (m) m.remove(); m = document.createElement('div'); m.id = 'camp'; m.className = 'modal';
+  const sv = savedGame(); let m = $('camp'); if (m) m.remove(); m = document.createElement('div'); m.id = 'camp'; m.className = 'modal';
   m.innerHTML = `<div class="mbox wide scroll"><h2>🎖 Campanie</h2><p class="cint">${CAMPAIGN_INTRO}</p><div class="clist">${MISSIONS.map((d, i) => { const k = i + 1, open = k <= CAMP + 1, done = k <= CAMP;
     return `<button class="cm ${done ? 'done' : ''}" data-k="${k}" ${open ? '' : 'disabled'}><b>${done ? '✔' : open ? '▶' : '🔒'} Misiunea ${k}</b><span>${d.name}</span><small>${d.map} · ${d.size} m</small></button>`; }).join('')}</div>
-    <div class="row"><button data-c="x">Închide</button></div></div>`;
-  m.addEventListener('click', ev => { if (ev.target.closest('[data-c="x"]')) { m.remove(); return; } const b = ev.target.closest('[data-k]'); if (b && !b.disabled) briefOpen(+b.dataset.k); });
+    <div class="row">${sv ? `<button class="ok big" data-c="load">💾 Continuă salvarea · Misiunea ${sv.mission} · ${Math.floor(sv.time / 60)} min</button>` : ''}<button data-c="x">Închide</button></div></div>`;
+  m.addEventListener('click', ev => { if (ev.target.closest('[data-c="x"]')) { m.remove(); return; }
+    if (ev.target.closest('[data-c="load"]')) { try { localStorage.setItem('ironfall.loadSave', '1'); } catch (e) {} missionGo(sv.mission); return; } const b = ev.target.closest('[data-k]'); if (b && !b.disabled) briefOpen(+b.dataset.k); });
   document.body.appendChild(m); sfx('click'); }
 function briefOpen(k) {
   const d = MISSIONS[k - 1], n = RS.filter(r => RS_DEPTH[r.id] > MDEPTH[k - 1] && RS_DEPTH[r.id] <= MDEPTH[k]).length;
@@ -3595,6 +3634,8 @@ $('bHelp').addEventListener('click', () => $('help').classList.remove('hidden'))
 $('pHelp').addEventListener('click', () => $('help').classList.remove('hidden'));
 $('hClose').addEventListener('click', () => $('help').classList.add('hidden'));
 $('bPause').addEventListener('click', () => { S.paused = !NET.on; $('pause').classList.remove('hidden'); sfx('click'); });
+{ const pr = $('pRestart'), sb = document.createElement('button'); sb.id = 'pSave'; sb.textContent = '💾 Salvează'; pr.parentNode.insertBefore(sb, pr);
+  sb.addEventListener('click', () => { if (!MDEF) { toast('Salvarea merge doar în campanie'); return; } saveGame(false); }); }
 $('pResume').addEventListener('click', () => { S.paused = false; $('pause').classList.add('hidden'); });
 $('pMusic').addEventListener('click', e => { AU.music = !AU.music; e.target.textContent = '🎵 Muzică: ' + (AU.music ? 'DA' : 'NU'); });
 $('pSfx').addEventListener('click', e => { AU.sfx = !AU.sfx; e.target.textContent = '🔊 Sunete: ' + (AU.sfx ? 'DA' : 'NU'); });

@@ -90,6 +90,20 @@ RINGS.forEach((R, ri) => {
 });
 if (!MDEF || MDEF.obj === 'citadel') OUTPOSTS.push({ x: 0, z: 0, tier: 3, a: 0, prodT: 0, nextWave: 0, citadel: true });
 const FLAT = [{ x: PLAYER.x, z: PLAYER.z - 8, r: 44 }, ...GUEST_BASE.slice(1).map(b => ({ x: b.x, z: b.z, r: 24 })), { x: 0, z: 0, r: 34 }, ...OUTPOSTS.filter(o => !o.citadel).map(o => ({ x: o.x, z: o.z, r: 23 }))];
+// wide flat access roads: player (and guest bases) to every outpost and to the centre, every outpost to the centre.
+// The terrain is levelled along them and no rocks or peaks are placed on them, so tanks always have a way in.
+const ROADS = [];
+{ for (const o of OUTPOSTS) ROADS.push([PLAYER.x, PLAYER.z, o.x, o.z]); ROADS.push([PLAYER.x, PLAYER.z, 0, 0]);
+  for (const h of GUEST_BASE.slice(1)) { ROADS.push([h.x, h.z, 0, 0]); for (const o of [...OUTPOSTS].sort((a, b) => Math.hypot(a.x - h.x, a.z - h.z) - Math.hypot(b.x - h.x, b.z - h.z)).slice(0, 2)) ROADS.push([h.x, h.z, o.x, o.z]); }
+  for (const o of OUTPOSTS) if (!o.citadel) ROADS.push([o.x, o.z, 0, 0]); }
+const ROAD_W = 9, ROAD_B = 14;
+function roadInfo(x, z) {   // distance to the nearest road and how far along it (0..1)
+  let bd = 1e9, bs = null, bt = 0;
+  for (const s of ROADS) { const dx = s[2] - s[0], dz = s[3] - s[1], l2 = dx * dx + dz * dz || 1; const t = clamp(((x - s[0]) * dx + (z - s[1]) * dz) / l2, 0, 1);
+    const d = Math.hypot(x - s[0] - dx * t, z - s[1] - dz * t); if (d < bd) { bd = d; bs = s; bt = t; } }
+  return { d: bd, s: bs, t: bt };
+}
+const onRoad = (x, z, m) => roadInfo(x, z).d < ROAD_W + (m || 0);
 const WELL_POS = [[-14, PLAYER.z + 12], [16, PLAYER.z + 10], [0, PLAYER.z - 16], ...GUEST_BASE.slice(1).map(b => [b.x + (b.x < 0 ? -12 : 12), b.z + 9]), ...[[-40, 118], [42, 116], [-70, 95], [72, 92], [0, 70], [-95, 40], [96, 30], [-20, -96], [30, -120], [-110, -40], [110, -70], [-60, -130], [70, 60], [-60, 60]].map(([x, z]) => [x * SC, z * SC])];
 { let k = 0; const extra = Math.min(170, Math.round(16 * (SC * SC - 1) + (MC.custom ? 14 * Math.min(SC * SC, 11) * (MC.oil - 1) : 0))); for (let t = 0; k < extra && t < 9000; t++) { const x = (hash2(t, 7) - 0.5) * (MAP - 40), z = (hash2(t, 13) - 0.5) * (MAP - 40);
   if (Math.hypot(x, z) < 40 || Math.hypot(x - PLAYER.x, z - PLAYER.z) < 35 || GUEST_BASE.some(b => Math.hypot(x - b.x, z - b.z) < 30) || OUTPOSTS.some(o => Math.hypot(o.x - x, o.z - z) < 24) || WELL_POS.some(w => Math.hypot(w[0] - x, w[1] - z) < 30)) continue; WELL_POS.push([x, z]); k++; } }
@@ -112,9 +126,15 @@ function rawH(x, z) {
   if (w.sand > 0.05) { const d = Math.sin(x * 0.11 + fbm(x * 0.03, z * 0.03) * 6 + z * 0.05); h += Math.pow(d * 0.5 + 0.5, 2) * 4.5 * w.sand; }
   return h;
 }
+const baseH = (x, z) => Math.max(rawH(x, z), 0);
+const hubH = (x, z) => { const f = FLAT.find(f => Math.hypot(f.x - x, f.z - z) < f.r); if (!f) return baseH(x, z); if (f.h === undefined) f.h = flatLevel(f); return f.h; };
+// level of a flattened base: the average ground around it, so a base never sits in a pit below its surroundings
+function flatLevel(f) { let sum = 0, n = 0; for (let i = 0; i < 16; i++) { const a = i / 16 * TAU; for (const r of [0, f.r * 0.5, f.r + 8, f.r + 20]) { sum += baseH(f.x + Math.sin(a) * r, f.z + Math.cos(a) * r); n++; } } return Math.min(sum / n, 10); }
 function heightFull(x, z) {
   let h = rawH(x, z);
-  for (const f of FLAT) { const dx = x - f.x, dz = z - f.z; const d = Math.sqrt(dx * dx + dz * dz); if (d < f.r + 14) { if (f.h === undefined) f.h = Math.max(rawH(f.x, f.z), 0); const t = smooth(clamp((d - f.r) / 14, 0, 1)); h = f.h * (1 - t) + h * t; } }
+  if (h < 0) h *= 0.2;   // no pits: hollows are filled almost level
+  { const r = roadInfo(x, z); if (r.d < ROAD_W + ROAD_B) { const s = r.s; if (s[4] === undefined) { s[4] = hubH(s[0], s[1]); s[5] = hubH(s[2], s[3]); } const rh = lerp(s[4], s[5], r.t); const t = smooth(clamp((r.d - ROAD_W) / ROAD_B, 0, 1)); h = rh * (1 - t) + h * t; } }
+  for (const f of FLAT) { const dx = x - f.x, dz = z - f.z; const d = Math.sqrt(dx * dx + dz * dz); if (d < f.r + 26) { if (f.h === undefined) f.h = flatLevel(f); const t = smooth(clamp((d - f.r) / 26, 0, 1)); h = f.h * (1 - t) + h * t; } }
   const e = Math.max(Math.abs(x), Math.abs(z)); if (e > HALF - 12) h += Math.pow(e - (HALF - 12), 1.5) * 0.8;
   return h;
 }
@@ -363,7 +383,7 @@ const drand = (x, y) => x + DR() * (y - x);
 const dpick = a => a[(DR() * a.length) | 0];
 function buildDecor() { DRS = SEED ^ 0x5eed1;
   const B = new Builder();
-  const ok = (x, z, m) => { if (Math.abs(x) > EDGE - 2 || Math.abs(z) > EDGE - 2) return false; for (const b of FLAT) if (Math.hypot(x - b.x, z - b.z) < b.r + 6 + m) return false; for (const w of WELLS) if (Math.hypot(x - w.x, z - w.z) < 8 + m) return false; return true; };
+  const ok = (x, z, m) => { if (Math.abs(x) > EDGE - 2 || Math.abs(z) > EDGE - 2) return false; if (onRoad(x, z, 4 + Math.max(0, m))) return false; for (const b of FLAT) if (Math.hypot(x - b.x, z - b.z) < b.r + 6 + m) return false; for (const w of WELLS) if (Math.hypot(x - w.x, z - w.z) < 8 + m) return false; return true; };
   // impassable mountain peaks
   for (let z = -EDGE; z <= EDGE; z += 5) for (let x = -EDGE; x <= EDGE; x += 5) { if (heightAt(x, z) > 15 && ok(x, z, -6)) OBST.push({ x, z, r: 3.4, mtn: true }); }
   let tries = 0, clusters = 0;
@@ -3641,7 +3661,7 @@ window.onBack = () => {
   if (S.paused || !$('pause').classList.contains('hidden')) return false;
   S.paused = !NET.on; $('pause').classList.remove('hidden'); return true;
 };
-window.__game = { UIC, RICON, make3DIcons, losClear, nearestEnemy, eyeY, RS_DEPTH, RICON, RS, LS, worldHash, bombFx, fireball3D, kill, wrecks, FBALLS, updFireballs, SPOT, nearestSpotted, WP, impactFx, XST, heightAt,  killNear: () => { for (const e of ents) if (e.alive && e.team === 1 && Math.hypot(e.x - PLAYER2.x, e.z - PLAYER2.z) < 25) kill(e); }, NET, execCmd, doCmd, byId, PLAYER, PLAYER2, S, TEAMS, ents, cam, setSel, sel: () => sel, createUnit, createBuilding, sfx, AU, SB, buildSfx, projs: () => projs, BD, WP };
+window.__game = { OBST, OUTPOSTS, EDGE, UIC, RICON, make3DIcons, losClear, nearestEnemy, eyeY, RS_DEPTH, RICON, RS, LS, worldHash, bombFx, fireball3D, kill, wrecks, FBALLS, updFireballs, SPOT, nearestSpotted, WP, impactFx, XST, heightAt,  killNear: () => { for (const e of ents) if (e.alive && e.team === 1 && Math.hypot(e.x - PLAYER2.x, e.z - PLAYER2.z) < 25) kill(e); }, NET, execCmd, doCmd, byId, PLAYER, PLAYER2, S, TEAMS, ents, cam, setSel, sel: () => sel, createUnit, createBuilding, sfx, AU, SB, buildSfx, projs: () => projs, BD, WP };
 
 resize(); updateCamera(0); requestAnimationFrame(loop);
 // background scene behind the intro

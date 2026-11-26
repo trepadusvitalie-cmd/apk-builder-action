@@ -3641,7 +3641,7 @@ window.onBack = () => {
   if (S.paused || !$('pause').classList.contains('hidden')) return false;
   S.paused = !NET.on; $('pause').classList.remove('hidden'); return true;
 };
-window.__game = { losClear, nearestEnemy, eyeY, RS_DEPTH, RICON, RS, LS, worldHash, bombFx, fireball3D, kill, wrecks, FBALLS, updFireballs, SPOT, nearestSpotted, WP, impactFx, XST, heightAt,  killNear: () => { for (const e of ents) if (e.alive && e.team === 1 && Math.hypot(e.x - PLAYER2.x, e.z - PLAYER2.z) < 25) kill(e); }, NET, execCmd, doCmd, byId, PLAYER, PLAYER2, S, TEAMS, ents, cam, setSel, sel: () => sel, createUnit, createBuilding, sfx, AU, SB, buildSfx, projs: () => projs, BD, WP };
+window.__game = { UIC, RICON, make3DIcons, losClear, nearestEnemy, eyeY, RS_DEPTH, RICON, RS, LS, worldHash, bombFx, fireball3D, kill, wrecks, FBALLS, updFireballs, SPOT, nearestSpotted, WP, impactFx, XST, heightAt,  killNear: () => { for (const e of ents) if (e.alive && e.team === 1 && Math.hypot(e.x - PLAYER2.x, e.z - PLAYER2.z) < 25) kill(e); }, NET, execCmd, doCmd, byId, PLAYER, PLAYER2, S, TEAMS, ents, cam, setSel, sel: () => sel, createUnit, createBuilding, sfx, AU, SB, buildSfx, projs: () => projs, BD, WP };
 
 resize(); updateCamera(0); requestAnimationFrame(loop);
 // background scene behind the intro
